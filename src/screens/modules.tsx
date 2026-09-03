@@ -1,16 +1,16 @@
 /**
- * Placeholder screens for the six future core modules.
+ * Screens for the six future core modules.
  *
- * Each is a thin wrapper that gives `PlaceholderScreen` its title. When a
- * module ships, replace that module's wrapper body with the real screen —
- * the navigation wiring and data layer are already in place.
+ * Vaccines ships as a real screen (`VaccinesScreen.tsx`); the other five are
+ * thin wrappers that give `PlaceholderScreen` its title. When a module ships,
+ * replace that module's wrapper body with the real screen — the navigation
+ * wiring and data layers are already in place.
  */
 import React from 'react';
 import PlaceholderScreen from './PlaceholderScreen';
+import VaccinesScreen from './VaccinesScreen';
 
-export function VaccinesScreen() {
-  return <PlaceholderScreen title="Vaccines" noun="vaccination records" />;
-}
+export { VaccinesScreen };
 
 export function MedsScreen() {
   return <PlaceholderScreen title="Medications" noun="medication reminders" />;

@@ -18,6 +18,7 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { usePets } from '../context/PetContext';
+import { useVaccines } from '../context/VaccinesContext';
 import { AppColors } from '../theme';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import type { Pet } from '../types';
@@ -41,12 +42,13 @@ function PetAvatar({ pet }: { pet: Pet }) {
 
 export default function HomeScreen({ navigation }: Props) {
   const { pets, activePet, addPet, updatePet, deletePet, selectPet } = usePets();
+  const { deleteVaccinesForPet } = useVaccines();
   const [processing, setProcessing] = useState(false);
 
   const confirmDelete = (pet: Pet) => {
     Alert.alert(
       `Delete ${pet.name}?`,
-      'This permanently removes the pet and its on-device data. This cannot be undone.',
+      'This permanently removes the pet, its vaccine records, and its other on-device data. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -54,8 +56,13 @@ export default function HomeScreen({ navigation }: Props) {
           style: 'destructive',
           onPress: async () => {
             setProcessing(true);
-            await deletePet(pet.id);
-            setProcessing(false);
+            try {
+              // Cascade: the pet's vaccine records go with it.
+              await deleteVaccinesForPet(pet.id);
+              await deletePet(pet.id);
+            } finally {
+              setProcessing(false);
+            }
           },
         },
       ],

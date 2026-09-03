@@ -2,12 +2,12 @@
  * The app's root state: every screen lives in (or is reachable from) this tree.
  *
  * Layering:
- *  - `PetProvider` wraps everything so all screens share pet state + the
- *    active-pet selection, backed by AsyncStorage.
+ *  - `PetProvider` wraps everything (active-pet selection, pet CRUD).
+ *  - `VaccinesProvider` sits inside it, so vaccine screens can read the
+ *    active pet and the vaccine collection together.
  *  - A `NativeStack` hosts the `MainTabs` plus a modal `PetForm` screen.
- *  - `MainTabs` is a bottom tab bar: Home (Pet Profiles, fully working) +
- *    six future module placeholder tabs (Vaccines, Meds, Feeding, Vet Records,
- *    Expenses, Journal) + a "More" tab holding the four upsell screens.
+ *  - The bottom tab bar: Home (Pet Profiles, fully working) + module tabs
+ *    (Vaccines fully working, the rest placeholder) + "More" (upsell tabs).
  *
  * Future modules plug in here by swapping a placeholder screen for the real
  * module screen; the data layer and active-pet context are already wired.
@@ -25,6 +25,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Text } from 'react-native';
 
 import { PetProvider, usePets } from '../context/PetContext';
+import { VaccinesProvider } from '../context/VaccinesContext';
 import HomeScreen from '../screens/HomeScreen';
 import PetFormScreen from '../screens/PetFormScreen';
 import {
@@ -150,28 +151,30 @@ const navTheme = {
   },
 };
 
-/** Root navigation container + PetProvider. */
+/** Root navigation container + providers (Pet, then Vaccines). */
 export default function RootNavigator(): React.JSX.Element {
   return (
     <PetProvider>
-      <NavigationContainer theme={navTheme}>
-        <StatusBar style="auto" />
-        <Stack.Navigator>
-          <Stack.Screen
-            name="Main"
-            component={MainTabs}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="PetForm"
-            component={PetFormScreen}
-            options={({ route }) => ({
-              title: route.params?.petId ? 'Edit Pet' : 'New Pet',
-              presentation: 'modal',
-            })}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <VaccinesProvider>
+        <NavigationContainer theme={navTheme}>
+          <StatusBar style="auto" />
+          <Stack.Navigator>
+            <Stack.Screen
+              name="Main"
+              component={MainTabs}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="PetForm"
+              component={PetFormScreen}
+              options={({ route }) => ({
+                title: route.params?.petId ? 'Edit Pet' : 'New Pet',
+                presentation: 'modal',
+              })}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </VaccinesProvider>
     </PetProvider>
   );
 }
