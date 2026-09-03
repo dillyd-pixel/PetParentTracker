@@ -67,3 +67,64 @@ export type VaccineStatus =
 
 /** A vaccine whose due date is within this many days counts as "due soon". */
 export const VACCINE_DUE_SOON_DAYS = 30;
+
+/**
+ * The Medication entity — stored on-device via AsyncStorage. One record per
+ * medication a pet is on, bound to the pet via `petId`.
+ *
+ * Schedule model: a medication repeats either a fixed number of times per day
+ * (`times: string[]` of "HH:mm", e.g. ["08:00", "20:00"]) or every N days
+ * (`intervalDays: number`, e.g. 3 for "every 3 days"). Exactly one of the two
+ * is set — whichever is non-empty drives the schedule and the reminder
+ * notifications.
+ */
+export interface Medication extends BaseEntity {
+  petId: string;
+  /** Medication name, e.g. "Carprofen (Rimadyl)". */
+  name: string;
+  /** Human-friendly dosage, e.g. "1 tablet". */
+  dosage: string;
+  /** Extra instructions, e.g. "give with food". Optional. */
+  notes?: string;
+  /** Daily dose times as "HH:mm" (24h). Empty means "every N days" mode. */
+  times: string[];
+  /** Repeat every N days when the schedule is interval-based (0 = n/a). */
+  intervalDays: number;
+  /** ISO date (YYYY-MM-DD) the medication course starts; optional. */
+  startDate?: string;
+  /** ISO date (YYYY-MM-DD) the medication course ends; optional. */
+  endDate?: string;
+  /** Whether the record is still active (toggled off for ended courses). */
+  active: boolean;
+  /** Whether local reminder notifications are scheduled for this record. */
+  remindersEnabled: boolean;
+}
+
+/** Input type for creating/updating a medication (id/createdAt auto-assigned). */
+export type MedicationInput = Omit<Medication, keyof BaseEntity> & Partial<BaseEntity>;
+
+/** Validate a 24h clock string "HH:mm" (exact format, minute in 0–59). */
+export function isValidTime(s: string): boolean {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(s)) return false;
+  return true;
+}
+
+/** Validate an ISO date string "YYYY-MM-DD". */
+export function isValidISODate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
+
+/** Human summary of a medication's schedule, e.g. "2× daily · 08:00, 20:00". */
+export function medicationScheduleLabel(m: Medication): string {
+  if (m.times.length > 0) {
+    const daily = m.times.length === 1 ? 'daily' : `${m.times.length}× daily`;
+    return `${daily} · ${m.times.join(', ')}`;
+  }
+  if (m.intervalDays > 0) {
+    return m.intervalDays === 1 ? 'every day' : `every ${m.intervalDays} days`;
+  }
+  return 'no schedule';
+}

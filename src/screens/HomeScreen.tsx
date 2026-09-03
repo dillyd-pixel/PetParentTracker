@@ -19,6 +19,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { usePets } from '../context/PetContext';
 import { useVaccines } from '../context/VaccinesContext';
+import { useMedications } from '../context/MedicationsContext';
+import { cancelMedicationsForPet } from '../storage/notifications';
 import { AppColors } from '../theme';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import type { Pet } from '../types';
@@ -43,12 +45,13 @@ function PetAvatar({ pet }: { pet: Pet }) {
 export default function HomeScreen({ navigation }: Props) {
   const { pets, activePet, addPet, updatePet, deletePet, selectPet } = usePets();
   const { deleteVaccinesForPet } = useVaccines();
+  const { medications, deleteMedicationsForPet } = useMedications();
   const [processing, setProcessing] = useState(false);
 
   const confirmDelete = (pet: Pet) => {
     Alert.alert(
       `Delete ${pet.name}?`,
-      'This permanently removes the pet, its vaccine records, and its other on-device data. This cannot be undone.',
+      'This permanently removes the pet, its vaccine and medication records, and its other on-device data. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -57,8 +60,11 @@ export default function HomeScreen({ navigation }: Props) {
           onPress: async () => {
             setProcessing(true);
             try {
-              // Cascade: the pet's vaccine records go with it.
+              // Cascade: the pet's vaccine + medication records go with it,
+              // and its scheduled medication reminders are cancelled.
               await deleteVaccinesForPet(pet.id);
+              await deleteMedicationsForPet(pet.id);
+              await cancelMedicationsForPet(pet.id, medications);
               await deletePet(pet.id);
             } finally {
               setProcessing(false);
