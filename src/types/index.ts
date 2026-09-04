@@ -232,3 +232,59 @@ export function vetCostLabel(cost?: number): string | null {
   if (cost === undefined || !Number.isFinite(cost)) return null;
   return cost.toFixed(2);
 }
+
+/**
+ * The Expense entity — stored on-device via AsyncStorage. One record per
+ * payment (or purchase) for a pet, bound to the pet via `petId`.
+ */
+export interface Expense extends BaseEntity {
+  petId: string;
+  /** What was paid for, e.g. "Dog food (12 kg bag)". */
+  title: string;
+  /** Longer description (optional) — e.g. line-item detail. */
+  description?: string;
+  /** Amount paid, in the user's own currency, as a plain positive number. */
+  amount: number;
+  /** Date of the expense (ISO date YYYY-MM-DD). */
+  date: string;
+  /** Spending category from the fixed set `EXPENSE_CATEGORY_OPTIONS`. */
+  category: ExpenseCategory;
+  /** Free-form notes, e.g. store, receipt no. Optional. */
+  notes?: string;
+}
+
+/** Input type for creating/updating an expense (id/createdAt auto-assigned). */
+export type ExpenseInput = Omit<Expense, keyof BaseEntity> & Partial<BaseEntity>;
+
+/** Spending categories an expense can have (small fixed set). */
+export type ExpenseCategory =
+  | 'Food'
+  | 'Vet'
+  | 'Grooming'
+  | 'Supplies'
+  | 'Medication'
+  | 'Other';
+
+/** Category options exposed for the create/edit form. */
+export const EXPENSE_CATEGORY_OPTIONS: ExpenseCategory[] = [
+  'Food',
+  'Vet',
+  'Grooming',
+  'Supplies',
+  'Medication',
+  'Other',
+];
+
+/** Human-readable category name (already human; kept for symmetry + safety). */
+export function expenseCategoryLabel(category: ExpenseCategory): string {
+  return category;
+}
+
+/**
+ * Human-readable amount for an expense, e.g. "42.50" as a plain number.
+ * The user's currency is intentionally not prefixed (no currency metadata).
+ */
+export function expenseAmountLabel(amount: number): string {
+  if (!Number.isFinite(amount)) return '0';
+  return amount.toFixed(2);
+}

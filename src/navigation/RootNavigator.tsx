@@ -31,6 +31,7 @@ import { VaccinesProvider } from '../context/VaccinesContext';
 import { MedicationsProvider } from '../context/MedicationsContext';
 import { FeedingProvider } from '../context/FeedingContext';
 import { VetProvider } from '../context/VetContext';
+import { ExpensesProvider } from '../context/ExpensesContext';
 import HomeScreen from '../screens/HomeScreen';
 import PetFormScreen from '../screens/PetFormScreen';
 import {
@@ -164,24 +165,26 @@ export default function RootNavigator(): React.JSX.Element {
         <MedicationsProvider>
           <FeedingProvider>
             <VetProvider>
-              <NavigationContainer theme={navTheme}>
-                <StatusBar style="auto" />
-                <Stack.Navigator>
-                  <Stack.Screen
-                    name="Main"
-                    component={MainTabs}
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="PetForm"
-                    component={PetFormScreen}
-                    options={({ route }) => ({
-                      title: route.params?.petId ? 'Edit Pet' : 'New Pet',
-                      presentation: 'modal',
-                    })}
-                  />
-                </Stack.Navigator>
-              </NavigationContainer>
+              <ExpensesProvider>
+                <NavigationContainer theme={navTheme}>
+                  <StatusBar style="auto" />
+                  <Stack.Navigator>
+                    <Stack.Screen
+                      name="Main"
+                      component={MainTabs}
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                      name="PetForm"
+                      component={PetFormScreen}
+                      options={({ route }) => ({
+                        title: route.params?.petId ? 'Edit Pet' : 'New Pet',
+                        presentation: 'modal',
+                      })}
+                    />
+                  </Stack.Navigator>
+                </NavigationContainer>
+              </ExpensesProvider>
             </VetProvider>
           </FeedingProvider>
         </MedicationsProvider>
