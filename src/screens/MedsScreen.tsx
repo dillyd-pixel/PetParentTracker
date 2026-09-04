@@ -31,6 +31,7 @@ import { usePets } from '../context/PetContext';
 import { hasNotificationPermission } from '../storage/notifications';
 import { medicationScheduleLabel } from '../types';
 import { AppColors, cardShadow } from '../theme';
+import BackgroundCharacters from '../components/BackgroundCharacters';
 import type { Medication, MedicationInput } from '../types';
 
 /** Prompt shown when no pet is selected anywhere in the app. */
@@ -451,6 +452,7 @@ export default function MedsScreen() {
   if (!activePet) {
     return (
       <View style={styles.container}>
+        <BackgroundCharacters />
         <NoPetState />
       </View>
     );
@@ -604,6 +606,7 @@ export default function MedsScreen() {
 
   return (
     <View style={styles.container}>
+      <BackgroundCharacters />
       <FlatList
         data={records}
         keyExtractor={(item) => item.id}

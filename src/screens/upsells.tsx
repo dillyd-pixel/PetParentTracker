@@ -15,6 +15,7 @@ import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import { createWebSafeStackNavigator } from '../navigation/WebSafeStack';
 import PlaceholderScreen from './PlaceholderScreen';
 import { AppColors } from '../theme';
+import BackgroundCharacters from '../components/BackgroundCharacters';
 import { usePets } from '../context/PetContext';
 
 export type UpsellStackParamList = {
@@ -39,6 +40,7 @@ export function UpsellList({ navigation }: { navigation: any }) {
   const { activePet } = usePets();
   return (
     <View style={styles.container}>
+      <BackgroundCharacters />
       <FlatList
         data={PRODUCTS}
         keyExtractor={(item) => item.name}

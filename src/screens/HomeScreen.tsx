@@ -26,6 +26,7 @@ import { useExpenses } from '../context/ExpensesContext';
 import { useJournal } from '../context/JournalContext';
 import { cancelMedicationsForPet } from '../storage/notifications';
 import { AppColors } from '../theme';
+import BackgroundCharacters from '../components/BackgroundCharacters';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import type { Pet } from '../types';
 
@@ -95,6 +96,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
+      <BackgroundCharacters />
       <FlatList
         data={pets}
         keyExtractor={(item) => item.id}

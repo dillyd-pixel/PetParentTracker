@@ -30,6 +30,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useJournal } from '../context/JournalContext';
 import { usePets } from '../context/PetContext';
 import { AppColors, cardShadow } from '../theme';
+import BackgroundCharacters from '../components/BackgroundCharacters';
 import {
   JOURNAL_MOOD_OPTIONS,
   isValidISODate,
@@ -274,6 +275,7 @@ export default function JournalScreen() {
   if (!activePet) {
     return (
       <View style={styles.container}>
+        <BackgroundCharacters />
         <NoPetState />
       </View>
     );
@@ -351,6 +353,7 @@ export default function JournalScreen() {
 
   return (
     <View style={styles.container}>
+      <BackgroundCharacters />
       <FlatList
         data={entries}
         keyExtractor={(item) => item.id}

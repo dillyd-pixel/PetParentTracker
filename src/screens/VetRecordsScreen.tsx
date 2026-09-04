@@ -25,6 +25,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useVetRecords } from '../context/VetContext';
 import { usePets } from '../context/PetContext';
 import { AppColors, cardShadow } from '../theme';
+import BackgroundCharacters from '../components/BackgroundCharacters';
 import { isValidISODate, vetCostLabel } from '../types';
 import type { VetRecord, VetRecordInput } from '../types';
 
@@ -257,6 +258,7 @@ export default function VetRecordsScreen() {
   if (!activePet) {
     return (
       <View style={styles.container}>
+        <BackgroundCharacters />
         <NoPetState />
       </View>
     );
@@ -349,6 +351,7 @@ export default function VetRecordsScreen() {
 
   return (
     <View style={styles.container}>
+      <BackgroundCharacters />
       <FlatList
         data={records}
         keyExtractor={(item) => item.id}

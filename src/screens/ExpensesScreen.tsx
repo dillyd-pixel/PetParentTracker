@@ -27,6 +27,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useExpenses } from '../context/ExpensesContext';
 import { usePets } from '../context/PetContext';
 import { AppColors, cardShadow } from '../theme';
+import BackgroundCharacters from '../components/BackgroundCharacters';
 import {
   EXPENSE_CATEGORY_OPTIONS,
   expenseAmountLabel,
@@ -313,6 +314,7 @@ export default function ExpensesScreen() {
   if (!activePet) {
     return (
       <View style={styles.container}>
+        <BackgroundCharacters />
         <NoPetState />
       </View>
     );
@@ -396,6 +398,7 @@ export default function ExpensesScreen() {
 
   return (
     <View style={styles.container}>
+      <BackgroundCharacters />
       <FlatList
         data={expenses}
         keyExtractor={(item) => item.id}

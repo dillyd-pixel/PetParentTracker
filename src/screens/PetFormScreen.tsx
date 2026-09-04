@@ -23,6 +23,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { usePets } from '../context/PetContext';
 import { AppColors } from '../theme';
+import BackgroundCharacters from '../components/BackgroundCharacters';
 import { SPECIES_OPTIONS, WEIGHT_UNIT_OPTIONS } from '../types';
 import type { PetInput, Species, WeightUnit } from '../types';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -108,118 +109,123 @@ export default function PetFormScreen({ navigation, route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Photo picker */}
-      <TouchableOpacity style={styles.photoWrap} onPress={pickPhoto}>
-        {form.photoUri ? (
-          <Image source={{ uri: form.photoUri }} style={styles.photo} />
-        ) : (
-          <View style={styles.photoPlaceholder}>
-            <Text style={styles.photoEmoji}>📷</Text>
-            <Text style={styles.photoHint}>Add photo</Text>
-          </View>
-        )}
-      </TouchableOpacity>
+    <View style={styles.container}>
+      {/* Animal characters painted behind the form; ScrollView is transparent. */}
+      <BackgroundCharacters />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        {/* Photo picker */}
+        <TouchableOpacity style={styles.photoWrap} onPress={pickPhoto}>
+          {form.photoUri ? (
+            <Image source={{ uri: form.photoUri }} style={styles.photo} />
+          ) : (
+            <View style={styles.photoPlaceholder}>
+              <Text style={styles.photoEmoji}>📷</Text>
+              <Text style={styles.photoHint}>Add photo</Text>
+            </View>
+          )}
+        </TouchableOpacity>
 
-      {/* Name */}
-      <Text style={styles.label}>Name *</Text>
-      <TextInput
-        style={styles.input}
-        value={form.name}
-        onChangeText={(v) => set('name', v)}
-        placeholder="e.g. Biscuit"
-        placeholderTextColor={AppColors.placeholder}
-      />
-
-      {/* Species */}
-      <Text style={styles.label}>Species</Text>
-      <View style={styles.chipRow}>
-        {SPECIES_OPTIONS.map((s) => (
-          <TouchableOpacity
-            key={s}
-            style={[styles.chip, form.species === s && styles.chipActive]}
-            onPress={() => set('species', s as Species)}
-          >
-            <Text
-              style={[
-                styles.chipText,
-                form.species === s && styles.chipTextActive,
-              ]}
-            >
-              {s}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Breed */}
-      <Text style={styles.label}>Breed (optional)</Text>
-      <TextInput
-        style={styles.input}
-        value={form.breed}
-        onChangeText={(v) => set('breed', v)}
-        placeholder="e.g. Golden Retriever"
-        placeholderTextColor={AppColors.placeholder}
-      />
-
-      {/* Birthdate */}
-      <Text style={styles.label}>Birthdate (optional, YYYY-MM-DD)</Text>
-      <TextInput
-        style={styles.input}
-        value={form.birthdate}
-        onChangeText={(v) => set('birthdate', v)}
-        placeholder="e.g. 2021-04-12"
-        placeholderTextColor={AppColors.placeholder}
-        keyboardType="numbers-and-punctuation"
-      />
-
-      {/* Weight */}
-      <Text style={styles.label}>Weight (optional)</Text>
-      <View style={styles.row}>
+        {/* Name */}
+        <Text style={styles.label}>Name *</Text>
         <TextInput
-          style={[styles.input, styles.weightInput]}
-          value={form.weight != null ? String(form.weight) : ''}
-          onChangeText={(v) => set('weight', v ? parseFloat(v) : undefined)}
-          placeholder="0.0"
+          style={styles.input}
+          value={form.name}
+          onChangeText={(v) => set('name', v)}
+          placeholder="e.g. Biscuit"
           placeholderTextColor={AppColors.placeholder}
-          keyboardType="decimal-pad"
         />
+
+        {/* Species */}
+        <Text style={styles.label}>Species</Text>
         <View style={styles.chipRow}>
-          {WEIGHT_UNIT_OPTIONS.map((u) => (
+          {SPECIES_OPTIONS.map((s) => (
             <TouchableOpacity
-              key={u}
-              style={[
-                styles.chip,
-                form.weightUnit === u && styles.chipActive,
-              ]}
-              onPress={() => set('weightUnit', u as WeightUnit)}
+              key={s}
+              style={[styles.chip, form.species === s && styles.chipActive]}
+              onPress={() => set('species', s as Species)}
             >
               <Text
                 style={[
                   styles.chipText,
-                  form.weightUnit === u && styles.chipTextActive,
+                  form.species === s && styles.chipTextActive,
                 ]}
               >
-                {u}
+                {s}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-      </View>
 
-      <TouchableOpacity
-        style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
-        onPress={onSave}
-        disabled={saving}
-      >
-        <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save Pet'}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        {/* Breed */}
+        <Text style={styles.label}>Breed (optional)</Text>
+        <TextInput
+          style={styles.input}
+          value={form.breed}
+          onChangeText={(v) => set('breed', v)}
+          placeholder="e.g. Golden Retriever"
+          placeholderTextColor={AppColors.placeholder}
+        />
+
+        {/* Birthdate */}
+        <Text style={styles.label}>Birthdate (optional, YYYY-MM-DD)</Text>
+        <TextInput
+          style={styles.input}
+          value={form.birthdate}
+          onChangeText={(v) => set('birthdate', v)}
+          placeholder="e.g. 2021-04-12"
+          placeholderTextColor={AppColors.placeholder}
+          keyboardType="numbers-and-punctuation"
+        />
+
+        {/* Weight */}
+        <Text style={styles.label}>Weight (optional)</Text>
+        <View style={styles.row}>
+          <TextInput
+            style={[styles.input, styles.weightInput]}
+            value={form.weight != null ? String(form.weight) : ''}
+            onChangeText={(v) => set('weight', v ? parseFloat(v) : undefined)}
+            placeholder="0.0"
+            placeholderTextColor={AppColors.placeholder}
+            keyboardType="decimal-pad"
+          />
+          <View style={styles.chipRow}>
+            {WEIGHT_UNIT_OPTIONS.map((u) => (
+              <TouchableOpacity
+                key={u}
+                style={[
+                  styles.chip,
+                  form.weightUnit === u && styles.chipActive,
+                ]}
+                onPress={() => set('weightUnit', u as WeightUnit)}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    form.weightUnit === u && styles.chipTextActive,
+                  ]}
+                >
+                  {u}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+          onPress={onSave}
+          disabled={saving}
+        >
+          <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save Pet'}</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AppColors.background },
+  scroll: { flex: 1 },
   content: { padding: 20, paddingBottom: 48 },
   photoWrap: { alignSelf: 'center', marginBottom: 20 },
   photo: { width: 120, height: 120, borderRadius: 60, backgroundColor: AppColors.border },

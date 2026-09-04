@@ -25,6 +25,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useFeeding } from '../context/FeedingContext';
 import { usePets } from '../context/PetContext';
 import { AppColors, cardShadow } from '../theme';
+import BackgroundCharacters from '../components/BackgroundCharacters';
 import {
   DAY_NAMES_SHORT,
   MEAL_TYPE_OPTIONS,
@@ -323,6 +324,7 @@ export default function FeedingScreen() {
   if (!activePet) {
     return (
       <View style={styles.container}>
+        <BackgroundCharacters />
         <NoPetState />
       </View>
     );
@@ -403,6 +405,7 @@ export default function FeedingScreen() {
 
   return (
     <View style={styles.container}>
+      <BackgroundCharacters />
       <FlatList
         data={records}
         keyExtractor={(item) => item.id}

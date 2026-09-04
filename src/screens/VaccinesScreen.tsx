@@ -25,6 +25,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { usePets } from '../context/PetContext';
 import { useVaccines } from '../context/VaccinesContext';
 import { AppColors, cardShadow } from '../theme';
+import BackgroundCharacters from '../components/BackgroundCharacters';
 import { VACCINE_DUE_SOON_DAYS } from '../types';
 import type { Vaccine, VaccineInput, VaccineStatus } from '../types';
 
@@ -295,6 +296,7 @@ export default function VaccinesScreen() {
   if (!activePet) {
     return (
       <View style={styles.container}>
+        <BackgroundCharacters />
         <NoPetState />
       </View>
     );
@@ -369,6 +371,7 @@ export default function VaccinesScreen() {
 
   return (
     <View style={styles.container}>
+      <BackgroundCharacters />
       <FlatList
         data={records}
         keyExtractor={(item) => item.id}

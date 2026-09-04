@@ -9,6 +9,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { usePets } from '../context/PetContext';
 import { AppColors } from '../theme';
+import BackgroundCharacters from '../components/BackgroundCharacters';
 
 interface Props {
   /** e.g. "Vaccines", "Expenses", "Pet Planner"… */
@@ -21,6 +22,7 @@ export default function PlaceholderScreen({ title, noun = 'records' }: Props) {
   const { activePet } = usePets();
   return (
     <View style={styles.container}>
+      <BackgroundCharacters />
       <Text style={styles.emoji}>🚧</Text>
       <Text style={styles.title}>{title}</Text>
       {activePet ? (
