@@ -288,3 +288,58 @@ export function expenseAmountLabel(amount: number): string {
   if (!Number.isFinite(amount)) return '0';
   return amount.toFixed(2);
 }
+
+/**
+ * The JournalEntry entity — stored on-device via AsyncStorage. One record per
+ * personality-journal entry for a pet, bound to the pet via `petId`.
+ */
+export interface JournalEntry extends BaseEntity {
+  petId: string;
+  /** Short heading, e.g. "First day at the park". Optional. */
+  title?: string;
+  /** The journal entry text itself (required). */
+  body: string;
+  /** Date the entry is about (ISO date YYYY-MM-DD). */
+  entryDate: string;
+  /** Mood observed, from the fixed set `JOURNAL_MOOD_OPTIONS`. Optional. */
+  mood?: JournalMood;
+  /** Local file URI of an optional photo (picked on-device, stored directly). */
+  photoUri?: string;
+}
+
+/** Input type for creating/updating a journal entry (id/createdAt auto-assigned). */
+export type JournalEntryInput = Omit<JournalEntry, keyof BaseEntity> &
+  Partial<BaseEntity>;
+
+/** Moods a journal entry can record (small fixed set). */
+export type JournalMood = 'Happy' | 'Playful' | 'Sleepy' | 'Grumpy' | 'Sick';
+
+/** Mood options exposed for the create/edit form. */
+export const JOURNAL_MOOD_OPTIONS: JournalMood[] = [
+  'Happy',
+  'Playful',
+  'Sleepy',
+  'Grumpy',
+  'Sick',
+];
+
+/** Human-readable mood name (already human; kept for symmetry + safety). */
+export function journalMoodLabel(mood: JournalMood): string {
+  return mood;
+}
+
+/** Emoji for a mood, used on badges in the journal list. */
+export function journalMoodEmoji(mood: JournalMood): string {
+  switch (mood) {
+    case 'Happy':
+      return '🙂';
+    case 'Playful':
+      return '🎾';
+    case 'Sleepy':
+      return '😴';
+    case 'Grumpy':
+      return '😾';
+    case 'Sick':
+      return '🤒';
+  }
+}

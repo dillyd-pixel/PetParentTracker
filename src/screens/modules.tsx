@@ -1,22 +1,15 @@
 /**
  * Screens for the six future core modules.
  *
- * Vaccines, Medications, Feeding, Vet Records and Expenses ship as real
- * screens (their own files); Journal is still a thin wrapper that gives
- * `PlaceholderScreen` its title. When a module ships, replace that module's
- * wrapper body with the real screen — the navigation wiring and data layers
- * are already in place.
+ * All six ship as real screens (their own files); this module re-exports them
+ * under their navigation-facing names.
  */
 import React from 'react';
-import PlaceholderScreen from './PlaceholderScreen';
 import VaccinesScreen from './VaccinesScreen';
 import MedsScreen from './MedsScreen';
 import FeedingScreen from './FeedingScreen';
 import VetRecordsScreen from './VetRecordsScreen';
 import ExpensesScreen from './ExpensesScreen';
+import JournalScreen from './JournalScreen';
 
-export { VaccinesScreen, MedsScreen, FeedingScreen, VetRecordsScreen, ExpensesScreen };
-
-export function JournalScreen() {
-  return <PlaceholderScreen title="Journal" noun="personality journal entries" />;
-}
+export { VaccinesScreen, MedsScreen, FeedingScreen, VetRecordsScreen, ExpensesScreen, JournalScreen };
