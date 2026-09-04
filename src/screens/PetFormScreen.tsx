@@ -128,7 +128,7 @@ export default function PetFormScreen({ navigation, route }: Props) {
         value={form.name}
         onChangeText={(v) => set('name', v)}
         placeholder="e.g. Biscuit"
-        placeholderTextColor="#999"
+        placeholderTextColor={AppColors.placeholder}
       />
 
       {/* Species */}
@@ -159,7 +159,7 @@ export default function PetFormScreen({ navigation, route }: Props) {
         value={form.breed}
         onChangeText={(v) => set('breed', v)}
         placeholder="e.g. Golden Retriever"
-        placeholderTextColor="#999"
+        placeholderTextColor={AppColors.placeholder}
       />
 
       {/* Birthdate */}
@@ -169,7 +169,7 @@ export default function PetFormScreen({ navigation, route }: Props) {
         value={form.birthdate}
         onChangeText={(v) => set('birthdate', v)}
         placeholder="e.g. 2021-04-12"
-        placeholderTextColor="#999"
+        placeholderTextColor={AppColors.placeholder}
         keyboardType="numbers-and-punctuation"
       />
 
@@ -181,7 +181,7 @@ export default function PetFormScreen({ navigation, route }: Props) {
           value={form.weight != null ? String(form.weight) : ''}
           onChangeText={(v) => set('weight', v ? parseFloat(v) : undefined)}
           placeholder="0.0"
-          placeholderTextColor="#999"
+          placeholderTextColor={AppColors.placeholder}
           keyboardType="decimal-pad"
         />
         <View style={styles.chipRow}>

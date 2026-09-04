@@ -106,10 +106,10 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={{
         tabBarActiveTintColor: AppColors.primary,
-        tabBarInactiveTintColor: '#999',
+        tabBarInactiveTintColor: AppColors.placeholder,
         headerTitleStyle: { fontWeight: '700' },
         headerRight: () => (
-          <Text style={{ marginRight: 16, fontSize: 13, color: '#666' }}>
+          <Text style={{ marginRight: 16, fontSize: 13, color: AppColors.textMuted }}>
             {activePet ? `🐾 ${activePet.name}` : 'No pet selected'}
           </Text>
         ),

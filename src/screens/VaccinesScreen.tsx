@@ -24,7 +24,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { usePets } from '../context/PetContext';
 import { useVaccines } from '../context/VaccinesContext';
-import { AppColors } from '../theme';
+import { AppColors, cardShadow } from '../theme';
 import { VACCINE_DUE_SOON_DAYS } from '../types';
 import type { Vaccine, VaccineInput, VaccineStatus } from '../types';
 
@@ -76,7 +76,7 @@ function dueInfo(v: Vaccine): string {
 
 const STATUS_CONFIG: Record<VaccineStatus, { label: string; color: string; emoji: string }> = {
   overdue: { label: 'Overdue', color: AppColors.danger, emoji: '⚠️' },
-  dueSoon: { label: 'Due soon', color: '#E67E22', emoji: '⏳' },
+  dueSoon: { label: 'Due soon', color: AppColors.accent, emoji: '⏳' },
   upToDate: { label: 'Up to date', color: AppColors.primary, emoji: '✅' },
   noDueDate: { label: 'No due date', color: AppColors.textMuted, emoji: '🌿' },
 };
@@ -203,7 +203,7 @@ function VaccineFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
             value={form.name}
             onChangeText={(v) => set('name', v)}
             placeholder="e.g. Rabies (3-year)"
-            placeholderTextColor="#999"
+            placeholderTextColor={AppColors.placeholder}
           />
 
           <Text style={styles.label}>Date given * (YYYY-MM-DD)</Text>
@@ -212,7 +212,7 @@ function VaccineFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
             value={form.dateGiven}
             onChangeText={(v) => set('dateGiven', v)}
             placeholder="e.g. 2024-03-01"
-            placeholderTextColor="#999"
+            placeholderTextColor={AppColors.placeholder}
             keyboardType="numbers-and-punctuation"
           />
 
@@ -222,7 +222,7 @@ function VaccineFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
             value={form.dueDate}
             onChangeText={(v) => set('dueDate', v)}
             placeholder="e.g. 2025-03-01"
-            placeholderTextColor="#999"
+            placeholderTextColor={AppColors.placeholder}
             keyboardType="numbers-and-punctuation"
           />
 
@@ -232,7 +232,7 @@ function VaccineFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
             value={form.notes}
             onChangeText={(v) => set('notes', v)}
             placeholder="e.g. lot 12345, given at City Vet"
-            placeholderTextColor="#999"
+            placeholderTextColor={AppColors.placeholder}
             multiline
           />
 
@@ -436,30 +436,47 @@ export default function VaccinesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AppColors.background },
   list: { padding: 16, paddingBottom: 90 },
-  headerBlock: { marginBottom: 16 },
-  heading: { fontSize: 26, fontWeight: '800', color: AppColors.text },
-  subheading: { fontSize: 14, color: AppColors.textMuted, marginTop: 2 },
+  headerBlock: { marginBottom: 20, marginTop: 4 },
+  heading: { fontSize: 28, fontWeight: '800', color: AppColors.text },
+  subheading: { fontSize: 15, color: AppColors.textMuted, marginTop: 4, lineHeight: 21 },
   empty: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    backgroundColor: AppColors.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    paddingVertical: 40,
     paddingHorizontal: 24,
+    marginTop: 8,
+    ...cardShadow,
   },
-  emptyEmoji: { fontSize: 48, marginBottom: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: AppColors.text },
+  emptyEmoji: { fontSize: 56, marginBottom: 12 },
+  emptyTitle: { fontSize: 19, fontWeight: '800', color: AppColors.text },
   emptyText: {
     fontSize: 14,
     color: AppColors.textMuted,
-    marginTop: 4,
+    marginTop: 6,
     textAlign: 'center',
+    lineHeight: 20,
   },
+  emptyCta: {
+    backgroundColor: AppColors.primary,
+    borderRadius: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 13,
+    marginTop: 18,
+    ...cardShadow,
+  },
+  emptyCtaText: { color: AppColors.white, fontSize: 15, fontWeight: '700' },
   card: {
     backgroundColor: AppColors.card,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 2,
     borderColor: 'transparent',
+    ...cardShadow,
   },
   cardTop: { flexDirection: 'row', alignItems: 'center' },
   cardName: { flex: 1, fontSize: 17, fontWeight: '700', color: AppColors.text },
@@ -468,7 +485,7 @@ const styles = StyleSheet.create({
   actionText: { fontSize: 14, fontWeight: '600', color: AppColors.primary },
   badge: {
     alignSelf: 'flex-start',
-    borderRadius: 12,
+    borderRadius: 16,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginTop: 8,
@@ -479,7 +496,7 @@ const styles = StyleSheet.create({
   cardPhoto: {
     width: '100%',
     height: 180,
-    borderRadius: 10,
+    borderRadius: 14,
     marginTop: 10,
     backgroundColor: AppColors.border,
   },
@@ -490,7 +507,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   photoBox: { borderRadius: 10 },
-  photoPreview: { width: 88, height: 88, borderRadius: 10 },
+  photoPreview: { width: 88, height: 88, borderRadius: 12 },
   photoPlaceholder: {
     backgroundColor: AppColors.background,
     borderWidth: 1,
@@ -508,24 +525,25 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     backgroundColor: AppColors.primary,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingVertical: 16,
     alignItems: 'center',
+    ...cardShadow,
   },
   addBtnText: { color: AppColors.white, fontSize: 17, fontWeight: '700' },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: AppColors.overlay,
     justifyContent: 'flex-end',
   },
   modalCard: {
     backgroundColor: AppColors.card,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 32,
   },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: AppColors.text, marginBottom: 12 },
+  modalTitle: { fontSize: 22, fontWeight: '800', color: AppColors.text, marginBottom: 14 },
   label: {
     fontSize: 14,
     fontWeight: '600',
@@ -535,7 +553,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: AppColors.background,
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: AppColors.border,
     paddingHorizontal: 14,

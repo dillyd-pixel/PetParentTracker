@@ -29,7 +29,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { useJournal } from '../context/JournalContext';
 import { usePets } from '../context/PetContext';
-import { AppColors } from '../theme';
+import { AppColors, cardShadow } from '../theme';
 import {
   JOURNAL_MOOD_OPTIONS,
   isValidISODate,
@@ -150,7 +150,7 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
               value={form.title}
               onChangeText={(v) => set('title', v)}
               placeholder="e.g. First day at the park"
-              placeholderTextColor="#999"
+              placeholderTextColor={AppColors.placeholder}
             />
 
             <Text style={styles.label}>Entry *</Text>
@@ -159,7 +159,7 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
               value={form.body}
               onChangeText={(v) => set('body', v)}
               placeholder="What was their mood like today? Any funny or odd behavior?"
-              placeholderTextColor="#999"
+              placeholderTextColor={AppColors.placeholder}
               multiline
             />
 
@@ -169,7 +169,7 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
               value={form.entryDate}
               onChangeText={(v) => set('entryDate', v)}
               placeholder="e.g. 2026-05-14"
-              placeholderTextColor="#999"
+              placeholderTextColor={AppColors.placeholder}
               keyboardType="numbers-and-punctuation"
             />
 
@@ -426,30 +426,47 @@ export default function JournalScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AppColors.background },
   list: { padding: 16, paddingBottom: 90 },
-  headerBlock: { marginBottom: 16 },
-  heading: { fontSize: 26, fontWeight: '800', color: AppColors.text },
-  subheading: { fontSize: 14, color: AppColors.textMuted, marginTop: 2 },
+  headerBlock: { marginBottom: 20, marginTop: 4 },
+  heading: { fontSize: 28, fontWeight: '800', color: AppColors.text },
+  subheading: { fontSize: 15, color: AppColors.textMuted, marginTop: 4, lineHeight: 21 },
   empty: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    backgroundColor: AppColors.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    paddingVertical: 40,
     paddingHorizontal: 24,
+    marginTop: 8,
+    ...cardShadow,
   },
-  emptyEmoji: { fontSize: 48, marginBottom: 8 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: AppColors.text },
+  emptyEmoji: { fontSize: 56, marginBottom: 12 },
+  emptyTitle: { fontSize: 19, fontWeight: '800', color: AppColors.text },
   emptyText: {
     fontSize: 14,
     color: AppColors.textMuted,
-    marginTop: 4,
+    marginTop: 6,
     textAlign: 'center',
+    lineHeight: 20,
   },
+  emptyCta: {
+    backgroundColor: AppColors.primary,
+    borderRadius: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 13,
+    marginTop: 18,
+    ...cardShadow,
+  },
+  emptyCtaText: { color: AppColors.white, fontSize: 15, fontWeight: '700' },
   card: {
     backgroundColor: AppColors.card,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 2,
     borderColor: 'transparent',
+    ...cardShadow,
   },
   cardTop: { flexDirection: 'row', alignItems: 'center' },
   cardName: { flex: 1, fontSize: 17, fontWeight: '700', color: AppColors.text },
@@ -464,7 +481,7 @@ const styles = StyleSheet.create({
   },
   cardDate: { fontSize: 13, color: AppColors.textMuted },
   badge: {
-    borderRadius: 12,
+    borderRadius: 16,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
@@ -473,7 +490,7 @@ const styles = StyleSheet.create({
   cardPhoto: {
     width: '100%',
     height: 180,
-    borderRadius: 10,
+    borderRadius: 14,
     marginTop: 10,
     backgroundColor: AppColors.border,
   },
@@ -483,30 +500,31 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     backgroundColor: AppColors.primary,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingVertical: 16,
     alignItems: 'center',
+    ...cardShadow,
   },
   addBtnText: { color: AppColors.white, fontSize: 17, fontWeight: '700' },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: AppColors.overlay,
     justifyContent: 'flex-end',
   },
   modalScroll: { flex: 1, justifyContent: 'flex-end' },
   modalCardScroll: { justifyContent: 'flex-end' },
   modalCard: {
     backgroundColor: AppColors.card,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 32,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: AppColors.text,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   label: {
     fontSize: 14,
@@ -517,7 +535,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: AppColors.background,
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: AppColors.border,
     paddingHorizontal: 14,
@@ -529,7 +547,7 @@ const styles = StyleSheet.create({
   bodyInput: { minHeight: 96, textAlignVertical: 'top' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12, gap: 8 },
   chip: {
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: AppColors.border,
     backgroundColor: AppColors.background,
@@ -549,7 +567,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   photoBox: { borderRadius: 10 },
-  photoPreview: { width: 88, height: 88, borderRadius: 10 },
+  photoPreview: { width: 88, height: 88, borderRadius: 12 },
   photoPlaceholder: {
     backgroundColor: AppColors.background,
     borderWidth: 1,
