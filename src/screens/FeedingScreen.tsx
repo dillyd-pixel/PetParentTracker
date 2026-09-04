@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -19,6 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 import { useFeeding } from '../context/FeedingContext';
 import { usePets } from '../context/PetContext';
@@ -70,6 +72,7 @@ interface FormState {
   portionUnit: PortionUnit;
   notes: string;
   daysOfWeek: number[];
+  photoUri: string | undefined;
 }
 
 const emptyForm = (): FormState => ({
@@ -79,6 +82,7 @@ const emptyForm = (): FormState => ({
   portionUnit: 'g',
   notes: '',
   daysOfWeek: [],
+  photoUri: undefined,
 });
 
 function formFromFeeding(f: FeedingSchedule): FormState {
@@ -89,6 +93,7 @@ function formFromFeeding(f: FeedingSchedule): FormState {
     portionUnit: f.portionUnit,
     notes: f.notes ?? '',
     daysOfWeek: [...f.daysOfWeek],
+    photoUri: f.photoUri,
   };
 }
 
@@ -111,6 +116,29 @@ function FeedingFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // Photo picking — same approach as VaccinesScreen/JournalScreen: local
+  // library permission, launch the picker, keep the picked local file URI.
+  // On-device only, works on Android and web (file input).
+  const pickPhoto = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        'Permission needed',
+        'Allow photo library access to add a picture to this meal.',
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets?.length) {
+      set('photoUri', result.assets[0].uri);
+    }
+  };
 
   const toggleDay = (day: number) => {
     setForm((prev) => ({
@@ -226,6 +254,30 @@ function FeedingFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
             </TouchableOpacity>
           )}
 
+          <Text style={styles.label}>Photo (optional)</Text>
+          <View style={styles.photoRow}>
+            <TouchableOpacity style={styles.photoBox} onPress={pickPhoto}>
+              {form.photoUri ? (
+                <Image source={{ uri: form.photoUri }} style={styles.photoPreview} />
+              ) : (
+                <View style={[styles.photoPreview, styles.photoPlaceholder]}>
+                  <Text style={styles.photoEmoji}>📷</Text>
+                  <Text style={styles.photoHint}>Add photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {form.photoUri ? (
+              <TouchableOpacity
+                style={styles.photoRemoveBtn}
+                onPress={() => set('photoUri', undefined)}
+              >
+                <Text style={[styles.photoRemoveText, { color: AppColors.danger }]}>
+                  Remove photo
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
           <Text style={styles.label}>Notes (optional)</Text>
           <TextInput
             style={[styles.input, styles.notesInput]}
@@ -332,6 +384,7 @@ export default function FeedingScreen() {
       portionUnit: form.portionUnit,
       notes: form.notes.trim() ? form.notes.trim() : undefined,
       daysOfWeek: days.sort((a, b) => a - b),
+      photoUri: form.photoUri,
     };
     setSaving(true);
     try {
@@ -396,6 +449,9 @@ export default function FeedingScreen() {
             </Text>
             <Text style={styles.cardMeta}>{feedingDaysLabel(item.daysOfWeek)}</Text>
             {item.notes ? <Text style={styles.cardNotes}>{item.notes}</Text> : null}
+            {item.photoUri ? (
+              <Image source={{ uri: item.photoUri }} style={styles.cardPhoto} />
+            ) : null}
           </View>
         )}
       />
@@ -458,6 +514,32 @@ const styles = StyleSheet.create({
   cardPortion: { fontSize: 14, color: AppColors.text, marginTop: 8, fontWeight: '600' },
   cardMeta: { fontSize: 13, color: AppColors.textMuted, marginTop: 4 },
   cardNotes: { fontSize: 13, color: AppColors.text, marginTop: 4, fontStyle: 'italic' },
+  cardPhoto: {
+    width: '100%',
+    height: 180,
+    borderRadius: 10,
+    marginTop: 10,
+    backgroundColor: AppColors.border,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  photoBox: { borderRadius: 10 },
+  photoPreview: { width: 88, height: 88, borderRadius: 10 },
+  photoPlaceholder: {
+    backgroundColor: AppColors.background,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoEmoji: { fontSize: 24 },
+  photoHint: { fontSize: 11, color: AppColors.textMuted, marginTop: 2 },
+  photoRemoveBtn: { paddingVertical: 8, paddingHorizontal: 6 },
+  photoRemoveText: { fontSize: 14, fontWeight: '600' },
   addBtn: {
     position: 'absolute',
     bottom: 24,

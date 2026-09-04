@@ -53,6 +53,8 @@ export interface Vaccine extends BaseEntity {
   dueDate?: string;
   /** Free-form notes, e.g. lot number, vet clinic, reaction. */
   notes?: string;
+  /** Local file URI of an optional photo (picked on-device, stored directly). */
+  photoUri?: string;
 }
 
 /** Input type for creating/updating a vaccine (id/createdAt auto-assigned). */
@@ -98,6 +100,8 @@ export interface Medication extends BaseEntity {
   active: boolean;
   /** Whether local reminder notifications are scheduled for this record. */
   remindersEnabled: boolean;
+  /** Local file URI of an optional photo (picked on-device, stored directly). */
+  photoUri?: string;
 }
 
 /** Input type for creating/updating a medication (id/createdAt auto-assigned). */
@@ -152,6 +156,8 @@ export interface FeedingSchedule extends BaseEntity {
   notes?: string;
   /** Days this meal repeats (0 = Sunday … 6 = Saturday). Empty = every day. */
   daysOfWeek: number[];
+  /** Local file URI of an optional photo (picked on-device, stored directly). */
+  photoUri?: string;
 }
 
 /** Input type for creating/updating a feeding entry (id/createdAt auto-assigned). */
@@ -222,6 +228,8 @@ export interface VetRecord extends BaseEntity {
    * currency metadata, no server. Optional.
    */
   cost?: number;
+  /** Local file URI of an optional photo (picked on-device, stored directly). */
+  photoUri?: string;
 }
 
 /** Input type for creating/updating a vet record (id/createdAt auto-assigned). */
@@ -251,6 +259,8 @@ export interface Expense extends BaseEntity {
   category: ExpenseCategory;
   /** Free-form notes, e.g. store, receipt no. Optional. */
   notes?: string;
+  /** Local file URI of an optional photo (picked on-device, stored directly). */
+  photoUri?: string;
 }
 
 /** Input type for creating/updating an expense (id/createdAt auto-assigned). */

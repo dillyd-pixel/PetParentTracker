@@ -13,6 +13,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -23,6 +24,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 import { useMedications } from '../context/MedicationsContext';
 import { usePets } from '../context/PetContext';
@@ -118,6 +120,7 @@ interface FormState {
   endDate: string;
   active: boolean;
   remindersEnabled: boolean;
+  photoUri: string | undefined;
 }
 
 const emptyForm = (): FormState => ({
@@ -131,6 +134,7 @@ const emptyForm = (): FormState => ({
   endDate: '',
   active: true,
   remindersEnabled: true,
+  photoUri: undefined,
 });
 
 function formFromMedication(m: Medication): FormState {
@@ -146,6 +150,7 @@ function formFromMedication(m: Medication): FormState {
     endDate: m.endDate ?? '',
     active: m.active,
     remindersEnabled: m.remindersEnabled,
+    photoUri: m.photoUri,
   };
 }
 
@@ -199,6 +204,29 @@ function MedicationFormModal({
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // Photo picking — same approach as VaccinesScreen/JournalScreen: local
+  // library permission, launch the picker, keep the picked local file URI.
+  // On-device only, works on Android and web (file input).
+  const pickPhoto = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        'Permission needed',
+        'Allow photo library access to add a picture to this medication.',
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets?.length) {
+      set('photoUri', result.assets[0].uri);
+    }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -355,6 +383,30 @@ function MedicationFormModal({
               on the Android app.
             </Text>
           )}
+
+          <Text style={styles.label}>Photo (optional)</Text>
+          <View style={styles.photoRow}>
+            <TouchableOpacity style={styles.photoBox} onPress={pickPhoto}>
+              {form.photoUri ? (
+                <Image source={{ uri: form.photoUri }} style={styles.photoPreview} />
+              ) : (
+                <View style={[styles.photoPreview, styles.photoPlaceholder]}>
+                  <Text style={styles.photoEmoji}>📷</Text>
+                  <Text style={styles.photoHint}>Add photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {form.photoUri ? (
+              <TouchableOpacity
+                style={styles.photoRemoveBtn}
+                onPress={() => set('photoUri', undefined)}
+              >
+                <Text style={[styles.photoRemoveText, { color: AppColors.danger }]}>
+                  Remove photo
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
           <View style={styles.modalActions}>
             <TouchableOpacity
@@ -532,6 +584,7 @@ export default function MedsScreen() {
       endDate: form.endDate.trim() ? form.endDate.trim() : undefined,
       active: form.active,
       remindersEnabled: form.remindersEnabled,
+      photoUri: form.photoUri,
     };
     setSaving(true);
     try {
@@ -635,6 +688,9 @@ export default function MedsScreen() {
               {reminderNote ? (
                 <Text style={styles.reminderNote}>{reminderNote}</Text>
               ) : null}
+              {item.photoUri ? (
+                <Image source={{ uri: item.photoUri }} style={styles.cardPhoto} />
+              ) : null}
               <View style={styles.reminderRow}>
                 <Text style={styles.reminderLabel}>Reminders</Text>
                 <Switch
@@ -714,6 +770,32 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   reminderNote: { fontSize: 13, color: AppColors.danger, marginTop: 6, fontWeight: '600' },
+  cardPhoto: {
+    width: '100%',
+    height: 180,
+    borderRadius: 10,
+    marginTop: 10,
+    backgroundColor: AppColors.border,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  photoBox: { borderRadius: 10 },
+  photoPreview: { width: 88, height: 88, borderRadius: 10 },
+  photoPlaceholder: {
+    backgroundColor: AppColors.background,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoEmoji: { fontSize: 24 },
+  photoHint: { fontSize: 11, color: AppColors.textMuted, marginTop: 2 },
+  photoRemoveBtn: { paddingVertical: 8, paddingHorizontal: 6 },
+  photoRemoveText: { fontSize: 14, fontWeight: '600' },
   reminderRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -12,6 +12,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -21,6 +22,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 import { useExpenses } from '../context/ExpensesContext';
 import { usePets } from '../context/PetContext';
@@ -66,6 +68,7 @@ interface FormState {
   date: string;
   category: ExpenseCategory;
   notes: string;
+  photoUri: string | undefined;
 }
 
 const emptyForm = (): FormState => ({
@@ -75,6 +78,7 @@ const emptyForm = (): FormState => ({
   date: '',
   category: 'Other',
   notes: '',
+  photoUri: undefined,
 });
 
 function formFromExpense(e: Expense): FormState {
@@ -85,6 +89,7 @@ function formFromExpense(e: Expense): FormState {
     date: e.date,
     category: e.category,
     notes: e.notes ?? '',
+    photoUri: e.photoUri,
   };
 }
 
@@ -126,6 +131,29 @@ function ExpenseFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // Photo picking — same approach as VaccinesScreen/JournalScreen: local
+  // library permission, launch the picker, keep the picked local file URI.
+  // On-device only, works on Android and web (file input).
+  const pickPhoto = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        'Permission needed',
+        'Allow photo library access to add a picture to this expense.',
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets?.length) {
+      set('photoUri', result.assets[0].uri);
+    }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -211,6 +239,30 @@ function ExpenseFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
             placeholderTextColor="#999"
             multiline
           />
+
+          <Text style={styles.label}>Photo (optional)</Text>
+          <View style={styles.photoRow}>
+            <TouchableOpacity style={styles.photoBox} onPress={pickPhoto}>
+              {form.photoUri ? (
+                <Image source={{ uri: form.photoUri }} style={styles.photoPreview} />
+              ) : (
+                <View style={[styles.photoPreview, styles.photoPlaceholder]}>
+                  <Text style={styles.photoEmoji}>📷</Text>
+                  <Text style={styles.photoHint}>Add photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {form.photoUri ? (
+              <TouchableOpacity
+                style={styles.photoRemoveBtn}
+                onPress={() => set('photoUri', undefined)}
+              >
+                <Text style={[styles.photoRemoveText, { color: AppColors.danger }]}>
+                  Remove photo
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
           <View style={styles.modalActions}>
             <TouchableOpacity
@@ -327,6 +379,7 @@ export default function ExpensesScreen() {
       date,
       category: form.category,
       notes: form.notes.trim() ? form.notes.trim() : undefined,
+      photoUri: form.photoUri,
     };
     setSaving(true);
     try {
@@ -408,6 +461,9 @@ export default function ExpensesScreen() {
             ) : null}
             {item.notes ? (
               <Text style={styles.cardNotes}>{item.notes}</Text>
+            ) : null}
+            {item.photoUri ? (
+              <Image source={{ uri: item.photoUri }} style={styles.cardPhoto} />
             ) : null}
           </View>
         )}
@@ -498,6 +554,32 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontStyle: 'italic',
   },
+  cardPhoto: {
+    width: '100%',
+    height: 180,
+    borderRadius: 10,
+    marginTop: 10,
+    backgroundColor: AppColors.border,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  photoBox: { borderRadius: 10 },
+  photoPreview: { width: 88, height: 88, borderRadius: 10 },
+  photoPlaceholder: {
+    backgroundColor: AppColors.background,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoEmoji: { fontSize: 24 },
+  photoHint: { fontSize: 11, color: AppColors.textMuted, marginTop: 2 },
+  photoRemoveBtn: { paddingVertical: 8, paddingHorizontal: 6 },
+  photoRemoveText: { fontSize: 14, fontWeight: '600' },
   addBtn: {
     position: 'absolute',
     bottom: 24,

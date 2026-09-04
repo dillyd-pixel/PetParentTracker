@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -19,6 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 import { usePets } from '../context/PetContext';
 import { useVaccines } from '../context/VaccinesContext';
@@ -121,6 +123,7 @@ interface FormState {
   dateGiven: string;
   dueDate: string;
   notes: string;
+  photoUri: string | undefined;
 }
 
 const emptyForm = (): FormState => ({
@@ -128,6 +131,7 @@ const emptyForm = (): FormState => ({
   dateGiven: todayISO(),
   dueDate: '',
   notes: '',
+  photoUri: undefined,
 });
 
 function formFromVaccine(v: Vaccine): FormState {
@@ -136,6 +140,7 @@ function formFromVaccine(v: Vaccine): FormState {
     dateGiven: v.dateGiven,
     dueDate: v.dueDate ?? '',
     notes: v.notes ?? '',
+    photoUri: v.photoUri,
   };
 }
 
@@ -158,6 +163,28 @@ function VaccineFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // Photo picking — same approach as JournalScreen: local library permission,
+  // launch the picker, keep the picked local file URI. On-device only.
+  const pickPhoto = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        'Permission needed',
+        'Allow photo library access to add a picture to this vaccine.',
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets?.length) {
+      set('photoUri', result.assets[0].uri);
+    }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -208,6 +235,30 @@ function VaccineFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
             placeholderTextColor="#999"
             multiline
           />
+
+          <Text style={styles.label}>Photo (optional)</Text>
+          <View style={styles.photoRow}>
+            <TouchableOpacity style={styles.photoBox} onPress={pickPhoto}>
+              {form.photoUri ? (
+                <Image source={{ uri: form.photoUri }} style={styles.photoPreview} />
+              ) : (
+                <View style={[styles.photoPreview, styles.photoPlaceholder]}>
+                  <Text style={styles.photoEmoji}>📷</Text>
+                  <Text style={styles.photoHint}>Add photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {form.photoUri ? (
+              <TouchableOpacity
+                style={styles.photoRemoveBtn}
+                onPress={() => set('photoUri', undefined)}
+              >
+                <Text style={[styles.photoRemoveText, { color: AppColors.danger }]}>
+                  Remove photo
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
           <View style={styles.modalActions}>
             <TouchableOpacity
@@ -299,6 +350,7 @@ export default function VaccinesScreen() {
       dateGiven: form.dateGiven,
       dueDate: form.dueDate.trim() ? form.dueDate.trim() : undefined,
       notes: form.notes.trim() ? form.notes.trim() : undefined,
+      photoUri: form.photoUri,
     };
     setSaving(true);
     try {
@@ -359,6 +411,9 @@ export default function VaccinesScreen() {
                 {item.dueDate ? ` · Due: ${item.dueDate}${dueInfo(item)}` : ''}
               </Text>
               {item.notes ? <Text style={styles.cardNotes}>{item.notes}</Text> : null}
+              {item.photoUri ? (
+                <Image source={{ uri: item.photoUri }} style={styles.cardPhoto} />
+              ) : null}
             </View>
           );
         }}
@@ -421,6 +476,32 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 13, fontWeight: '700' },
   cardMeta: { fontSize: 13, color: AppColors.textMuted, marginTop: 6 },
   cardNotes: { fontSize: 13, color: AppColors.text, marginTop: 4, fontStyle: 'italic' },
+  cardPhoto: {
+    width: '100%',
+    height: 180,
+    borderRadius: 10,
+    marginTop: 10,
+    backgroundColor: AppColors.border,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  photoBox: { borderRadius: 10 },
+  photoPreview: { width: 88, height: 88, borderRadius: 10 },
+  photoPlaceholder: {
+    backgroundColor: AppColors.background,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoEmoji: { fontSize: 24 },
+  photoHint: { fontSize: 11, color: AppColors.textMuted, marginTop: 2 },
+  photoRemoveBtn: { paddingVertical: 8, paddingHorizontal: 6 },
+  photoRemoveText: { fontSize: 14, fontWeight: '600' },
   addBtn: {
     position: 'absolute',
     bottom: 24,
