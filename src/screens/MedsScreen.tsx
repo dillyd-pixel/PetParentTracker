@@ -339,11 +339,20 @@ function MedicationFormModal({
               thumbColor={AppColors.white}
             />
           </View>
-          {form.remindersEnabled && notificationPermissionDenied && (
+          {form.remindersEnabled &&
+            notificationPermissionDenied &&
+            Platform.OS !== 'web' && (
+              <Text style={styles.permissionNote}>
+                Notifications are disabled in system settings — reminders will be
+                saved but not delivered. Enable notifications for the app to arm
+                them.
+              </Text>
+            )}
+          {Platform.OS === 'web' && (
             <Text style={styles.permissionNote}>
-              Notifications are disabled in system settings — reminders will be
-              saved but not delivered. Enable notifications for the app to arm
-              them.
+              Notifications aren’t available in the web preview — reminders are
+              saved with the medication but nothing is scheduled here. They work
+              on the Android app.
             </Text>
           )}
 
@@ -445,9 +454,11 @@ export default function MedsScreen() {
       if (enabled) {
         flashReminderNote(
           m.id,
-          updated.remindersEnabled
-            ? 'Reminders scheduled 🔔'
-            : 'Reminders not scheduled (permission denied)',
+          Platform.OS === 'web'
+            ? 'Reminders saved — not supported in the web preview'
+            : updated.remindersEnabled
+              ? 'Reminders scheduled 🔔'
+              : 'Reminders not scheduled (permission denied)',
         );
       } else {
         flashReminderNote(m.id, 'Reminders cancelled');

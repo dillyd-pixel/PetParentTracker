@@ -11,8 +11,8 @@
  */
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { createWebSafeStackNavigator } from '../navigation/WebSafeStack';
 import PlaceholderScreen from './PlaceholderScreen';
 import { AppColors } from '../theme';
 import { usePets } from '../context/PetContext';
@@ -25,7 +25,7 @@ export type UpsellStackParamList = {
   EmergencyCard: undefined;
 };
 
-const Stack = createNativeStackNavigator<UpsellStackParamList>();
+const Stack = createWebSafeStackNavigator<UpsellStackParamList>();
 
 const PRODUCTS: Array<{ name: keyof UpsellStackParamList; title: string; emoji: string; desc: string }> = [
   { name: 'PetPlanner', title: 'Printable Pet Planner', emoji: '📋', desc: 'On-device PDF planner you can print.' },
@@ -67,7 +67,7 @@ export function UpsellList({ navigation }: { navigation: any }) {
 }
 
 /** The "More" tab: a stack whose first screen lists the four upsell products. */
-export default function UpsellsNavigator() {
+export function UpsellsNavigator() {
   return (
     <Stack.Navigator>
       <Stack.Screen name="UpsellList" component={UpsellList} options={{ title: 'More' }} />

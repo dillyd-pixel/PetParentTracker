@@ -6,19 +6,20 @@
  * the device via AsyncStorage. The only "service" touched is the device's
  * own local notification center (expo-notifications LOCAL triggers): the
  * app-wide handler + Android channel are configured here once at start.
+ * That step is native-only — on web it is skipped entirely.
  */
 import React, { useEffect } from 'react';
-
+import { Platform } from 'react-native';
 import RootNavigator from './src/navigation/RootNavigator';
 import { setupNotifications } from './src/storage/notifications';
 
 export default function App() {
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     // Idempotent: sets the in-app notification handler and (on Android 8+)
     // the "Medication reminders" notification channel. Best-effort — a
     // failure here must not block the rest of the app.
     setupNotifications().catch(() => undefined);
   }, []);
-
   return <RootNavigator />;
 }

@@ -20,11 +20,12 @@ import {
   DefaultTheme,
   useNavigation,
 } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { Text } from 'react-native';
+
+import { createWebSafeStackNavigator } from './WebSafeStack';
 
 import { PetProvider, usePets } from '../context/PetContext';
 import { VaccinesProvider } from '../context/VaccinesContext';
@@ -43,7 +44,7 @@ import {
   ExpensesScreen,
   JournalScreen,
 } from '../screens/modules';
-import UpsellsNavigator from '../screens/upsells';
+import { UpsellsNavigator } from '../screens/upsells';
 import { AppColors } from '../theme';
 
 export type MainTabParamList = {
@@ -63,7 +64,7 @@ export type RootStackParamList = {
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createWebSafeStackNavigator<RootStackParamList>();
 
 /** Simple emoji-based tab icons (no icon library dependency — fewer native deps). */
 function TabIcon({ emoji, color }: { emoji: string; color?: string }) {

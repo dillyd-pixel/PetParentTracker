@@ -13,10 +13,21 @@
  * Android can return empty for without the notification permission).
  */
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { Medication } from '../types';
+
+/**
+ * The browser preview is a review surface only: medicines are tracked and
+ * stored exactly like on Android (AsyncStorage → localStorage), but no
+ * local notifications can be scheduled. `Platform.OS === 'web'` is a
+ * compile-time constant in both Metro bundles, so on web every function
+ * below short-circuits before touching expo-notifications (which has no
+ * browser implementation), while Android keeps its exact behavior.
+ */
+const IS_WEB = Platform.OS === 'web';
 
 /** Android notification channel used by every reminder. */
 export const MEDICATION_CHANNEL_ID = 'medication-reminders';
@@ -66,6 +77,7 @@ export async function getNotificationIdsForMedication(
  * local notifications may be scheduled.
  */
 export async function ensureNotificationPermission(): Promise<boolean> {
+  if (IS_WEB) return false; // browser preview: no notifications, no prompt
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
   if (current.canAskAgain) {
@@ -77,6 +89,7 @@ export async function ensureNotificationPermission(): Promise<boolean> {
 
 /** Whether notification permission is currently granted (no prompt). */
 export async function hasNotificationPermission(): Promise<boolean> {
+  if (IS_WEB) return false; // browser preview: no notifications
   const status = await Notifications.getPermissionsAsync();
   return status.granted;
 }
@@ -87,6 +100,7 @@ export async function hasNotificationPermission(): Promise<boolean> {
  * use. Best called once at app start (RootNavigator) and is idempotent.
  */
 export async function setupNotifications(): Promise<void> {
+  if (IS_WEB) return; // no notification handler/channel in a browser
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,
@@ -135,6 +149,7 @@ function isActiveOnDay(m: Medication, day: number): boolean {
 export async function scheduleMedicationReminders(
   m: Medication,
 ): Promise<void> {
+  if (IS_WEB) return; // browser preview: reminders are a no-op
   // 1) Clear whatever this medication had scheduled before.
   await cancelMedicationReminders(m.id);
 
@@ -218,6 +233,7 @@ export async function scheduleMedicationReminders(
 export async function cancelMedicationReminders(
   medicationId: string,
 ): Promise<void> {
+  if (IS_WEB) return; // browser preview: nothing scheduled
   const ids = await getNotificationIdsForMedication(medicationId);
   if (ids.length > 0) {
     await Promise.all(
@@ -236,6 +252,7 @@ export async function cancelMedicationsForPet(
   petId: string,
   medications: Medication[],
 ): Promise<void> {
+  if (IS_WEB) return; // browser preview: nothing scheduled
   const petMeds = medications.filter((m) => m.petId === petId);
   await Promise.all(
     petMeds.map((m) => cancelMedicationReminders(m.id).catch(() => undefined)),

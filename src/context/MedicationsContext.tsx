@@ -19,6 +19,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import { Platform } from 'react-native';
 
 import {
   cancelMedicationReminders,
@@ -29,21 +30,27 @@ import {
 import { medicationRepository, medicationStore } from '../storage/medications';
 import type { Medication, MedicationInput } from '../types';
 
+/** Notifications are native-only: web preview reports "no notifications". */
+const NOTIFICATIONS_SUPPORTED = Platform.OS !== 'web';
+
 interface MedicationsContextValue {
   /** Every medication record, for all pets. */
   medications: Medication[];
   /** All medications belonging to one pet, newest first. */
   medicationsForPet: (petId: string) => Medication[];
-  /** Whether the device allows our local notifications right now. */
+  /** Nominal "granted" flag: false on web preview (no notifications at all). */
   notificationPermission: boolean;
-  /** Re-check the notification permission and update the flag. */
+  /**
+   * Re-check the notification permission and update the flag. On web this
+   * always reports false — the browser preview has no notification center.
+   */
   refreshNotificationPermission: () => Promise<void>;
   /** Load all medications from AsyncStorage. Call on app start. */
   refresh: () => Promise<void>;
   /**
    * All notification ids currently scheduled for one medication (from the
    * AsyncStorage id map), used by the screen to show whether reminders are
-   * actually armed.
+   * actually armed. Empty list on web — nothing is ever scheduled there.
    */
   scheduledNotificationIds: (medicationId: string) => Promise<string[]>;
   /** Create a medication, schedule its reminders, and return it. */
@@ -70,6 +77,7 @@ const MedicationsContext = createContext<MedicationsContextValue | undefined>(
 
 /** Whether the device lets us post local notifications right now. */
 async function computePermission(): Promise<boolean> {
+  if (!NOTIFICATIONS_SUPPORTED) return false;
   return hasNotificationPermission();
 }
 
@@ -179,7 +187,10 @@ export function MedicationsProvider({ children }: { children: React.ReactNode })
   );
 
   const scheduledNotificationIds = useCallback(
-    (medicationId: string) => getNotificationIdsForMedication(medicationId),
+    (medicationId: string) =>
+      NOTIFICATIONS_SUPPORTED
+        ? getNotificationIdsForMedication(medicationId)
+        : Promise.resolve([]),
     [],
   );
 
