@@ -128,3 +128,75 @@ export function medicationScheduleLabel(m: Medication): string {
   }
   return 'no schedule';
 }
+
+/**
+ * The FeedingSchedule entity — stored on-device via AsyncStorage. One record
+ * per recurring meal for a pet, bound to the pet via `petId`.
+ *
+ * Schedule model: each entry is a single daily meal (`mealType` + `time`).
+ * An entry repeats every day unless `daysOfWeek` names specific days
+ * (0 = Sunday … 6 = Saturday, mirroring `Date.getDay()`). An empty or
+ * missing `daysOfWeek` means "every day".
+ */
+export interface FeedingSchedule extends BaseEntity {
+  petId: string;
+  /** Which meal this is, e.g. "Breakfast". */
+  mealType: MealType;
+  /** Meal time as "HH:mm" (24h), e.g. "08:00". */
+  time: string;
+  /** Portion amount, e.g. 150 (with `portionUnit`). */
+  portionAmount: number;
+  /** Unit the portion is measured in, e.g. "g". */
+  portionUnit: PortionUnit;
+  /** Free-form notes, e.g. "soak kibble in warm water". Optional. */
+  notes?: string;
+  /** Days this meal repeats (0 = Sunday … 6 = Saturday). Empty = every day. */
+  daysOfWeek: number[];
+}
+
+/** Input type for creating/updating a feeding entry (id/createdAt auto-assigned). */
+export type FeedingScheduleInput = Omit<FeedingSchedule, keyof BaseEntity> &
+  Partial<BaseEntity>;
+
+/** Meal types a feeding entry can be (small fixed set). */
+export type MealType = 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
+
+/** Meal type options exposed for the create/edit form. */
+export const MEAL_TYPE_OPTIONS: MealType[] = [
+  'Breakfast',
+  'Lunch',
+  'Dinner',
+  'Snack',
+];
+
+/** Portion units a feeding entry's amount is recorded in. */
+export type PortionUnit = 'g' | 'cups' | 'tbsp' | 'cans' | 'ml';
+
+/** Portion unit options exposed for the create/edit form. */
+export const PORTION_UNIT_OPTIONS: PortionUnit[] = [
+  'g',
+  'cups',
+  'tbsp',
+  'cans',
+  'ml',
+];
+
+/** Short day names indexed by `Date.getDay()` (0 = Sunday). */
+export const DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Whether a days-of-week value means "every day" (empty or all 7 days). */
+export function isEveryDay(daysOfWeek: number[]): boolean {
+  return daysOfWeek.length === 0 || daysOfWeek.length === 7;
+}
+
+/** Human summary of which days a feeding entry repeats, e.g. "Every day". */
+export function feedingDaysLabel(daysOfWeek: number[]): string {
+  if (isEveryDay(daysOfWeek)) return 'Every day';
+  const days = [...daysOfWeek].sort((a, b) => a - b);
+  return days.map((d) => DAY_NAMES_SHORT[d] ?? `Day ${d}`).join(', ');
+}
+
+/** Human summary of a feeding entry, e.g. "Breakfast · 08:00 · 150 g". */
+export function feedingScheduleLabel(f: FeedingSchedule): string {
+  return `${f.mealType} · ${f.time} · ${f.portionAmount} ${f.portionUnit}`;
+}

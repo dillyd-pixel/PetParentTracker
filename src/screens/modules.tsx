@@ -10,12 +10,9 @@ import React from 'react';
 import PlaceholderScreen from './PlaceholderScreen';
 import VaccinesScreen from './VaccinesScreen';
 import MedsScreen from './MedsScreen';
+import FeedingScreen from './FeedingScreen';
 
-export { VaccinesScreen, MedsScreen };
-
-export function FeedingScreen() {
-  return <PlaceholderScreen title="Feeding" noun="feeding schedules" />;
-}
+export { VaccinesScreen, MedsScreen, FeedingScreen };
 
 export function VetRecordsScreen() {
   return <PlaceholderScreen title="Vet Records" noun="vet visits" />;

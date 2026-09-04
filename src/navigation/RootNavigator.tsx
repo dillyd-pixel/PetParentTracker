@@ -28,6 +28,7 @@ import { Text } from 'react-native';
 import { PetProvider, usePets } from '../context/PetContext';
 import { VaccinesProvider } from '../context/VaccinesContext';
 import { MedicationsProvider } from '../context/MedicationsContext';
+import { FeedingProvider } from '../context/FeedingContext';
 import HomeScreen from '../screens/HomeScreen';
 import PetFormScreen from '../screens/PetFormScreen';
 import {
@@ -153,12 +154,13 @@ const navTheme = {
   },
 };
 
-/** Root navigation container + providers (Pet, then Vaccines + Medications). */
+/** Root navigation container + providers (Pet, then Vaccines + Medications + Feeding). */
 export default function RootNavigator(): React.JSX.Element {
   return (
     <PetProvider>
       <VaccinesProvider>
         <MedicationsProvider>
+          <FeedingProvider>
           <NavigationContainer theme={navTheme}>
             <StatusBar style="auto" />
             <Stack.Navigator>
@@ -177,6 +179,7 @@ export default function RootNavigator(): React.JSX.Element {
               />
             </Stack.Navigator>
           </NavigationContainer>
+          </FeedingProvider>
         </MedicationsProvider>
       </VaccinesProvider>
     </PetProvider>

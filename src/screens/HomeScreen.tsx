@@ -20,6 +20,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { usePets } from '../context/PetContext';
 import { useVaccines } from '../context/VaccinesContext';
 import { useMedications } from '../context/MedicationsContext';
+import { useFeeding } from '../context/FeedingContext';
 import { cancelMedicationsForPet } from '../storage/notifications';
 import { AppColors } from '../theme';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -46,12 +47,13 @@ export default function HomeScreen({ navigation }: Props) {
   const { pets, activePet, addPet, updatePet, deletePet, selectPet } = usePets();
   const { deleteVaccinesForPet } = useVaccines();
   const { medications, deleteMedicationsForPet } = useMedications();
+  const { deleteFeedingForPet } = useFeeding();
   const [processing, setProcessing] = useState(false);
 
   const confirmDelete = (pet: Pet) => {
     Alert.alert(
       `Delete ${pet.name}?`,
-      'This permanently removes the pet, its vaccine and medication records, and its other on-device data. This cannot be undone.',
+      'This permanently removes the pet, its vaccine, medication, and feeding records, and its other on-device data. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -60,10 +62,11 @@ export default function HomeScreen({ navigation }: Props) {
           onPress: async () => {
             setProcessing(true);
             try {
-              // Cascade: the pet's vaccine + medication records go with it,
-              // and its scheduled medication reminders are cancelled.
+              // Cascade: the pet's vaccine + medication + feeding records go
+              // with it, and its scheduled medication reminders are cancelled.
               await deleteVaccinesForPet(pet.id);
               await deleteMedicationsForPet(pet.id);
+              await deleteFeedingForPet(pet.id);
               await cancelMedicationsForPet(pet.id, medications);
               await deletePet(pet.id);
             } finally {
