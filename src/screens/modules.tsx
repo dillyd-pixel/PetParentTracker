@@ -11,12 +11,9 @@ import PlaceholderScreen from './PlaceholderScreen';
 import VaccinesScreen from './VaccinesScreen';
 import MedsScreen from './MedsScreen';
 import FeedingScreen from './FeedingScreen';
+import VetRecordsScreen from './VetRecordsScreen';
 
-export { VaccinesScreen, MedsScreen, FeedingScreen };
-
-export function VetRecordsScreen() {
-  return <PlaceholderScreen title="Vet Records" noun="vet visits" />;
-}
+export { VaccinesScreen, MedsScreen, FeedingScreen, VetRecordsScreen };
 
 export function ExpensesScreen() {
   return <PlaceholderScreen title="Expenses" noun="expense entries" />;

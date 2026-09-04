@@ -200,3 +200,35 @@ export function feedingDaysLabel(daysOfWeek: number[]): string {
 export function feedingScheduleLabel(f: FeedingSchedule): string {
   return `${f.mealType} · ${f.time} · ${f.portionAmount} ${f.portionUnit}`;
 }
+
+/**
+ * The VetRecord entity — stored on-device via AsyncStorage. One record per
+ * veterinary visit, bound to a pet via `petId`.
+ */
+export interface VetRecord extends BaseEntity {
+  petId: string;
+  /** Visit title, e.g. "Annual checkup". */
+  visitTitle: string;
+  /** Date of the visit (ISO date YYYY-MM-DD). */
+  visitDate: string;
+  /** Clinic name, e.g. "Main Street Animal Hospital". Optional. */
+  clinicName?: string;
+  /** Veterinarian's name, e.g. "Dr. Lee". Optional. */
+  veterinarian?: string;
+  /** Free-form notes: diagnosis, treatment, follow-up instructions. Optional. */
+  notes?: string;
+  /**
+   * Visit cost in the user's own currency, as typed — no conversion, no
+   * currency metadata, no server. Optional.
+   */
+  cost?: number;
+}
+
+/** Input type for creating/updating a vet record (id/createdAt auto-assigned). */
+export type VetRecordInput = Omit<VetRecord, keyof BaseEntity> & Partial<BaseEntity>;
+
+/** Human-readable cost for a vet record, e.g. "85.50" — null when unset. */
+export function vetCostLabel(cost?: number): string | null {
+  if (cost === undefined || !Number.isFinite(cost)) return null;
+  return cost.toFixed(2);
+}
