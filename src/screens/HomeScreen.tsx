@@ -32,6 +32,7 @@ import {
 import { AppColors } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { ExportPetPdfRow } from '../components/ExportPetPdfRow';
+import { CoParentShareRows } from '../components/CoParentShareRows';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import type { Pet } from '../types';
 
@@ -119,6 +120,11 @@ export default function HomeScreen({ navigation }: Props) {
             {activePet && (
               <View style={styles.exportBlock}>
                 <ExportPetPdfRow />
+              </View>
+            )}
+            {activePet && (
+              <View style={styles.exportBlock}>
+                <CoParentShareRows />
               </View>
             )}
           </View>

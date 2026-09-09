@@ -26,6 +26,7 @@ import SearchScreen from './SearchScreen';
 import { AppColors } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { ExportPetPdfRow } from '../components/ExportPetPdfRow';
+import { CoParentShareRows } from '../components/CoParentShareRows';
 import { usePets } from '../context/PetContext';
 
 export type UpsellStackParamList = {
@@ -123,6 +124,10 @@ export function UpsellList({ navigation }: { navigation: any }) {
         }}
         ListFooterComponent={
           <View>
+            <View style={styles.exportCard}>
+              <Text style={styles.exportTitle}>🤝 Co-parent share</Text>
+              <CoParentShareRows />
+            </View>
             {activePet && (
               <View style={styles.exportCard}>
                 <Text style={styles.exportTitle}>📄 {activePet.name}’s pet file</Text>
