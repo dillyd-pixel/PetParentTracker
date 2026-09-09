@@ -1,10 +1,12 @@
 /**
- * Feeding tab — per-pet feeding schedules, fully working.
+ * Feeding tab — per-pet feeding schedules with premium mealtime reminders.
  *
  * Lists the active pet's meals (meal type, time, portion, repeat days, notes)
- * sorted by time, and lets the user add, edit, and delete entries. All data
- * flows through FeedingContext → feedingRepository → AsyncStorage; 100%
- * offline. No notifications — the schedule is display-only.
+ * sorted by time, and lets the user add, edit, and delete entries. Mealtime
+ * reminder notifications (a Blueprint Premium feature) fire at the meal's
+ * time on its repeat days. All data flows through FeedingContext →
+ * feedingRepository → AsyncStorage; 100% offline. No notifications on the
+ * web preview — the reminder controls render with a note there.
  */
 import React, { useEffect, useState } from 'react';
 import {
@@ -24,8 +26,11 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { useFeeding } from '../context/FeedingContext';
 import { usePets } from '../context/PetContext';
+import { usePremium } from '../context/PremiumContext';
+import { hasNotificationPermission } from '../storage/notifications';
 import { AppColors, cardShadow } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
+import { PremiumReminderRow } from '../components/PremiumReminderRow';
 import {
   DAY_NAMES_SHORT,
   MEAL_TYPE_OPTIONS,
@@ -73,6 +78,7 @@ interface FormState {
   portionUnit: PortionUnit;
   notes: string;
   daysOfWeek: number[];
+  reminderEnabled: boolean;
   photoUri: string | undefined;
 }
 
@@ -83,6 +89,7 @@ const emptyForm = (): FormState => ({
   portionUnit: 'g',
   notes: '',
   daysOfWeek: [],
+  reminderEnabled: false,
   photoUri: undefined,
 });
 
@@ -94,6 +101,7 @@ function formFromFeeding(f: FeedingSchedule): FormState {
     portionUnit: f.portionUnit,
     notes: f.notes ?? '',
     daysOfWeek: [...f.daysOfWeek],
+    reminderEnabled: f.reminderEnabled ?? false,
     photoUri: f.photoUri,
   };
 }
@@ -102,12 +110,20 @@ interface FormModalProps {
   visible: boolean;
   editing: FeedingSchedule | null;
   saving: boolean;
+  notificationPermissionDenied: boolean;
   onCancel: () => void;
   onSave: (form: FormState) => void;
 }
 
 /** Modal add/edit form — styled to match the app (cards, primary buttons). */
-function FeedingFormModal({ visible, editing, saving, onCancel, onSave }: FormModalProps) {
+function FeedingFormModal({
+  visible,
+  editing,
+  saving,
+  notificationPermissionDenied,
+  onCancel,
+  onSave,
+}: FormModalProps) {
   const [form, setForm] = useState<FormState>(emptyForm);
 
   // Hydrate on open: fresh form for "add", the entry's values for "edit".
@@ -289,6 +305,23 @@ function FeedingFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
             multiline
           />
 
+          <Text style={styles.label}>Mealtime reminder (Blueprint Premium)</Text>
+          <PremiumReminderRow
+            compact
+            label="Remind me"
+            value={form.reminderEnabled}
+            onToggle={(v) => set('reminderEnabled', v)}
+          />
+          {form.reminderEnabled &&
+            notificationPermissionDenied &&
+            Platform.OS !== 'web' && (
+              <Text style={styles.permissionNote}>
+                Notifications are disabled in system settings — reminders will be
+                saved but not delivered. Enable notifications for the app to arm
+                them.
+              </Text>
+            )}
+
           <View style={styles.modalActions}>
             <TouchableOpacity
               style={[styles.modalBtn, styles.cancelBtn]}
@@ -314,11 +347,20 @@ function FeedingFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
 
 export default function FeedingScreen() {
   const { activePet } = usePets();
-  const { feedingForPet, addFeeding, updateFeeding, deleteFeeding } = useFeeding();
+  const {
+    feedingForPet,
+    addFeeding,
+    updateFeeding,
+    deleteFeeding,
+    toggleFeedingReminders,
+  } = useFeeding();
+  const { isPremium } = usePremium();
 
   const [formVisible, setFormVisible] = useState(false);
   const [editingFeeding, setEditingFeeding] = useState<FeedingSchedule | null>(null);
   const [saving, setSaving] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [reminderNotes, setReminderNotes] = useState<Record<string, string>>({});
 
   // No active pet: prompt the user to pick/add one on Home.
   if (!activePet) {
@@ -345,7 +387,7 @@ export default function FeedingScreen() {
   const confirmDelete = (f: FeedingSchedule) => {
     Alert.alert(
       `Delete ${f.mealType} at ${f.time}?`,
-      'This feeding entry will be permanently removed from this device. This cannot be undone.',
+      'This feeding entry will be permanently removed from this device and its scheduled reminders cancelled. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -359,6 +401,37 @@ export default function FeedingScreen() {
         },
       ],
     );
+  };
+
+  /** Show reminder status on the card after scheduling/cancelling. */
+  const flashReminderNote = (id: string, text: string) => {
+    setReminderNotes((prev) => ({ ...prev, [id]: text }));
+    setTimeout(() => {
+      setReminderNotes((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }, 4000);
+  };
+
+  const onToggleReminders = async (f: FeedingSchedule, enabled: boolean) => {
+    const updated = await toggleFeedingReminders(f.id, enabled);
+    setPermissionDenied(!(await hasNotificationPermission()));
+    if (updated) {
+      if (enabled) {
+        flashReminderNote(
+          f.id,
+          Platform.OS === 'web'
+            ? 'Reminders saved — not supported in the web preview'
+            : updated.reminderEnabled
+              ? 'Reminders scheduled 🔔'
+              : 'Reminders not scheduled (permission denied)',
+        );
+      } else {
+        flashReminderNote(f.id, 'Reminders cancelled');
+      }
+    }
   };
 
   const submitForm = async (form: FormState) => {
@@ -386,6 +459,10 @@ export default function FeedingScreen() {
       portionUnit: form.portionUnit,
       notes: form.notes.trim() ? form.notes.trim() : undefined,
       daysOfWeek: days.sort((a, b) => a - b),
+      // Non-premium users can't arm reminders: always persist off, even if a
+      // stale toggle value leaks through. Premium state can only change via
+      // the Premium screen, so gating at save keeps stored data honest.
+      reminderEnabled: isPremium() ? form.reminderEnabled : false,
       photoUri: form.photoUri,
     };
     setSaving(true);
@@ -395,6 +472,7 @@ export default function FeedingScreen() {
       } else {
         await addFeeding(input);
       }
+      setPermissionDenied(!(await hasNotificationPermission()));
       setFormVisible(false);
     } finally {
       setSaving(false);
@@ -447,14 +525,29 @@ export default function FeedingScreen() {
                 ⏰ {item.time}
               </Text>
             </View>
+            {item.reminderEnabled ? (
+              <View style={[styles.badge, { backgroundColor: AppColors.accent + '1A' }]}>
+                <Text style={[styles.badgeText, { color: AppColors.accent }]}>
+                  🔔 Reminders on
+                </Text>
+              </View>
+            ) : null}
             <Text style={styles.cardPortion}>
               🍽️ {item.portionAmount} {item.portionUnit}
             </Text>
             <Text style={styles.cardMeta}>{feedingDaysLabel(item.daysOfWeek)}</Text>
             {item.notes ? <Text style={styles.cardNotes}>{item.notes}</Text> : null}
+            {reminderNotes[item.id] ? (
+              <Text style={styles.reminderNote}>{reminderNotes[item.id]}</Text>
+            ) : null}
             {item.photoUri ? (
               <Image source={{ uri: item.photoUri }} style={styles.cardPhoto} />
             ) : null}
+            <PremiumReminderRow
+              label="Reminders"
+              value={item.reminderEnabled ?? false}
+              onToggle={(v) => onToggleReminders(item, v)}
+            />
           </View>
         )}
       />
@@ -466,6 +559,7 @@ export default function FeedingScreen() {
         visible={formVisible}
         editing={editingFeeding}
         saving={saving}
+        notificationPermissionDenied={permissionDenied}
         onCancel={() => setFormVisible(false)}
         onSave={submitForm}
       />
@@ -534,6 +628,13 @@ const styles = StyleSheet.create({
   cardPortion: { fontSize: 14, color: AppColors.text, marginTop: 8, fontWeight: '600' },
   cardMeta: { fontSize: 13, color: AppColors.textMuted, marginTop: 4 },
   cardNotes: { fontSize: 13, color: AppColors.text, marginTop: 4, fontStyle: 'italic' },
+  reminderNote: { fontSize: 13, color: AppColors.danger, marginTop: 6, fontWeight: '600' },
+  permissionNote: {
+    fontSize: 12,
+    color: AppColors.danger,
+    marginTop: 6,
+    lineHeight: 16,
+  },
   cardPhoto: {
     width: '100%',
     height: 180,

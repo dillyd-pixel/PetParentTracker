@@ -1,12 +1,14 @@
 /**
- * Meds tab — per-pet medication records with local reminder notifications,
- * fully working.
+ * Meds tab — per-pet medication records with premium local reminders.
  *
  * Lists the active pet's medications with their schedule (daily dose times or
  * every-N-days), dosage, and reminder arm/status. Lets the user add, edit,
- * toggle reminders, and delete records. Every reminder is a LOCAL
- * notification scheduled on-device by expo-notifications — no server, no
- * push. All data flows through MedicationsContext → medicationRepository →
+ * toggle reminders, and delete records. Reminder scheduling is a Blueprint
+ * Premium feature: non-premium users see a lock row routing to the Premium
+ * screen, and existing scheduled notifications are never removed on the
+ * upgrade path — only the scheduling UI/action is gated. Every reminder is a
+ * LOCAL notification scheduled on-device by expo-notifications — no server,
+ * no push. All data flows through MedicationsContext → medicationRepository →
  * AsyncStorage; 100% offline.
  */
 import React, { useEffect, useState } from 'react';
@@ -28,10 +30,12 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { useMedications } from '../context/MedicationsContext';
 import { usePets } from '../context/PetContext';
+import { usePremium } from '../context/PremiumContext';
 import { hasNotificationPermission } from '../storage/notifications';
 import { medicationScheduleLabel } from '../types';
 import { AppColors, cardShadow } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
+import { PremiumReminderRow } from '../components/PremiumReminderRow';
 import type { Medication, MedicationInput } from '../types';
 
 /** Prompt shown when no pet is selected anywhere in the app. */
@@ -359,15 +363,13 @@ function MedicationFormModal({
               thumbColor={AppColors.white}
             />
           </View>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Reminders</Text>
-            <Switch
-              value={form.remindersEnabled}
-              onValueChange={(v) => set('remindersEnabled', v)}
-              trackColor={{ false: AppColors.trackOff, true: AppColors.primary }}
-              thumbColor={AppColors.white}
-            />
-          </View>
+          <Text style={styles.label}>Medication reminders (Blueprint Premium)</Text>
+          <PremiumReminderRow
+            compact
+            label="Reminders"
+            value={form.remindersEnabled}
+            onToggle={(v) => set('remindersEnabled', v)}
+          />
           {form.remindersEnabled &&
             notificationPermissionDenied &&
             Platform.OS !== 'web' && (
@@ -441,6 +443,7 @@ export default function MedsScreen() {
     deleteMedication,
     toggleMedicationReminders,
   } = useMedications();
+  const { isPremium } = usePremium();
 
   const [formVisible, setFormVisible] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
@@ -502,6 +505,10 @@ export default function MedsScreen() {
   };
 
   const onToggleReminders = async (m: Medication, enabled: boolean) => {
+    // Premium gate on the scheduling ACTION (not on stored data): turning
+    // reminders OFF is always allowed (cleanup), turning them ON requires
+    // premium. Existing scheduled notifications are never removed here.
+    if (enabled && !isPremium()) return;
     const updated = await toggleMedicationReminders(m.id, enabled);
     setPermissionDenied(!(await hasNotificationPermission()));
     if (updated) {
@@ -585,7 +592,14 @@ export default function MedsScreen() {
       startDate: form.startDate.trim() ? form.startDate.trim() : undefined,
       endDate: form.endDate.trim() ? form.endDate.trim() : undefined,
       active: form.active,
-      remindersEnabled: form.remindersEnabled,
+      // Premium gate: non-premium users can't arm new reminders, but turning
+      // reminders OFF (or leaving them off) always saves. Existing scheduled
+      // notifications are never removed by this gate.
+      remindersEnabled: isPremium()
+        ? form.remindersEnabled
+        : editingMedication
+          ? editingMedication.remindersEnabled && form.remindersEnabled
+          : false,
       photoUri: form.photoUri,
     };
     setSaving(true);
@@ -694,15 +708,11 @@ export default function MedsScreen() {
               {item.photoUri ? (
                 <Image source={{ uri: item.photoUri }} style={styles.cardPhoto} />
               ) : null}
-              <View style={styles.reminderRow}>
-                <Text style={styles.reminderLabel}>Reminders</Text>
-                <Switch
-                  value={item.remindersEnabled}
-                  onValueChange={(v) => onToggleReminders(item, v)}
-                  trackColor={{ false: AppColors.trackOff, true: AppColors.accent }}
-                  thumbColor={AppColors.white}
-                />
-              </View>
+              <PremiumReminderRow
+                label="Reminders"
+                value={item.remindersEnabled}
+                onToggle={(v) => onToggleReminders(item, v)}
+              />
             </View>
           );
         }}

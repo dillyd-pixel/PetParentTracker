@@ -1,10 +1,13 @@
 /**
- * Vaccines tab — per-pet vaccination records, fully working.
+ * Vaccines tab — per-pet vaccination records with premium due-date reminders.
  *
  * Lists the active pet's vaccines with client-side status badges (overdue,
  * due soon, up to date, or no due date — computed from today's date), and
- * lets the user add, edit, and delete records. All data flows through
- * VaccinesContext → vaccineRepository → AsyncStorage; 100% offline.
+ * lets the user add, edit, and delete records. The due-date reminder (a
+ * Blueprint Premium feature) fires a local notification on the vaccine's
+ * next-due date. All data flows through VaccinesContext → vaccineRepository
+ * → AsyncStorage; 100% offline. No notifications on the web preview — the
+ * reminder controls render with a note there.
  */
 import React, { useEffect, useState } from 'react';
 import {
@@ -24,8 +27,11 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { usePets } from '../context/PetContext';
 import { useVaccines } from '../context/VaccinesContext';
+import { usePremium } from '../context/PremiumContext';
+import { hasNotificationPermission } from '../storage/notifications';
 import { AppColors, cardShadow } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
+import { PremiumReminderRow } from '../components/PremiumReminderRow';
 import { VACCINE_DUE_SOON_DAYS } from '../types';
 import type { Vaccine, VaccineInput, VaccineStatus } from '../types';
 
@@ -124,6 +130,7 @@ interface FormState {
   dateGiven: string;
   dueDate: string;
   notes: string;
+  reminderEnabled: boolean;
   photoUri: string | undefined;
 }
 
@@ -132,6 +139,7 @@ const emptyForm = (): FormState => ({
   dateGiven: todayISO(),
   dueDate: '',
   notes: '',
+  reminderEnabled: false,
   photoUri: undefined,
 });
 
@@ -141,6 +149,7 @@ function formFromVaccine(v: Vaccine): FormState {
     dateGiven: v.dateGiven,
     dueDate: v.dueDate ?? '',
     notes: v.notes ?? '',
+    reminderEnabled: v.reminderEnabled ?? false,
     photoUri: v.photoUri,
   };
 }
@@ -149,12 +158,20 @@ interface FormModalProps {
   visible: boolean;
   editing: Vaccine | null;
   saving: boolean;
+  notificationPermissionDenied: boolean;
   onCancel: () => void;
   onSave: (form: FormState) => void;
 }
 
 /** Modal add/edit form — styled to match the app (cards, primary buttons). */
-function VaccineFormModal({ visible, editing, saving, onCancel, onSave }: FormModalProps) {
+function VaccineFormModal({
+  visible,
+  editing,
+  saving,
+  notificationPermissionDenied,
+  onCancel,
+  onSave,
+}: FormModalProps) {
   const [form, setForm] = useState<FormState>(emptyForm);
 
   // Hydrate on open: fresh form for "add", the record's values for "edit".
@@ -237,6 +254,30 @@ function VaccineFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
             multiline
           />
 
+          <Text style={styles.label}>
+            Due-date reminder (Blueprint Premium)
+          </Text>
+          <PremiumReminderRow
+            compact
+            label="Remind me when this vaccine is due"
+            value={form.reminderEnabled}
+            onToggle={(v) => set('reminderEnabled', v)}
+          />
+          {form.reminderEnabled && !form.dueDate.trim() && (
+            <Text style={styles.permissionNote}>
+              Set a due date above so the reminder has a date to fire on.
+            </Text>
+          )}
+          {form.reminderEnabled &&
+            notificationPermissionDenied &&
+            Platform.OS !== 'web' && (
+              <Text style={styles.permissionNote}>
+                Notifications are disabled in system settings — reminders will be
+                saved but not delivered. Enable notifications for the app to arm
+                them.
+              </Text>
+            )}
+
           <Text style={styles.label}>Photo (optional)</Text>
           <View style={styles.photoRow}>
             <TouchableOpacity style={styles.photoBox} onPress={pickPhoto}>
@@ -286,11 +327,20 @@ function VaccineFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
 
 export default function VaccinesScreen() {
   const { activePet } = usePets();
-  const { vaccinesForPet, addVaccine, updateVaccine, deleteVaccine } = useVaccines();
+  const {
+    vaccinesForPet,
+    addVaccine,
+    updateVaccine,
+    deleteVaccine,
+    toggleVaccineReminders,
+  } = useVaccines();
+  const { isPremium } = usePremium();
 
   const [formVisible, setFormVisible] = useState(false);
   const [editingVaccine, setEditingVaccine] = useState<Vaccine | null>(null);
   const [saving, setSaving] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [reminderNotes, setReminderNotes] = useState<Record<string, string>>({});
 
   // No active pet: prompt the user to pick/add one on Home.
   if (!activePet) {
@@ -317,7 +367,7 @@ export default function VaccinesScreen() {
   const confirmDelete = (v: Vaccine) => {
     Alert.alert(
       `Delete ${v.name}?`,
-      'This vaccination record will be permanently removed from this device. This cannot be undone.',
+      'This vaccination record will be permanently removed from this device and its scheduled reminder cancelled. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -331,6 +381,37 @@ export default function VaccinesScreen() {
         },
       ],
     );
+  };
+
+  /** Show reminder status on the card after scheduling/cancelling. */
+  const flashReminderNote = (id: string, text: string) => {
+    setReminderNotes((prev) => ({ ...prev, [id]: text }));
+    setTimeout(() => {
+      setReminderNotes((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }, 4000);
+  };
+
+  const onToggleReminders = async (v: Vaccine, enabled: boolean) => {
+    const updated = await toggleVaccineReminders(v.id, enabled);
+    setPermissionDenied(!(await hasNotificationPermission()));
+    if (updated) {
+      if (enabled) {
+        flashReminderNote(
+          v.id,
+          Platform.OS === 'web'
+            ? 'Reminders saved — not supported in the web preview'
+            : updated.reminderEnabled
+              ? 'Reminders scheduled 🔔'
+              : 'Reminders not scheduled (permission denied)',
+        );
+      } else {
+        flashReminderNote(v.id, 'Reminders cancelled');
+      }
+    }
   };
 
   const submitForm = async (form: FormState) => {
@@ -352,6 +433,10 @@ export default function VaccinesScreen() {
       dateGiven: form.dateGiven,
       dueDate: form.dueDate.trim() ? form.dueDate.trim() : undefined,
       notes: form.notes.trim() ? form.notes.trim() : undefined,
+      // Non-premium users can't arm reminders: always persist off. Premium
+      // state can only change via the Premium screen, so gating at save keeps
+      // stored data honest.
+      reminderEnabled: isPremium() ? form.reminderEnabled : false,
       photoUri: form.photoUri,
     };
     setSaving(true);
@@ -361,6 +446,7 @@ export default function VaccinesScreen() {
       } else {
         await addVaccine(input);
       }
+      setPermissionDenied(!(await hasNotificationPermission()));
       setFormVisible(false);
     } finally {
       setSaving(false);
@@ -414,9 +500,17 @@ export default function VaccinesScreen() {
                 {item.dueDate ? ` · Due: ${item.dueDate}${dueInfo(item)}` : ''}
               </Text>
               {item.notes ? <Text style={styles.cardNotes}>{item.notes}</Text> : null}
+              {reminderNotes[item.id] ? (
+                <Text style={styles.reminderNote}>{reminderNotes[item.id]}</Text>
+              ) : null}
               {item.photoUri ? (
                 <Image source={{ uri: item.photoUri }} style={styles.cardPhoto} />
               ) : null}
+              <PremiumReminderRow
+                label="Due-date reminder"
+                value={item.reminderEnabled ?? false}
+                onToggle={(v) => onToggleReminders(item, v)}
+              />
             </View>
           );
         }}
@@ -429,6 +523,7 @@ export default function VaccinesScreen() {
         visible={formVisible}
         editing={editingVaccine}
         saving={saving}
+        notificationPermissionDenied={permissionDenied}
         onCancel={() => setFormVisible(false)}
         onSave={submitForm}
       />
@@ -496,6 +591,13 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 13, fontWeight: '700' },
   cardMeta: { fontSize: 13, color: AppColors.textMuted, marginTop: 6 },
   cardNotes: { fontSize: 13, color: AppColors.text, marginTop: 4, fontStyle: 'italic' },
+  reminderNote: { fontSize: 13, color: AppColors.danger, marginTop: 6, fontWeight: '600' },
+  permissionNote: {
+    fontSize: 12,
+    color: AppColors.danger,
+    marginTop: 6,
+    lineHeight: 16,
+  },
   cardPhoto: {
     width: '100%',
     height: 180,

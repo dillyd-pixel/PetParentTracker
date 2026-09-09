@@ -24,7 +24,11 @@ import { useFeeding } from '../context/FeedingContext';
 import { useVetRecords } from '../context/VetContext';
 import { useExpenses } from '../context/ExpensesContext';
 import { useJournal } from '../context/JournalContext';
-import { cancelMedicationsForPet } from '../storage/notifications';
+import {
+  cancelFeedingForPet,
+  cancelMedicationsForPet,
+  cancelVaccinesForPet,
+} from '../storage/notifications';
 import { AppColors } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -49,9 +53,9 @@ function PetAvatar({ pet }: { pet: Pet }) {
 
 export default function HomeScreen({ navigation }: Props) {
   const { pets, activePet, addPet, updatePet, deletePet, selectPet } = usePets();
-  const { deleteVaccinesForPet } = useVaccines();
+  const { vaccines, deleteVaccinesForPet } = useVaccines();
   const { medications, deleteMedicationsForPet } = useMedications();
-  const { deleteFeedingForPet } = useFeeding();
+  const { feedingSchedules, deleteFeedingForPet } = useFeeding();
   const { deleteVetRecordsForPet } = useVetRecords();
   const { deleteExpensesForPet } = useExpenses();
   const { deleteJournalForPet } = useJournal();
@@ -71,7 +75,7 @@ export default function HomeScreen({ navigation }: Props) {
             try {
               // Cascade: the pet's vaccine + medication + feeding + vet +
               // expense + journal records go with it, and its scheduled
-              // medication reminders are cancelled.
+              // medication, feeding, and vaccine reminders are cancelled.
               await deleteVaccinesForPet(pet.id);
               await deleteMedicationsForPet(pet.id);
               await deleteFeedingForPet(pet.id);
@@ -79,6 +83,8 @@ export default function HomeScreen({ navigation }: Props) {
               await deleteExpensesForPet(pet.id);
               await deleteJournalForPet(pet.id);
               await cancelMedicationsForPet(pet.id, medications);
+              await cancelFeedingForPet(pet.id, feedingSchedules);
+              await cancelVaccinesForPet(pet.id, vaccines);
               await deletePet(pet.id);
             } finally {
               setProcessing(false);

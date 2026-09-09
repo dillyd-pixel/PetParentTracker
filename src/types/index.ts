@@ -53,6 +53,12 @@ export interface Vaccine extends BaseEntity {
   dueDate?: string;
   /** Free-form notes, e.g. lot number, vet clinic, reaction. */
   notes?: string;
+  /**
+   * Whether a local due-date reminder is scheduled for this record (Blueprint
+   * Premium). Missing/undefined means off — existing records stay free and
+   * reminder-free.
+   */
+  reminderEnabled?: boolean;
   /** Local file URI of an optional photo (picked on-device, stored directly). */
   photoUri?: string;
 }
@@ -156,6 +162,12 @@ export interface FeedingSchedule extends BaseEntity {
   notes?: string;
   /** Days this meal repeats (0 = Sunday … 6 = Saturday). Empty = every day. */
   daysOfWeek: number[];
+  /**
+   * Whether a local mealtime reminder is scheduled for this entry (Blueprint
+   * Premium). Missing/undefined means off — existing entries stay free and
+   * reminder-free.
+   */
+  reminderEnabled?: boolean;
   /** Local file URI of an optional photo (picked on-device, stored directly). */
   photoUri?: string;
 }
