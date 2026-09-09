@@ -24,6 +24,9 @@
     },
     "experiments": {
       "baseUrl": "/app"
-    }
+    },
+    "plugins": [
+      "expo-sharing"
+    ]
   }
 }

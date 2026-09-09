@@ -31,6 +31,7 @@ import {
 } from '../storage/notifications';
 import { AppColors } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
+import { ExportPetPdfRow } from '../components/ExportPetPdfRow';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import type { Pet } from '../types';
 
@@ -115,6 +116,11 @@ export default function HomeScreen({ navigation }: Props) {
                 ? `Active pet: ${activePet.name}`
                 : 'Add a pet to get started'}
             </Text>
+            {activePet && (
+              <View style={styles.exportBlock}>
+                <ExportPetPdfRow />
+              </View>
+            )}
           </View>
         }
         ListEmptyComponent={
@@ -182,6 +188,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AppColors.background },
   list: { padding: 16, paddingBottom: 90 },
   headerBlock: { marginBottom: 16 },
+  exportBlock: { marginTop: 12 },
   heading: { fontSize: 26, fontWeight: '800', color: AppColors.text },
   subheading: { fontSize: 14, color: AppColors.textMuted, marginTop: 2 },
   empty: {

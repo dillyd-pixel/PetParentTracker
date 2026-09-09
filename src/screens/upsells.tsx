@@ -25,6 +25,7 @@ import PremiumScreen from './PremiumScreen';
 import SearchScreen from './SearchScreen';
 import { AppColors } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
+import { ExportPetPdfRow } from '../components/ExportPetPdfRow';
 import { usePets } from '../context/PetContext';
 
 export type UpsellStackParamList = {
@@ -121,9 +122,17 @@ export function UpsellList({ navigation }: { navigation: any }) {
           );
         }}
         ListFooterComponent={
-          <Text style={styles.footerNote}>
-            Upsell products are on hold while the owner reviews the app.
-          </Text>
+          <View>
+            {activePet && (
+              <View style={styles.exportCard}>
+                <Text style={styles.exportTitle}>📄 {activePet.name}’s pet file</Text>
+                <ExportPetPdfRow />
+              </View>
+            )}
+            <Text style={styles.footerNote}>
+              Upsell products are on hold while the owner reviews the app.
+            </Text>
+          </View>
         }
       />
     </View>
@@ -173,6 +182,15 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: '600', color: AppColors.text },
   cardDesc: { fontSize: 13, color: AppColors.textMuted, marginTop: 2 },
   chevron: { fontSize: 24, color: AppColors.textMuted },
+  exportCard: {
+    backgroundColor: AppColors.card,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: AppColors.accent,
+  },
+  exportTitle: { fontSize: 15, fontWeight: '700', color: AppColors.text, marginBottom: 8 },
   footerNote: {
     fontSize: 12,
     color: AppColors.textMuted,
