@@ -2,9 +2,10 @@
  * "More" tab — Blueprint Premium entry + the four upsell products (on hold).
  *
  * The "More" tab hosts a small stack:
- *  - UpsellList: a Blueprint Premium card (opens the premium tier screen)
- *    followed by the four upsell products as a scrollable list.
+ *  - UpsellList: a Search card + a Blueprint Premium card (opens the premium
+ *    tier screen) followed by the four upsell products as a scrollable list.
  *  - Premium: the Blueprint Premium tier screen (trial + one-time unlock).
+ *  - Search: the premium-gated global record search across all pets.
  *  - Each upsell product detail is a PlaceholderScreen describing the future
  *    on-device generator (no server — everything generated on the phone).
  *
@@ -21,6 +22,7 @@ import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import { createWebSafeStackNavigator } from '../navigation/WebSafeStack';
 import PlaceholderScreen from './PlaceholderScreen';
 import PremiumScreen from './PremiumScreen';
+import SearchScreen from './SearchScreen';
 import { AppColors } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { usePets } from '../context/PetContext';
@@ -28,6 +30,7 @@ import { usePets } from '../context/PetContext';
 export type UpsellStackParamList = {
   UpsellList: undefined;
   Premium: undefined;
+  Search: undefined;
   PetPlanner: undefined;
   MemorialBook: undefined;
   Artwork: undefined;
@@ -43,10 +46,11 @@ const PRODUCTS: Array<{ name: keyof UpsellStackParamList; title: string; emoji: 
   { name: 'EmergencyCard', title: 'Emergency Pet Card', emoji: '🆘', desc: 'A printable emergency info card.' },
 ];
 
-/** FlatList data: the premium entry card first, then the upsell products. */
-type MoreRow = { key: string; kind: 'premium' | 'product'; product?: (typeof PRODUCTS)[number] };
+/** FlatList data: the search + premium entry cards first, then the upsell products. */
+type MoreRow = { key: string; kind: 'search' | 'premium' | 'product'; product?: (typeof PRODUCTS)[number] };
 
 const MORE_ROWS: MoreRow[] = [
+  { key: 'search', kind: 'search' },
   { key: 'premium', kind: 'premium' },
   ...PRODUCTS.map((product) => ({ key: product.name, kind: 'product' as const, product })),
 ];
@@ -67,6 +71,23 @@ export function UpsellList({ navigation }: { navigation: any }) {
           </Text>
         }
         renderItem={({ item }) => {
+          if (item.kind === 'search') {
+            return (
+              <TouchableOpacity
+                style={[styles.card, styles.premiumCard]}
+                onPress={() => navigation.navigate('Search')}
+              >
+                <Text style={styles.emoji}>🔍</Text>
+                <View style={styles.cardBody}>
+                  <Text style={styles.cardTitle}>Search all records</Text>
+                  <Text style={styles.cardDesc}>
+                    Find anything across all pets — Blueprint Premium
+                  </Text>
+                </View>
+                <Text style={styles.chevron}>›</Text>
+              </TouchableOpacity>
+            );
+          }
           if (item.kind === 'premium') {
             return (
               <TouchableOpacity
@@ -115,6 +136,7 @@ export function UpsellsNavigator() {
     <Stack.Navigator>
       <Stack.Screen name="UpsellList" component={UpsellList} options={{ title: 'More' }} />
       <Stack.Screen name="Premium" component={PremiumScreen} options={{ title: 'Blueprint Premium' }} />
+      <Stack.Screen name="Search" component={SearchScreen} options={{ title: 'Search' }} />
       <Stack.Screen name="PetPlanner" options={{ title: 'Pet Planner' }}>
         {() => <PlaceholderScreen title="Printable Pet Planner" noun="PDF that prints at home — generated on-device, no server" />}
       </Stack.Screen>

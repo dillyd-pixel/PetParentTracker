@@ -23,7 +23,7 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
-import { Text } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 
 import { createWebSafeStackNavigator } from './WebSafeStack';
 
@@ -100,20 +100,33 @@ const PLACEHOLDER_TABS: Array<{
   { name: 'Journal', label: 'Journal', emoji: '📔', component: JournalScreen },
 ];
 
+/** Global search entry: opens the premium-gated Search screen in the More stack. */
+function SearchHeaderButton() {
+  const navigation = useNavigation<any>();
+  const { activePet } = usePets();
+  return (
+    <TouchableOpacity
+      style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}
+      onPress={() => navigation.navigate('Upsells', { screen: 'Search' })}
+      accessibilityLabel="Search all records"
+    >
+      <Text style={{ fontSize: 18, marginRight: activePet ? 8 : 0 }}>🔍</Text>
+      <Text style={{ fontSize: 13, color: AppColors.textMuted }}>
+        {activePet ? `🐾 ${activePet.name}` : 'No pet selected'}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 /** Bottom tabs: Home + six future modules (all placeholder except Home). */
 function MainTabs() {
-  const { activePet } = usePets();
   return (
     <Tab.Navigator
       screenOptions={{
         tabBarActiveTintColor: AppColors.primary,
         tabBarInactiveTintColor: AppColors.placeholder,
         headerTitleStyle: { fontWeight: '700' },
-        headerRight: () => (
-          <Text style={{ marginRight: 16, fontSize: 13, color: AppColors.textMuted }}>
-            {activePet ? `🐾 ${activePet.name}` : 'No pet selected'}
-          </Text>
-        ),
+        headerRight: () => <SearchHeaderButton />,
       }}
     >
       <Tab.Screen
