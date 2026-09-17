@@ -473,13 +473,18 @@ const styles = StyleSheet.create({
   /**
    * The Settings gear (Today → top right → Shop → Settings). A Broadsheet text
    * glyph in the link colour, not an icon font: nothing extra to bundle and it
-   * stays offline. The padding is what gives it a comfortable tap target —
-   * the glyph alone would be too small to hit (~40px box in total).
+   * stays offline. `minWidth`/`minHeight` give it a comfortable ~40px tap
+   * target — the glyph on its own would be far too small to hit reliably. The
+   * padding (none on top, some below) keeps the glyph itself sitting on the
+   * header's text baseline, next to "Search ›".
    */
   gear: {
     fontSize: 20,
     lineHeight: 22,
     color: COLOR.accent700,
+    minWidth: 40,
+    minHeight: 40,
+    textAlign: 'center',
     paddingHorizontal: SPACE.s1,
     paddingBottom: SPACE.s2,
   },
