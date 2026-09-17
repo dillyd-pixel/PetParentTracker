@@ -39,7 +39,7 @@ import {
   feedingScheduleLabel,
   medicationScheduleLabel,
 } from '../types';
-import type { MainTabParamList } from '../navigation/RootNavigator';
+import type { PetsStackParamList } from '../navigation/PetsNavigator';
 
 /** One matched record, ready to render and open. */
 interface SearchHit {
@@ -47,8 +47,8 @@ interface SearchHit {
   petId: string;
   title: string;
   subtitle: string;
-  /** Module tab to open when the result is tapped. */
-  tab: keyof MainTabParamList;
+  /** Module screen inside the Pets stack to open when the result is tapped. */
+  screen: keyof PetsStackParamList;
 }
 
 /** A non-empty group of hits from one module. */
@@ -95,7 +95,7 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
       .filter((pet) => matches(q, [pet.name, pet.species, pet.breed]))
       .map((pet) =>
         withPet(
-          { key: `pet-${pet.id}`, petId: pet.id, title: pet.name, tab: 'Home' },
+          { key: `pet-${pet.id}`, petId: pet.id, title: pet.name, screen: 'PetProfile' },
           `${pet.species}${pet.breed ? ` · ${pet.breed}` : ''}`,
         ),
       );
@@ -107,7 +107,7 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
       .filter((vaccine) => matches(q, [vaccine.name, vaccine.notes]))
       .map((vaccine) =>
         withPet(
-          { key: `vaccine-${vaccine.id}`, petId: vaccine.petId, title: vaccine.name, tab: 'Vaccines' },
+          { key: `vaccine-${vaccine.id}`, petId: vaccine.petId, title: vaccine.name, screen: 'Vaccines' },
           vaccine.dateGiven,
         ),
       );
@@ -121,7 +121,7 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
       )
       .map((medication) =>
         withPet(
-          { key: `med-${medication.id}`, petId: medication.petId, title: medication.name, tab: 'Meds' },
+          { key: `med-${medication.id}`, petId: medication.petId, title: medication.name, screen: 'Meds' },
           `${medication.dosage} · ${medicationScheduleLabel(medication)}`,
         ),
       );
@@ -137,7 +137,7 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
       .filter((entry) => matches(q, [entry.mealType, entry.notes]))
       .map((entry) =>
         withPet(
-          { key: `feeding-${entry.id}`, petId: entry.petId, title: feedingScheduleLabel(entry), tab: 'Feeding' },
+          { key: `feeding-${entry.id}`, petId: entry.petId, title: feedingScheduleLabel(entry), screen: 'Feeding' },
           entry.notes ?? '',
         ),
       );
@@ -155,7 +155,7 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
       )
       .map((record) =>
         withPet(
-          { key: `vet-${record.id}`, petId: record.petId, title: record.visitTitle, tab: 'VetRecords' },
+          { key: `vet-${record.id}`, petId: record.petId, title: record.visitTitle, screen: 'VetRecords' },
           [record.visitDate, record.clinicName, record.veterinarian].filter(Boolean).join(' · '),
         ),
       );
@@ -169,7 +169,7 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
       )
       .map((expense) =>
         withPet(
-          { key: `expense-${expense.id}`, petId: expense.petId, title: expense.title, tab: 'Expenses' },
+          { key: `expense-${expense.id}`, petId: expense.petId, title: expense.title, screen: 'Expenses' },
           `${expense.category} · ${expenseAmountLabel(expense.amount)} · ${expense.date}`,
         ),
       );
@@ -189,7 +189,7 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
             key: `journal-${entry.id}`,
             petId: entry.petId,
             title: entry.title || entry.body.slice(0, 60),
-            tab: 'Journal',
+            screen: 'Journal',
           },
           [entry.entryDate, entry.mood].filter(Boolean).join(' · '),
         ),
@@ -208,21 +208,17 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
   const totalHits = groups.reduce((sum, group) => sum + group.hits.length, 0);
 
   /**
-   * Open a result: switch to the record's pet, then open the module tab via
-   * the parent tab navigator (this screen lives in the nested More stack).
+   * Open a result: switch to the record's pet, then open that pet's module
+   * screen inside the Pets tab (this screen lives in the nested Shop stack, so
+   * the route bubbles up to the tab navigator).
    */
   const openHit = async (hit: SearchHit): Promise<void> => {
     try {
       await selectPet(hit.petId);
     } catch {
-      // Pet switch is best-effort — still open the module tab below.
+      // Pet switch is best-effort — still open the module screen below.
     }
-    const parent = navigation.getParent?.();
-    if (parent) {
-      parent.navigate(hit.tab);
-    } else {
-      navigation.navigate(hit.tab);
-    }
+    navigation.navigate('Pets', { screen: hit.screen });
   };
 
   // Premium gate — same friendly lock copy as PremiumReminderRow.

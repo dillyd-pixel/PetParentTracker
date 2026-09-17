@@ -1,27 +1,31 @@
 /**
- * BackgroundCharacters — vibrant, playful pet-character backdrop.
+ * BackgroundCharacters — the quiet pet-character backdrop.
  *
- * A subtle background decoration layer: large friendly animal emoji
- * (dog, cat, bunny, bird, fish, hamster, plus paw prints and a bone)
- * scattered around the screen edges at low opacity, with playful color
- * pops from the warm app palette via soft glows.
+ * A whisper-quiet decoration layer: friendly animal emoji (dog, cat, bunny,
+ * bird, fish, hamster, plus paw prints and a bone) hugging the screen edges,
+ * with the faintest accent glow.
+ *
+ * Phase 1 of the Broadsheet port turned this layer right down: the design is
+ * typographic and paper-flat, so the characters are now a texture (5–7%
+ * opacity, no strong colour pops) that complements the ink-and-teal palette
+ * instead of competing with it. They stay mounted on every screen.
  *
  * Fully offline: pure RN Views/Text only. Emoji glyphs are rendered
  * client-side by the OS — no image assets, no network calls, no new
  * dependencies — and work on both Android and the web preview.
  *
  * Mount as the FIRST child of a screen's root container. The layer is
- * absolutely positioned (`absoluteFill`) and never intercepts touches
+ * absolutely positioned and never intercepts touches
  * (`pointerEvents="none"`). Because it is the first sibling, later content
  * (scrollables, cards, buttons) naturally paints above it on both native
- * and web — no zIndex tricks needed. All color tokens come from `AppColors` — no
+ * and web — no zIndex tricks needed. All color tokens come from `COLOR` — no
  * literal hex values in this file.
  */
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { DimensionValue } from 'react-native';
 
-import { AppColors } from '../theme';
+import { COLOR } from '../theme';
 
 interface BackgroundCharacter {
   /** The emoji glyph — rendered by the OS, no asset needed. */
@@ -35,26 +39,27 @@ interface BackgroundCharacter {
   right?: DimensionValue;
   /** Tilt in degrees, e.g. -12. */
   rotation: number;
-  /** Low-to-medium so text and cards stay perfectly readable. */
+  /** Very low so text and rules stay perfectly readable. */
   opacity: number;
-  /** Warm-palette glow (an AppColors token) for the color pop. */
+  /** Whisper-faint accent glow (a COLOR token). */
   glow: string;
 }
 
 /**
  * Distinct species hugging the edges/corners — never center-screen under
  * content. Two small paw prints fill the gaps between the larger animals.
+ * Opacities are deliberately tiny: this is paper texture, not decoration.
  */
 const CHARACTERS: BackgroundCharacter[] = [
-  { glyph: '🐶', size: 64, top: '7%', left: '5%', rotation: -12, opacity: 0.16, glow: AppColors.primary },
-  { glyph: '🐱', size: 58, top: '5%', right: '6%', rotation: 10, opacity: 0.15, glow: AppColors.accent },
-  { glyph: '🐾', size: 30, top: '17%', right: '24%', rotation: 24, opacity: 0.12, glow: AppColors.textMuted },
-  { glyph: '🐰', size: 52, top: '30%', left: '3%', rotation: -8, opacity: 0.14, glow: AppColors.sage },
-  { glyph: '🐦', size: 50, top: '32%', right: '4%', rotation: 8, opacity: 0.14, glow: AppColors.accent },
-  { glyph: '🦴', size: 44, top: '53%', left: '7%', rotation: -24, opacity: 0.12, glow: AppColors.primary },
-  { glyph: '🐟', size: 54, top: '68%', left: '5%', rotation: 12, opacity: 0.14, glow: AppColors.sage },
-  { glyph: '🐹', size: 56, top: '66%', right: '6%', rotation: -10, opacity: 0.15, glow: AppColors.primary },
-  { glyph: '🐾', size: 34, bottom: '10%', left: '38%', rotation: -18, opacity: 0.1, glow: AppColors.textMuted },
+  { glyph: '🐶', size: 64, top: '7%', left: '5%', rotation: -12, opacity: 0.07, glow: COLOR.accent },
+  { glyph: '🐱', size: 58, top: '5%', right: '6%', rotation: 10, opacity: 0.07, glow: COLOR.accent2 },
+  { glyph: '🐾', size: 30, top: '17%', right: '24%', rotation: 24, opacity: 0.06, glow: COLOR.textMuted },
+  { glyph: '🐰', size: 52, top: '30%', left: '3%', rotation: -8, opacity: 0.06, glow: COLOR.accent },
+  { glyph: '🐦', size: 50, top: '32%', right: '4%', rotation: 8, opacity: 0.06, glow: COLOR.accent2 },
+  { glyph: '🦴', size: 44, top: '53%', left: '7%', rotation: -24, opacity: 0.05, glow: COLOR.textFaint },
+  { glyph: '🐟', size: 54, top: '68%', left: '5%', rotation: 12, opacity: 0.06, glow: COLOR.accent },
+  { glyph: '🐹', size: 56, top: '66%', right: '6%', rotation: -10, opacity: 0.07, glow: COLOR.accent2 },
+  { glyph: '🐾', size: 34, bottom: '10%', left: '38%', rotation: -18, opacity: 0.05, glow: COLOR.textFaint },
 ];
 
 export default function BackgroundCharacters(): React.JSX.Element {

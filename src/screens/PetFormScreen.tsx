@@ -1,17 +1,20 @@
 /**
- * PetForm — create and edit a pet.
+ * PetForm — add or edit a pet, in the Broadsheet form language.
  *
  * Presented as a modal on top of the tabs. On save:
  *  - create: persists a new Pet via the context (which writes to AsyncStorage).
  *  - edit: updates the existing Pet in place.
- * Photo capture uses expo-image-picker to grab a local file URI; the chosen
- * image URI is stored directly in the Pet record (all on-device, no upload).
+ *
+ * Layout follows the design's "Add a pet" page: the photo plate, the Name
+ * field, a segmented Dog / Cat / Other control, then the remaining fields
+ * (breed, birthdate, weight + unit) in the same paper-and-rule language, and a
+ * single full-width primary button. Photo capture uses expo-image-picker to
+ * grab a local file URI; all on-device, no upload.
  */
 import React, { useEffect, useState } from 'react';
 import {
   Image,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -22,10 +25,11 @@ import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { usePets } from '../context/PetContext';
-import { AppColors } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { SPECIES_OPTIONS, WEIGHT_UNIT_OPTIONS } from '../types';
 import type { PetInput, Species, WeightUnit } from '../types';
+import { petEmoji } from '../utils/petDisplay';
+import { BS, COLOR, SPACE } from '../theme';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PetForm'>;
@@ -91,8 +95,7 @@ export default function PetFormScreen({ navigation, route }: Props) {
     const input: PetInput = {
       ...form,
       name: form.name.trim(),
-      weight:
-        typeof form.weight === 'number' && form.weight > 0 ? form.weight : undefined,
+      weight: typeof form.weight === 'number' && form.weight > 0 ? form.weight : undefined,
       photoUri: form.photoUri,
     };
     setSaving(true);
@@ -109,102 +112,103 @@ export default function PetFormScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Animal characters painted behind the form; ScrollView is transparent. */}
+    <View style={BS.screen}>
+      {/* Animal characters painted behind the form; the form itself is transparent. */}
       <BackgroundCharacters />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        {/* Photo picker */}
-        <TouchableOpacity style={styles.photoWrap} onPress={pickPhoto}>
+      <ScrollView contentContainerStyle={BS.pad}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={BS.link}>‹ {editingId ? 'Pet page' : 'Pets'}</Text>
+        </TouchableOpacity>
+        <Text style={[BS.h1, { marginTop: SPACE.s3 }]}>
+          {editingId ? `Edit ${editingPet?.name ?? 'pet'}` : 'Add a pet'}
+        </Text>
+
+        {/* Photo plate — the design's box, showing the picked photo or a hint. */}
+        <TouchableOpacity
+          style={BS.petPhotoBox}
+          onPress={pickPhoto}
+          accessibilityLabel="Add a pet photo"
+        >
           {form.photoUri ? (
-            <Image source={{ uri: form.photoUri }} style={styles.photo} />
+            <Image source={{ uri: form.photoUri }} style={{ flex: 1 }} resizeMode="cover" />
           ) : (
-            <View style={styles.photoPlaceholder}>
-              <Text style={styles.photoEmoji}>📷</Text>
-              <Text style={styles.photoHint}>Add photo</Text>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 44 }}>
+                {petEmoji((form.species ?? 'Other') as Species)}
+              </Text>
+              <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>Tap to add a photo</Text>
             </View>
           )}
         </TouchableOpacity>
 
-        {/* Name */}
-        <Text style={styles.label}>Name *</Text>
-        <TextInput
-          style={styles.input}
-          value={form.name}
-          onChangeText={(v) => set('name', v)}
-          placeholder="e.g. Biscuit"
-          placeholderTextColor={AppColors.placeholder}
-        />
+        <View style={BS.field}>
+          <Text style={BS.fieldLabel}>Name</Text>
+          <TextInput
+            style={BS.input}
+            value={form.name}
+            onChangeText={(v) => set('name', v)}
+            placeholder="e.g. Luna"
+            placeholderTextColor={COLOR.textFaint}
+          />
+        </View>
 
-        {/* Species */}
-        <Text style={styles.label}>Species</Text>
-        <View style={styles.chipRow}>
-          {SPECIES_OPTIONS.map((s) => (
+        <Text style={[BS.fieldLabel, { marginBottom: SPACE.s2 }]}>Species</Text>
+        <View style={BS.seg}>
+          {SPECIES_OPTIONS.map((species) => (
             <TouchableOpacity
-              key={s}
-              style={[styles.chip, form.species === s && styles.chipActive]}
-              onPress={() => set('species', s as Species)}
+              key={species}
+              style={[BS.segOpt, form.species === species && BS.segOptActive]}
+              onPress={() => set('species', species as Species)}
             >
-              <Text
-                style={[
-                  styles.chipText,
-                  form.species === s && styles.chipTextActive,
-                ]}
-              >
-                {s}
+              <Text style={form.species === species ? BS.segTextActive : BS.segText}>
+                {species}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Breed */}
-        <Text style={styles.label}>Breed (optional)</Text>
-        <TextInput
-          style={styles.input}
-          value={form.breed}
-          onChangeText={(v) => set('breed', v)}
-          placeholder="e.g. Golden Retriever"
-          placeholderTextColor={AppColors.placeholder}
-        />
-
-        {/* Birthdate */}
-        <Text style={styles.label}>Birthdate (optional, YYYY-MM-DD)</Text>
-        <TextInput
-          style={styles.input}
-          value={form.birthdate}
-          onChangeText={(v) => set('birthdate', v)}
-          placeholder="e.g. 2021-04-12"
-          placeholderTextColor={AppColors.placeholder}
-          keyboardType="numbers-and-punctuation"
-        />
-
-        {/* Weight */}
-        <Text style={styles.label}>Weight (optional)</Text>
-        <View style={styles.row}>
+        <View style={[BS.field, { marginTop: SPACE.s4 }]}>
+          <Text style={BS.fieldLabel}>Breed (optional)</Text>
           <TextInput
-            style={[styles.input, styles.weightInput]}
+            style={BS.input}
+            value={form.breed}
+            onChangeText={(v) => set('breed', v)}
+            placeholder="e.g. Golden retriever"
+            placeholderTextColor={COLOR.textFaint}
+          />
+        </View>
+
+        <View style={BS.field}>
+          <Text style={BS.fieldLabel}>Birthdate (optional, YYYY-MM-DD)</Text>
+          <TextInput
+            style={BS.input}
+            value={form.birthdate}
+            onChangeText={(v) => set('birthdate', v)}
+            placeholder="e.g. 2021-04-12"
+            placeholderTextColor={COLOR.textFaint}
+            keyboardType="numbers-and-punctuation"
+          />
+        </View>
+
+        <Text style={[BS.fieldLabel, { marginBottom: SPACE.s2 }]}>Weight (optional)</Text>
+        <View style={BS.row}>
+          <TextInput
+            style={[BS.input, { flex: 1 }]}
             value={form.weight != null ? String(form.weight) : ''}
             onChangeText={(v) => set('weight', v ? parseFloat(v) : undefined)}
             placeholder="0.0"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
             keyboardType="decimal-pad"
           />
-          <View style={styles.chipRow}>
-            {WEIGHT_UNIT_OPTIONS.map((u) => (
+          <View style={[BS.seg, { flex: 1 }]}>
+            {WEIGHT_UNIT_OPTIONS.map((unit) => (
               <TouchableOpacity
-                key={u}
-                style={[
-                  styles.chip,
-                  form.weightUnit === u && styles.chipActive,
-                ]}
-                onPress={() => set('weightUnit', u as WeightUnit)}
+                key={unit}
+                style={[BS.segOpt, form.weightUnit === unit && BS.segOptActive]}
+                onPress={() => set('weightUnit', unit as WeightUnit)}
               >
-                <Text
-                  style={[
-                    styles.chipText,
-                    form.weightUnit === u && styles.chipTextActive,
-                  ]}
-                >
-                  {u}
+                <Text style={form.weightUnit === unit ? BS.segTextActive : BS.segText}>
+                  {unit}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -212,67 +216,15 @@ export default function PetFormScreen({ navigation, route }: Props) {
         </View>
 
         <TouchableOpacity
-          style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+          style={[BS.btnPrimary, { marginTop: SPACE.s4, opacity: saving ? 0.6 : 1 }]}
           onPress={onSave}
           disabled={saving}
         >
-          <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save Pet'}</Text>
+          <Text style={BS.btnPrimaryText}>
+            {saving ? 'Saving…' : editingId ? 'Save changes' : 'Create profile'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: AppColors.background },
-  scroll: { flex: 1 },
-  content: { padding: 20, paddingBottom: 48 },
-  photoWrap: { alignSelf: 'center', marginBottom: 20 },
-  photo: { width: 120, height: 120, borderRadius: 60, backgroundColor: AppColors.border },
-  photoPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: AppColors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoEmoji: { fontSize: 30 },
-  photoHint: { fontSize: 12, color: AppColors.textMuted, marginTop: 2 },
-  label: { fontSize: 14, fontWeight: '600', color: AppColors.text, marginBottom: 6, marginTop: 8 },
-  input: {
-    backgroundColor: AppColors.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: AppColors.text,
-    marginBottom: 12,
-  },
-  row: { flexDirection: 'row', alignItems: 'center' },
-  weightInput: { flex: 1, marginRight: 12 },
-  chipRow: { flexDirection: 'row' },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    marginRight: 8,
-    backgroundColor: AppColors.card,
-  },
-  chipActive: { backgroundColor: AppColors.primary, borderColor: AppColors.primary },
-  chipText: { color: AppColors.text, fontWeight: '600' },
-  chipTextActive: { color: AppColors.white },
-  saveBtn: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveText: { color: AppColors.white, fontSize: 17, fontWeight: '700' },
-});
