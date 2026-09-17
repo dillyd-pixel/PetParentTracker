@@ -19,6 +19,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -26,6 +27,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useMedications } from '../context/MedicationsContext';
@@ -33,19 +35,21 @@ import { usePets } from '../context/PetContext';
 import { usePremium } from '../context/PremiumContext';
 import { hasNotificationPermission } from '../storage/notifications';
 import { medicationScheduleLabel } from '../types';
-import { AppColors, cardShadow } from '../theme';
+import { BS, COLOR, FONT_HEAD, SPACE } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { PremiumReminderRow } from '../components/PremiumReminderRow';
+import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import type { Medication, MedicationInput } from '../types';
+
+type Props = NativeStackScreenProps<PetsStackParamList, 'Meds'>;
 
 /** Prompt shown when no pet is selected anywhere in the app. */
 function NoPetState() {
   return (
-    <View style={styles.empty}>
-      <Text style={styles.emptyEmoji}>🐾</Text>
-      <Text style={styles.emptyTitle}>No pet selected</Text>
-      <Text style={styles.emptyText}>
-        Pick or add a pet on the Home tab to start tracking medications.
+    <View style={BS.pad}>
+      <Text style={BS.h1}>No pet selected</Text>
+      <Text style={BS.italic}>
+        Pick or add a pet on the Pets tab to start tracking medications.
       </Text>
     </View>
   );
@@ -54,13 +58,9 @@ function NoPetState() {
 /** Prompt shown when the active pet has no medication records yet. */
 function EmptyMeds() {
   return (
-    <View style={styles.empty}>
-      <Text style={styles.emptyEmoji}>💊</Text>
-      <Text style={styles.emptyTitle}>No medications yet</Text>
-      <Text style={styles.emptyText}>
-        Tap “Add Medication” to record the first one for this pet.
-      </Text>
-    </View>
+    <Text style={BS.italic}>
+      No medications logged for this pet yet. Tap “Add medication” to start the dose list.
+    </Text>
   );
 }
 
@@ -102,12 +102,12 @@ function TimeListField({
 
   return (
     <TextInput
-      style={[styles.input, styles.timesInput]}
+      style={[BS.input, styles.timesInput]}
       value={text}
       onChangeText={(next) => setText(next)}
       onEndEditing={commit}
       placeholder="08:00, 20:00"
-      placeholderTextColor={AppColors.placeholder}
+      placeholderTextColor={COLOR.textFaint}
       autoCapitalize="none"
       autoCorrect={false}
     />
@@ -241,51 +241,47 @@ function MedicationFormModal({
       >
         <View style={styles.modalCard}>
           <Text style={styles.modalTitle}>
-            {editing ? 'Edit Medication' : 'New Medication'}
+            {editing ? 'Edit medication' : 'New medication'}
           </Text>
 
-          <Text style={styles.label}>Name *</Text>
+          <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
+
+          <Text style={[BS.fieldLabel, styles.label]}>Name *</Text>
           <TextInput
-            style={styles.input}
+            style={BS.input}
             value={form.name}
             onChangeText={(v) => set('name', v)}
             placeholder="e.g. Carprofen (Rimadyl)"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
           />
 
-          <Text style={styles.label}>Dosage *</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Dosage *</Text>
           <TextInput
-            style={styles.input}
+            style={BS.input}
             value={form.dosage}
             onChangeText={(v) => set('dosage', v)}
             placeholder="e.g. 1 tablet"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
           />
 
-          <Text style={styles.label}>Schedule</Text>
-          <View style={styles.modeRow}>
+          <Text style={[BS.fieldLabel, styles.label]}>Schedule</Text>
+          <View style={BS.seg}>
             <TouchableOpacity
-              style={[styles.modeBtn, form.scheduleMode === 'daily' && styles.modeBtnOn]}
+              style={[BS.segOpt, form.scheduleMode === 'daily' && BS.segOptActive]}
               onPress={() => set('scheduleMode', 'daily')}
             >
               <Text
-                style={[
-                  styles.modeBtnText,
-                  form.scheduleMode === 'daily' && styles.modeBtnTextOn,
-                ]}
+                style={form.scheduleMode === 'daily' ? BS.segTextActive : BS.segText}
               >
                 Daily times
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modeBtn, form.scheduleMode === 'interval' && styles.modeBtnOn]}
+              style={[BS.segOpt, form.scheduleMode === 'interval' && BS.segOptActive]}
               onPress={() => set('scheduleMode', 'interval')}
             >
               <Text
-                style={[
-                  styles.modeBtnText,
-                  form.scheduleMode === 'interval' && styles.modeBtnTextOn,
-                ]}
+                style={form.scheduleMode === 'interval' ? BS.segTextActive : BS.segText}
               >
                 Every N days
               </Text>
@@ -294,7 +290,7 @@ function MedicationFormModal({
 
           {form.scheduleMode === 'daily' ? (
             <>
-              <Text style={styles.label}>Dose times * (24h, comma separated)</Text>
+              <Text style={[BS.fieldLabel, styles.label]}>Dose times * (24h, comma separated)</Text>
               <TimeListField
                 value={form.times}
                 resetKey={`${editing?.id ?? 'new'}-${openCount}`}
@@ -304,13 +300,13 @@ function MedicationFormModal({
             </>
           ) : (
             <>
-              <Text style={styles.label}>Every * days</Text>
+              <Text style={[BS.fieldLabel, styles.label]}>Every * days</Text>
               <TextInput
-                style={styles.input}
+                style={BS.input}
                 value={form.intervalDays}
                 onChangeText={(v) => set('intervalDays', v)}
                 placeholder="3"
-                placeholderTextColor={AppColors.placeholder}
+                placeholderTextColor={COLOR.textFaint}
                 keyboardType="number-pad"
               />
               <Text style={styles.hint}>
@@ -321,36 +317,36 @@ function MedicationFormModal({
 
           <View style={styles.twoCol}>
             <View style={styles.col}>
-              <Text style={styles.label}>Start date (optional)</Text>
+              <Text style={[BS.fieldLabel, styles.label]}>Start date (optional)</Text>
               <TextInput
-                style={styles.input}
+                style={BS.input}
                 value={form.startDate}
                 onChangeText={(v) => set('startDate', v)}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor={AppColors.placeholder}
+                placeholderTextColor={COLOR.textFaint}
                 keyboardType="numbers-and-punctuation"
               />
             </View>
             <View style={styles.col}>
-              <Text style={styles.label}>End date (optional)</Text>
+              <Text style={[BS.fieldLabel, styles.label]}>End date (optional)</Text>
               <TextInput
-                style={styles.input}
+                style={BS.input}
                 value={form.endDate}
                 onChangeText={(v) => set('endDate', v)}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor={AppColors.placeholder}
+                placeholderTextColor={COLOR.textFaint}
                 keyboardType="numbers-and-punctuation"
               />
             </View>
           </View>
 
-          <Text style={styles.label}>Notes (optional)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Notes (optional)</Text>
           <TextInput
-            style={[styles.input, styles.notesInput]}
+            style={[BS.input, styles.notesInput]}
             value={form.notes}
             onChangeText={(v) => set('notes', v)}
             placeholder="e.g. give with food"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
             multiline
           />
 
@@ -359,11 +355,11 @@ function MedicationFormModal({
             <Switch
               value={form.active}
               onValueChange={(v) => set('active', v)}
-              trackColor={{ false: AppColors.trackOff, true: AppColors.primary }}
-              thumbColor={AppColors.white}
+              trackColor={{ false: COLOR.divider, true: COLOR.accent }}
+              thumbColor={COLOR.bg}
             />
           </View>
-          <Text style={styles.label}>Medication reminders (Blueprint Premium)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Medication reminders (Blueprint Premium)</Text>
           <PremiumReminderRow
             compact
             label="Reminders"
@@ -387,14 +383,13 @@ function MedicationFormModal({
             </Text>
           )}
 
-          <Text style={styles.label}>Photo (optional)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Photo (optional)</Text>
           <View style={styles.photoRow}>
             <TouchableOpacity style={styles.photoBox} onPress={pickPhoto}>
               {form.photoUri ? (
                 <Image source={{ uri: form.photoUri }} style={styles.photoPreview} />
               ) : (
                 <View style={[styles.photoPreview, styles.photoPlaceholder]}>
-                  <Text style={styles.photoEmoji}>📷</Text>
                   <Text style={styles.photoHint}>Add photo</Text>
                 </View>
               )}
@@ -404,7 +399,7 @@ function MedicationFormModal({
                 style={styles.photoRemoveBtn}
                 onPress={() => set('photoUri', undefined)}
               >
-                <Text style={[styles.photoRemoveText, { color: AppColors.danger }]}>
+                <Text style={[styles.photoRemoveText, { color: COLOR.accent2_700 }]}>
                   Remove photo
                 </Text>
               </TouchableOpacity>
@@ -412,29 +407,27 @@ function MedicationFormModal({
           </View>
 
           <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.modalBtn, styles.cancelBtn]}
-              onPress={onCancel}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
+            <TouchableOpacity style={[BS.btnSecondary, styles.modalBtn]} onPress={onCancel}>
+              <Text style={BS.btnSecondaryText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalBtn, styles.saveBtn, saving && styles.btnDisabled]}
+              style={[BS.btnPrimary, styles.modalBtn, saving && styles.btnDisabled]}
               onPress={() => onSave(form)}
               disabled={saving}
             >
-              <Text style={styles.saveText}>
-                {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Medication'}
+              <Text style={BS.btnPrimaryText}>
+                {saving ? 'Saving…' : editing ? 'Save changes' : 'Add medication'}
               </Text>
             </TouchableOpacity>
           </View>
+          </ScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
-export default function MedsScreen() {
+export default function MedsScreen({ navigation }: Props): React.JSX.Element {
   const { activePet } = usePets();
   const {
     medicationsForPet,
@@ -627,99 +620,85 @@ export default function MedsScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
-            <Text style={styles.heading}>💊 Medications</Text>
-            <Text style={styles.subheading}>
-              Medication schedule for {activePet.name}
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={BS.link}>‹ {activePet.name}</Text>
+            </TouchableOpacity>
+            <Text style={[BS.h1, { marginTop: SPACE.s3 }]}>Medications</Text>
+            <Text style={BS.kicker}>
+              {records.length === 0
+                ? 'No medications'
+                : `${records.length} on file · ${records.filter((m) => m.active).length} active`}
             </Text>
           </View>
         }
         ListEmptyComponent={<EmptyMeds />}
         renderItem={({ item }) => {
           const reminderNote = reminderNotes[item.id];
+          const doseTime =
+            item.times.length > 0
+              ? item.times.join(' · ')
+              : item.intervalDays > 0
+                ? `every ${item.intervalDays}d`
+                : '';
           return (
-            <View style={[styles.card, !item.active && styles.cardInactive]}>
-              <View style={styles.cardTop}>
-                <Text style={styles.cardName}>{item.name}</Text>
-                <View style={styles.cardActions}>
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => openEdit(item)}
-                  >
-                    <Text style={styles.actionText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => confirmDelete(item)}
-                  >
-                    <Text style={[styles.actionText, { color: AppColors.danger }]}>
-                      Delete
+            <View>
+              <View style={styles.row}>
+                {item.photoUri ? (
+                  <Image source={{ uri: item.photoUri }} style={BS.thumb} />
+                ) : (
+                  <View style={[BS.thumb, BS.thumbBlank]} />
+                )}
+                <View style={styles.rowMain}>
+                  <Text style={[BS.rowLabel, !item.active && BS.strike]}>
+                    {item.name}
+                  </Text>
+                  <Text style={BS.caption}>
+                    {item.dosage} · {medicationScheduleLabel(item)}
+                  </Text>
+                  {item.startDate || item.endDate ? (
+                    <Text style={BS.caption}>
+                      {item.startDate ? `from ${item.startDate}` : ''}
+                      {item.startDate && item.endDate ? ' · ' : ''}
+                      {item.endDate ? `to ${item.endDate}` : ''}
                     </Text>
-                  </TouchableOpacity>
+                  ) : null}
+                  {item.notes ? (
+                    <Text style={[BS.caption, styles.notes]}>{item.notes}</Text>
+                  ) : null}
+                  <View style={styles.rowActions}>
+                    <TouchableOpacity onPress={() => openEdit(item)}>
+                      <Text style={BS.link}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => confirmDelete(item)}>
+                      <Text style={[BS.link, { color: COLOR.accent2_700 }]}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.badgeRow}>
-                <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: (item.active ? AppColors.primary : AppColors.placeholder) + '1A' },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.badgeText,
-                      { color: item.active ? AppColors.primary : AppColors.textMuted },
-                    ]}
-                  >
-                    {item.active ? '● Active' : '○ Inactive'}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: (item.remindersEnabled ? AppColors.accent : AppColors.placeholder) + '1A' },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.badgeText,
-                      { color: item.remindersEnabled ? AppColors.accent : AppColors.textMuted },
-                    ]}
-                  >
-                    {item.remindersEnabled ? '🔔 Reminders on' : '🔕 Reminders off'}
+                <View style={styles.rowEnd}>
+                  <Text style={BS.caption}>
+                    {item.active ? doseTime : 'inactive'}
                   </Text>
                 </View>
               </View>
-              <Text style={styles.cardDosage}>💊 {item.dosage}</Text>
-              <Text style={styles.cardMeta}>{medicationScheduleLabel(item)}</Text>
-              {item.startDate ? (
-                <Text style={styles.cardMeta}>
-                  Start: {item.startDate}
-                  {item.endDate ? ` · End: ${item.endDate}` : ''}
-                </Text>
-              ) : item.endDate ? (
-                <Text style={styles.cardMeta}>End: {item.endDate}</Text>
-              ) : null}
-              {item.notes ? (
-                <Text style={styles.cardNotes}>{item.notes}</Text>
-              ) : null}
-              {reminderNote ? (
-                <Text style={styles.reminderNote}>{reminderNote}</Text>
-              ) : null}
-              {item.photoUri ? (
-                <Image source={{ uri: item.photoUri }} style={styles.cardPhoto} />
-              ) : null}
-              <PremiumReminderRow
-                label="Reminders"
-                value={item.remindersEnabled}
-                onToggle={(v) => onToggleReminders(item, v)}
-              />
+              <View style={styles.reminderBlock}>
+                <PremiumReminderRow
+                  label="Reminders"
+                  value={item.remindersEnabled}
+                  onToggle={(v) => onToggleReminders(item, v)}
+                />
+                {reminderNote ? (
+                  <Text style={styles.reminderNote}>{reminderNote}</Text>
+                ) : null}
+              </View>
             </View>
           );
         }}
       />
-      <TouchableOpacity style={styles.addBtn} onPress={openAdd} disabled={saving}>
-        <Text style={styles.addBtnText}>＋ Add Medication</Text>
-      </TouchableOpacity>
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={BS.btnPrimary} onPress={openAdd} disabled={saving}>
+          <Text style={BS.btnPrimaryText}>＋ Add medication</Text>
+        </TouchableOpacity>
+      </View>
 
       <MedicationFormModal
         visible={formVisible}
@@ -734,192 +713,103 @@ export default function MedsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: AppColors.background },
-  list: { padding: 16, paddingBottom: 90 },
-  headerBlock: { marginBottom: 20, marginTop: 4 },
-  heading: { fontSize: 28, fontWeight: '800', color: AppColors.text },
-  subheading: { fontSize: 15, color: AppColors.textMuted, marginTop: 4, lineHeight: 21 },
-  empty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: AppColors.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    paddingVertical: 40,
-    paddingHorizontal: 24,
-    marginTop: 8,
-    ...cardShadow,
-  },
-  emptyEmoji: { fontSize: 56, marginBottom: 12 },
-  emptyTitle: { fontSize: 19, fontWeight: '800', color: AppColors.text },
-  emptyText: {
-    fontSize: 14,
-    color: AppColors.textMuted,
-    marginTop: 6,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  emptyCta: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 13,
-    marginTop: 18,
-    ...cardShadow,
-  },
-  emptyCtaText: { color: AppColors.white, fontSize: 15, fontWeight: '700' },
-  card: {
-    backgroundColor: AppColors.card,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...cardShadow,
-  },
-  cardInactive: { opacity: 0.65 },
-  cardTop: { flexDirection: 'row', alignItems: 'center' },
-  cardName: { flex: 1, fontSize: 17, fontWeight: '700', color: AppColors.text },
-  cardActions: { flexDirection: 'row' },
-  actionBtn: { padding: 6, marginLeft: 4 },
-  actionText: { fontSize: 14, fontWeight: '600', color: AppColors.primary },
-  badgeRow: { flexDirection: 'row', marginTop: 8, gap: 6 },
-  badge: {
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeText: { fontSize: 13, fontWeight: '700' },
-  cardDosage: { fontSize: 14, color: AppColors.text, marginTop: 8, fontWeight: '600' },
-  cardMeta: { fontSize: 13, color: AppColors.textMuted, marginTop: 4 },
-  cardNotes: {
-    fontSize: 13,
-    color: AppColors.text,
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  reminderNote: { fontSize: 13, color: AppColors.danger, marginTop: 6, fontWeight: '600' },
-  cardPhoto: {
-    width: '100%',
-    height: 180,
-    borderRadius: 14,
-    marginTop: 10,
-    backgroundColor: AppColors.border,
-  },
-  photoRow: {
+  container: { flex: 1, backgroundColor: COLOR.bg },
+  list: { padding: SPACE.s4, paddingBottom: 120 },
+  headerBlock: { marginBottom: SPACE.s3 },
+
+  /* Rows — the design's hairline list: thumb, label + caption, times at the end. */
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.divider,
   },
-  photoBox: { borderRadius: 10 },
-  photoPreview: { width: 88, height: 88, borderRadius: 12 },
-  photoPlaceholder: {
-    backgroundColor: AppColors.background,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+  rowMain: { flex: 1, marginLeft: SPACE.s2 },
+  rowEnd: { alignItems: 'flex-end', marginLeft: SPACE.s2 },
+  rowActions: { flexDirection: 'row', gap: SPACE.s3, marginTop: SPACE.s1 },
+  notes: { fontStyle: 'italic' },
+  reminderBlock: {
+    paddingVertical: SPACE.s2,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.divider,
   },
-  photoEmoji: { fontSize: 24 },
-  photoHint: { fontSize: 11, color: AppColors.textMuted, marginTop: 2 },
-  photoRemoveBtn: { paddingVertical: 8, paddingHorizontal: 6 },
-  photoRemoveText: { fontSize: 14, fontWeight: '600' },
-  reminderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: AppColors.border,
-  },
-  reminderLabel: { fontSize: 14, fontWeight: '600', color: AppColors.text },
-  addBtn: {
-    position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
-    backgroundColor: AppColors.primary,
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: 'center',
-    ...cardShadow,
-  },
-  addBtnText: { color: AppColors.white, fontSize: 17, fontWeight: '700' },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: AppColors.overlay,
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: AppColors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 32,
-  },
-  modalTitle: { fontSize: 22, fontWeight: '800', color: AppColors.text, marginBottom: 14 },
-  label: {
-    fontSize: 14,
+  reminderNote: {
+    fontSize: 12.5,
+    color: COLOR.accent2_700,
     fontWeight: '600',
-    color: AppColors.text,
-    marginBottom: 6,
-    marginTop: 8,
+    marginTop: SPACE.s1,
   },
-  input: {
-    backgroundColor: AppColors.background,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: AppColors.text,
-    marginBottom: 12,
+
+  /* Sticky primary action — the design's button, squared off on a hairline bar. */
+  bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: SPACE.s3,
+    paddingBottom: SPACE.s4,
+    backgroundColor: COLOR.bg,
+    borderTopWidth: 1,
+    borderTopColor: COLOR.divider,
   },
-  timesInput: { marginBottom: 4 },
-  hint: { fontSize: 12, color: AppColors.textMuted, marginBottom: 8 },
-  modeRow: { flexDirection: 'row', marginBottom: 8, gap: 8 },
-  modeBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
+
+  /* Add / edit sheet — paper, an ink rule across the top, no rounded corners. */
+  modalOverlay: { flex: 1, backgroundColor: COLOR.scrim, justifyContent: 'flex-end' },
+  modalCard: {
+    backgroundColor: COLOR.bg,
+    borderTopWidth: 1.5,
+    borderTopColor: COLOR.text,
+    maxHeight: '92%',
   },
-  modeBtnOn: { backgroundColor: AppColors.primary, borderColor: AppColors.primary },
-  modeBtnText: { fontSize: 14, fontWeight: '600', color: AppColors.text },
-  modeBtnTextOn: { color: AppColors.white },
-  twoCol: { flexDirection: 'row', gap: 10 },
+  modalScroll: { padding: SPACE.s4, paddingBottom: SPACE.s6 },
+  modalTitle: {
+    fontFamily: FONT_HEAD,
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLOR.text,
+    paddingHorizontal: SPACE.s4,
+    paddingTop: SPACE.s4,
+    marginBottom: SPACE.s2,
+  },
+  label: { marginTop: SPACE.s3 },
+  hint: { fontSize: 12, color: COLOR.textMuted, marginTop: -SPACE.s1 },
+  timesInput: {},
+  notesInput: { minHeight: 72, textAlignVertical: 'top' },
+  twoCol: { flexDirection: 'row', gap: SPACE.s3 },
   col: { flex: 1 },
-  notesInput: { minHeight: 64, textAlignVertical: 'top' },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
+    paddingVertical: SPACE.s2,
+    marginTop: SPACE.s3,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: COLOR.divider,
   },
-  switchLabel: { fontSize: 15, fontWeight: '600', color: AppColors.text },
-  permissionNote: {
-    fontSize: 12,
-    color: AppColors.danger,
-    marginTop: 6,
-    lineHeight: 16,
-  },
-  modalActions: { flexDirection: 'row', marginTop: 16 },
-  modalBtn: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
+  switchLabel: { fontSize: 15, fontWeight: '600', color: COLOR.text },
+  photoRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 4,
+    gap: SPACE.s3,
+    marginBottom: SPACE.s2,
   },
-  cancelBtn: { backgroundColor: AppColors.border },
-  cancelText: { fontSize: 15, fontWeight: '600', color: AppColors.text },
-  saveBtn: { backgroundColor: AppColors.primary },
-  btnDisabled: { opacity: 0.6 },
-  saveText: { color: AppColors.white, fontSize: 15, fontWeight: '700' },
+  photoBox: { borderRadius: 2 },
+  photoPreview: {
+    width: 88,
+    height: 88,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: COLOR.divider,
+    backgroundColor: COLOR.surface,
+  },
+  photoPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  photoHint: { fontSize: 12.5, fontStyle: 'italic', color: COLOR.textMuted },
+  photoRemoveBtn: { paddingVertical: SPACE.s2, paddingHorizontal: SPACE.s1 },
+  photoRemoveText: { fontSize: 13, fontWeight: '600' },
+  permissionNote: { fontSize: 12, color: COLOR.accent2_700, lineHeight: 16, marginTop: 6 },
+  modalActions: { flexDirection: 'row', gap: SPACE.s2, marginTop: SPACE.s4 },
+  modalBtn: { flex: 1 },
+  btnDisabled: { opacity: 0.45 },
 });
