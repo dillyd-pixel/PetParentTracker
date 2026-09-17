@@ -4,8 +4,9 @@
  * The Blueprint at a glance, on paper:
  *  - The home title: the household's own name for the blueprint, editable in
  *    place (tap it to rename — stored on-device, see storage/homeTitle).
- *  - The live date and a clock that ticks every minute (pure `Date()`, local,
- *    offline).
+ *  - The live date and a clock that ticks every minute, rendered in the display
+ *    time zone chosen in Settings (Shop → Settings → Date & time) — the device's
+ *    own zone by default. Pure `Date()` + `Intl`, offline.
  *  - Today: every pet's active medications and daily meals, tickable (the tick
  *    is kept on-device for today only — see storage/todayCheckoff).
  *  - Upcoming: dated one-off events — vaccines due, vet appointments, and
@@ -23,6 +24,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { usePets } from '../context/PetContext';
+import { useAccount } from '../context/AccountContext';
 import { usePremium } from '../context/PremiumContext';
 import { useMedications } from '../context/MedicationsContext';
 import { useFeeding } from '../context/FeedingContext';
@@ -33,9 +35,16 @@ import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import { loadTodayDone, toggleTodayDone } from '../storage/todayCheckoff';
 import { DEFAULT_HOME_TITLE, loadHomeTitle, saveHomeTitle } from '../storage/homeTitle';
-import { petEmoji, petMetaLine, todayISO } from '../utils/petDisplay';
+import { petEmoji, petMetaLine } from '../utils/petDisplay';
 import { buildUpcoming } from '../utils/upcoming';
 import type { UpcomingItem } from '../utils/upcoming';
+import {
+  AUTO_TIME_ZONE,
+  formatClock,
+  formatWeekdayDate,
+  timeZoneLabel,
+  todayISOInTimeZone,
+} from '../utils/datetime';
 import { BS, COLOR, SPACE } from '../theme';
 
 /** One tickable line in the Today list. */
@@ -49,6 +58,8 @@ interface TodayTask {
 export default function TodayScreen(): React.JSX.Element {
   const navigation = useTabRootNavigation();
   const { pets, activePet, selectPet } = usePets();
+  /** The owner's chosen display time zone (Settings → Date & time). */
+  const { timeZone } = useAccount();
   const premium = usePremium();
   const { medications } = useMedications();
   const { feedingSchedules } = useFeeding();
@@ -157,7 +168,9 @@ export default function TodayScreen(): React.JSX.Element {
   /**
    * Dated one-off events from every module, grouped by relative date. Rebuilt
    * when a record changes and whenever `now` ticks, so "in 3 days" stays true
-   * across midnight. Small lists, so this stays cheap.
+   * across midnight. "Today" is the day the chosen display zone is on, so the
+   * group labels agree with the clock above them. Small lists, so this stays
+   * cheap.
    */
   const upcoming = useMemo(
     () =>
@@ -166,9 +179,9 @@ export default function TodayScreen(): React.JSX.Element {
         vetRecords,
         medications,
         petName,
-        today: todayISO(now),
+        today: todayISOInTimeZone(now, timeZone),
       }),
-    [vaccines, vetRecords, medications, petName, now],
+    [vaccines, vetRecords, medications, petName, now, timeZone],
   );
 
   const totalSpend = expenses.reduce((sum, expense) => sum + expense.amount, 0);
@@ -255,13 +268,19 @@ export default function TodayScreen(): React.JSX.Element {
           )
         )}
 
-        {/* Live date + clock — local time only, refreshed every 30 seconds. */}
+        {/*
+          Live date + clock — rendered in the display zone chosen in Settings
+          (the device's own by default), refreshed every 30 seconds. Pure
+          `Date()` + Intl, offline.
+        */}
         <View style={styles.liveRow}>
-          <Text style={BS.kicker}>{weekdayDateLabel(now)}</Text>
-          <Text style={[BS.kicker, styles.clock]}>{clockLabel(now)}</Text>
+          <Text style={BS.kicker}>{formatWeekdayDate(now, timeZone)}</Text>
+          <Text style={[BS.kicker, styles.clock]}>{formatClock(now, timeZone)}</Text>
         </View>
         <Text style={[BS.caption, styles.liveNote]}>
-          Your time, on this device — updates every minute.
+          {timeZone === AUTO_TIME_ZONE
+            ? 'Your time, on this device — updates every minute.'
+            : `Shown in ${timeZoneLabel(timeZone)} — updates every minute. Change this in Shop → Settings.`}
         </Text>
 
         <Text style={[BS.fieldLabel, { marginTop: SPACE.s2 }]}>Today</Text>
@@ -419,22 +438,6 @@ function portionLabel(schedule: {
 /** The current month, e.g. "September". */
 function monthName(): string {
   return new Date().toLocaleDateString(undefined, { month: 'long' });
-}
-
-/** Today's weekday + date, e.g. "Wednesday, September 17" — local, offline. */
-function weekdayDateLabel(date: Date): string {
-  return date.toLocaleDateString(undefined, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
-}
-
-/** The clock, as 24-hour "HH:MM" to match the app's own times ("08:00"). */
-function clockLabel(date: Date): string {
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
 }
 
 /** Plain amount — the app never assumes a currency. */

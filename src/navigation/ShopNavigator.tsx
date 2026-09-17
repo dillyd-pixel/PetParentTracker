@@ -8,6 +8,10 @@
  *   Premium     — the Blueprint Premium tier screen (14-day trial + one-time
  *                 unlock, gated on-device).
  *   Search      — the premium-gated global record search across all pets.
+ *   Settings    — the device-level account settings: the owner's name, the time
+ *                 zone dates/times are shown in, the live premium/billing
+ *                 details, and the "delete account" wipe. Lives here rather
+ *                 than in a sixth tab, so the five-tab IA stays as designed.
  *   PetPlanner, MemorialBook, Artwork, EmergencyCard — the upsell product
  *                 detail placeholders (on hold).
  *
@@ -30,11 +34,13 @@ import ShopScreen from '../screens/ShopScreen';
 import PlaceholderScreen from '../screens/PlaceholderScreen';
 import PremiumScreen from '../screens/PremiumScreen';
 import SearchScreen from '../screens/SearchScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 export type ShopStackParamList = {
   ShopHome: undefined;
   Premium: undefined;
   Search: undefined;
+  Settings: undefined;
   PetPlanner: undefined;
   MemorialBook: undefined;
   Artwork: undefined;
@@ -54,6 +60,11 @@ export function ShopNavigator(): React.JSX.Element {
         options={{ headerShown: false }}
       />
       <Stack.Screen name="Search" component={SearchScreen} options={{ title: 'Search' }} />
+      <Stack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="PetPlanner" options={{ headerShown: false }}>
         {() => (
           <PlaceholderScreen

@@ -13,6 +13,7 @@
  */
 import type { Medication, Vaccine, VetRecord } from '../types';
 import { todayISO } from './petDisplay';
+import { todayISOInTimeZone } from './datetime';
 
 /** Which module screen a row opens (all live in the Pets tab's stack). */
 export type UpcomingScreen = 'Vaccines' | 'VetRecords' | 'Meds';
@@ -120,6 +121,15 @@ interface BuildUpcomingInput {
   petName: (petId: string) => string;
   /** Today as ISO "YYYY-MM-DD". Defaults to the device's today. */
   today?: string;
+  /**
+   * The display time zone chosen in Settings (an IANA id, or `auto`). It only
+   * decides *which day counts as today* when the caller doesn't pass `today`
+   * itself — so "Today"/"Tomorrow" and the "in N days" counts line up with the
+   * clock the owner sees in the Today header, even when the chosen zone is
+   * already on a different calendar day than the device. Invalid zones fall
+   * back to the device's own day.
+   */
+  timeZone?: string;
 }
 
 /**
@@ -132,8 +142,13 @@ export function buildUpcoming({
   vetRecords,
   medications,
   petName,
-  today = todayISO(),
+  today: explicitToday,
+  timeZone,
 }: BuildUpcomingInput): UpcomingList {
+  // The day that counts as "today": the caller's when given (the Today screen
+  // passes the live clock's day), otherwise derived in the chosen zone.
+  const today =
+    explicitToday ?? (timeZone ? todayISOInTimeZone(new Date(), timeZone) : todayISO());
   const found: UpcomingItem[] = [];
   const nameFor = (petId: string) => petName(petId) || 'Pet';
 
