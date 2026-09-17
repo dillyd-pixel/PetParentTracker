@@ -68,6 +68,7 @@ export default function RecordsScreen({ navigation }: Props): React.JSX.Element 
                   {record.petName}
                   {record.clinicName ? ` · ${record.clinicName}` : ''} ·{' '}
                   {shortDate(record.visitDate)}
+                  {record.visitTime ? ` ${record.visitTime}` : ''}
                 </Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>

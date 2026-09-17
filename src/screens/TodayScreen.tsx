@@ -4,8 +4,13 @@
  * The Blueprint at a glance, on paper:
  *  - The home title: the household's own name for the blueprint, editable in
  *    place (tap it to rename — stored on-device, see storage/homeTitle).
+ *  - The live date and a clock that ticks every minute (pure `Date()`, local,
+ *    offline).
  *  - Today: every pet's active medications and daily meals, tickable (the tick
  *    is kept on-device for today only — see storage/todayCheckoff).
+ *  - Upcoming: dated one-off events — vaccines due, vet appointments, and
+ *    medication courses starting or ending — grouped by relative date
+ *    (see utils/upcoming).
  *  - Pets: the pets list, each row opening that pet's page in the Pets tab and
  *    showing the pet's photo (or its species emoji when there is none).
  *  - The current month's spend snapshot across every pet, by category.
@@ -15,18 +20,22 @@
  * navigates; no network, no analytics.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { usePets } from '../context/PetContext';
 import { usePremium } from '../context/PremiumContext';
 import { useMedications } from '../context/MedicationsContext';
 import { useFeeding } from '../context/FeedingContext';
 import { useExpenses } from '../context/ExpensesContext';
+import { useVaccines } from '../context/VaccinesContext';
+import { useVetRecords } from '../context/VetContext';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import { loadTodayDone, toggleTodayDone } from '../storage/todayCheckoff';
 import { DEFAULT_HOME_TITLE, loadHomeTitle, saveHomeTitle } from '../storage/homeTitle';
-import { petEmoji, petMetaLine } from '../utils/petDisplay';
+import { petEmoji, petMetaLine, todayISO } from '../utils/petDisplay';
+import { buildUpcoming } from '../utils/upcoming';
+import type { UpcomingItem } from '../utils/upcoming';
 import { BS, COLOR, SPACE } from '../theme';
 
 /** One tickable line in the Today list. */
@@ -44,6 +53,8 @@ export default function TodayScreen(): React.JSX.Element {
   const { medications } = useMedications();
   const { feedingSchedules } = useFeeding();
   const { expenses } = useExpenses();
+  const { vaccines } = useVaccines();
+  const { vetRecords } = useVetRecords();
 
   const [done, setDone] = useState<string[]>([]);
   const [homeTitle, setHomeTitle] = useState(DEFAULT_HOME_TITLE);
@@ -51,6 +62,12 @@ export default function TodayScreen(): React.JSX.Element {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleSaved, setTitleSaved] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * The live "now" behind the header's date + clock. Ticked every 30 seconds
+   * (so the minute never lags by more than half a minute) — a couple of state
+   * updates a minute on an otherwise cheap screen. Pure `Date()`, no network.
+   */
+  const [now, setNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +95,13 @@ export default function TodayScreen(): React.JSX.Element {
     },
     [],
   );
+
+  // Keep the header's date + clock current: re-render every 30 seconds, and
+  // stop the interval when the screen unmounts (or on Fast Refresh).
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(tick);
+  }, []);
 
   /** Start renaming: the draft begins at whatever the title reads now. */
   const startTitleEdit = () => {
@@ -130,6 +154,23 @@ export default function TodayScreen(): React.JSX.Element {
     return rows.sort((a, b) => a.time.localeCompare(b.time));
   }, [medications, feedingSchedules, petName]);
 
+  /**
+   * Dated one-off events from every module, grouped by relative date. Rebuilt
+   * when a record changes and whenever `now` ticks, so "in 3 days" stays true
+   * across midnight. Small lists, so this stays cheap.
+   */
+  const upcoming = useMemo(
+    () =>
+      buildUpcoming({
+        vaccines,
+        vetRecords,
+        medications,
+        petName,
+        today: todayISO(now),
+      }),
+    [vaccines, vetRecords, medications, petName, now],
+  );
+
   const totalSpend = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const spendByCategory = useMemo(() => {
     const totals = new Map<string, number>();
@@ -152,6 +193,18 @@ export default function TodayScreen(): React.JSX.Element {
       }
     }
     navigation.navigate('Pets', { screen: 'PetProfile', params: { petId } });
+  };
+
+  /** Open the module screen an Upcoming row belongs to, on that pet. */
+  const openUpcoming = async (item: UpcomingItem) => {
+    if (activePet?.id !== item.petId) {
+      try {
+        await selectPet(item.petId);
+      } catch {
+        // Best effort — the module screen still opens on the active pet.
+      }
+    }
+    navigation.navigate('Pets', { screen: item.screen });
   };
 
   return (
@@ -202,6 +255,15 @@ export default function TodayScreen(): React.JSX.Element {
           )
         )}
 
+        {/* Live date + clock — local time only, refreshed every 30 seconds. */}
+        <View style={styles.liveRow}>
+          <Text style={BS.kicker}>{weekdayDateLabel(now)}</Text>
+          <Text style={[BS.kicker, styles.clock]}>{clockLabel(now)}</Text>
+        </View>
+        <Text style={[BS.caption, styles.liveNote]}>
+          Your time, on this device — updates every minute.
+        </Text>
+
         <Text style={[BS.fieldLabel, { marginTop: SPACE.s2 }]}>Today</Text>
         {tasks.length === 0 ? (
           <Text style={BS.italic}>Nothing scheduled yet.</Text>
@@ -228,6 +290,45 @@ export default function TodayScreen(): React.JSX.Element {
         <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
           Tap a line to tick it off — the list resets tomorrow.
         </Text>
+
+        <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Upcoming</Text>
+        {upcoming.groups.length === 0 ? (
+          <Text style={BS.italic}>
+            Nothing upcoming — vaccine due dates, vet visits and medication
+            courses that end show up here.
+          </Text>
+        ) : (
+          <>
+            {upcoming.groups.map((group) => (
+              <View key={group.date}>
+                <Text style={[BS.kicker, styles.upcomingDate]}>{group.label}</Text>
+                {group.items.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={BS.divRowBetween}
+                    onPress={() => openUpcoming(item)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${item.petName} — ${item.descriptor}, ${group.label}`}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={BS.rowLabel}>{item.petName}</Text>
+                      <Text style={BS.caption}>{item.descriptor}</Text>
+                    </View>
+                    <Text style={BS.link}>›</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ))}
+            {upcoming.hiddenCount > 0 && (
+              <Text style={[BS.caption, { marginTop: SPACE.s1 }]}>
+                … and {upcoming.hiddenCount} more
+              </Text>
+            )}
+            <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
+              Tap a dated line to open that record.
+            </Text>
+          </>
+        )}
 
         <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Pets</Text>
         {pets.length === 0 ? (
@@ -320,7 +421,39 @@ function monthName(): string {
   return new Date().toLocaleDateString(undefined, { month: 'long' });
 }
 
+/** Today's weekday + date, e.g. "Wednesday, September 17" — local, offline. */
+function weekdayDateLabel(date: Date): string {
+  return date.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+/** The clock, as 24-hour "HH:MM" to match the app's own times ("08:00"). */
+function clockLabel(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
 /** Plain amount — the app never assumes a currency. */
 function formatMoney(amount: number): string {
   return Number.isFinite(amount) ? amount.toFixed(2) : '0';
 }
+
+const styles = StyleSheet.create({
+  /** The live date/clock line: hairline-ruled, like the rest of the sheet. */
+  liveRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginTop: SPACE.s1,
+    paddingBottom: SPACE.s1,
+  },
+  /** The clock itself — the kicker scale with tabular-looking spacing. */
+  clock: { color: COLOR.text, fontWeight: '600' },
+  liveNote: { marginTop: 0, marginBottom: SPACE.s1 },
+  /** Date heading above each group of Upcoming rows. */
+  upcomingDate: { marginTop: SPACE.s2, marginBottom: SPACE.s1 },
+});

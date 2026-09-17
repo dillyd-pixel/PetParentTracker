@@ -156,7 +156,9 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
       .map((record) =>
         withPet(
           { key: `vet-${record.id}`, petId: record.petId, title: record.visitTitle, screen: 'VetRecords' },
-          [record.visitDate, record.clinicName, record.veterinarian].filter(Boolean).join(' · '),
+          [record.visitDate, record.visitTime, record.clinicName, record.veterinarian]
+            .filter(Boolean)
+            .join(' · '),
         ),
       );
     if (vetHits.length > 0) {

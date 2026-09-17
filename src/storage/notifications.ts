@@ -1,6 +1,6 @@
 /**
- * Local notification scheduling for medication, feeding, and vaccine
- * reminders (Blueprint Premium feature 1/4).
+ * Local notification scheduling for medication, feeding, vaccine, and vet
+ * visit reminders (Blueprint Premium feature 1/4).
  *
  * 100% offline: every function here uses expo-notifications' *local* trigger
  * API (`scheduleNotificationAsync` with `DAILY` / `WEEKLY` / `DATE`
@@ -9,7 +9,8 @@
  *
  * Cancellation is managed through id maps persisted in AsyncStorage: for
  * every scheduled notification we store its expo identifier under the owning
- * entity's id (`med:`, `feed:`, `vac:` prefixes keep the namespaces apart).
+ * entity's id (`med:`, `feed:`, `vac:`, `vet:` prefixes keep the namespaces
+ * apart).
  * Deleting/editing an entity then cancels exactly its own notifications by
  * looking up that map — no need to scan the OS queue (which Android can
  * return empty for without the notification permission).
@@ -19,7 +20,7 @@ import { Platform } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { FeedingSchedule, Medication, Vaccine } from '../types';
+import type { FeedingSchedule, Medication, Vaccine, VetRecord } from '../types';
 
 /**
  * The browser preview is a review surface only: medicines are tracked and
@@ -95,6 +96,11 @@ export function vaccineNotificationId(vaccineId: string): string {
   return `vac:${vaccineId}:due`;
 }
 
+/** Stable identifier for one vet visit's appointment reminder notification. */
+export function vetNotificationId(vetRecordId: string): string {
+  return `vet:${vetRecordId}:visit`;
+}
+
 /** AsyncStorage key holding the medication-id → notification-id map. */
 const NOTIFICATION_MAP_KEY = '@pet-parent-tracker/med-notification-map';
 
@@ -103,6 +109,9 @@ const FEEDING_NOTIFICATION_MAP_KEY = '@pet-parent-tracker/feed-notification-map'
 
 /** AsyncStorage key holding the vaccine-id → notification-id map. */
 const VACCINE_NOTIFICATION_MAP_KEY = '@pet-parent-tracker/vac-notification-map';
+
+/** AsyncStorage key holding the vet-record-id → notification-id map. */
+const VET_NOTIFICATION_MAP_KEY = '@pet-parent-tracker/vet-notification-map';
 
 /** Read the full id map (medication id → array of scheduled notification ids). */
 async function getNotificationMap(): Promise<Record<string, string[]>> {
@@ -173,6 +182,14 @@ export async function getNotificationIdsForVaccine(
 ): Promise<string[]> {
   const map = await getIdMap(VACCINE_NOTIFICATION_MAP_KEY);
   return map[vaccineId] ?? [];
+}
+
+/** All scheduled notification ids currently tracked for one vet record. */
+export async function getNotificationIdsForVetRecord(
+  vetRecordId: string,
+): Promise<string[]> {
+  const map = await getIdMap(VET_NOTIFICATION_MAP_KEY);
+  return map[vetRecordId] ?? [];
 }
 
 /**
@@ -528,5 +545,77 @@ export async function cancelVaccinesForPet(
   const petVaccines = vaccines.filter((v) => v.petId === petId);
   await Promise.all(
     petVaccines.map((v) => cancelVaccineReminders(v.id).catch(() => undefined)),
+  );
+}
+
+/**
+ * Schedule the local appointment reminder for one vet visit. Replaces the
+ * record's existing scheduled notification (cancels the old one first).
+ * Fires on `visitDate` at `visitTime` when a time is set, or at 9am local
+ * time when the visit has no time; past visits and records with
+ * `reminderEnabled` off (or unset) schedule nothing.
+ */
+export async function scheduleVetReminders(r: VetRecord): Promise<void> {
+  if (IS_WEB) return; // browser preview: reminders are a no-op
+  // 1) Clear whatever this record had scheduled before.
+  await cancelVetReminders(r.id);
+
+  // 2) Nothing to schedule without a future visit date or with reminders off.
+  if (!r.reminderEnabled || !r.visitDate) return;
+  const parts = parseISODateParts(r.visitDate);
+  if (!parts) return;
+  const [year, month, day] = parts;
+  const time = r.visitTime ? parseTimeHM(r.visitTime) : null;
+  const [hour, minute] = time ?? [9, 0];
+  const fire = new Date(year, month - 1, day, hour, minute, 0, 0);
+  if (fire.getTime() <= Date.now()) return; // already passed — nothing to fire
+  const permission = await ensureNotificationPermission();
+  if (!permission) {
+    // Reminders stay saved on-device; nothing is scheduled.
+    return;
+  }
+
+  const id = vetNotificationId(r.id);
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier: id,
+      content: {
+        title: `${r.visitTitle} 🩺`,
+        body: r.visitTime
+          ? `Vet visit at ${r.visitTime}${r.clinicName ? ` — ${r.clinicName}` : ''}.`
+          : `Vet visit today${r.clinicName ? ` at ${r.clinicName}` : ''}.`,
+        data: { vetRecordId: r.id, petId: r.petId, kind: 'vet-reminder' },
+        sound: 'default',
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fire },
+    });
+    const map = await getIdMap(VET_NOTIFICATION_MAP_KEY);
+    map[r.id] = [id];
+    await setIdMap(VET_NOTIFICATION_MAP_KEY, map);
+  } catch {
+    // Ignore individual failures.
+  }
+}
+
+/**
+ * Cancel every scheduled notification belonging to one vet record and drop it
+ * from the id map. Safe to call multiple times.
+ */
+export async function cancelVetReminders(vetRecordId: string): Promise<void> {
+  if (IS_WEB) return; // browser preview: nothing scheduled
+  const ids = await getNotificationIdsForVetRecord(vetRecordId);
+  await cancelScheduledIds(ids);
+  await dropIdMapEntry(VET_NOTIFICATION_MAP_KEY, vetRecordId);
+}
+
+/** Cancel every scheduled notification for a pet's vet records (pet deletion). */
+export async function cancelVetRemindersForPet(
+  petId: string,
+  records: VetRecord[],
+): Promise<void> {
+  if (IS_WEB) return; // browser preview: nothing scheduled
+  const petRecords = records.filter((r) => r.petId === petId);
+  await Promise.all(
+    petRecords.map((r) => cancelVetReminders(r.id).catch(() => undefined)),
   );
 }

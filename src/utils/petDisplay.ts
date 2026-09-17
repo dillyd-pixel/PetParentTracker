@@ -50,11 +50,10 @@ export function shortDate(iso: string): string {
 }
 
 /** Today as an ISO date — the default for new records. */
-export function todayISO(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
+export function todayISO(date: Date = new Date()): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 /** The current month's name, e.g. "September" — used by the spend snapshot. */

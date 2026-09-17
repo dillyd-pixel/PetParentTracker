@@ -229,6 +229,12 @@ export interface VetRecord extends BaseEntity {
   visitTitle: string;
   /** Date of the visit (ISO date YYYY-MM-DD). */
   visitDate: string;
+  /**
+   * Appointment time as "HH:mm" (24h). Optional — leave blank for a visit
+   * with no time. When set alongside a future `visitDate`, the premium
+   * reminder fires at exactly that date + time.
+   */
+  visitTime?: string;
   /** Clinic name, e.g. "Main Street Animal Hospital". Optional. */
   clinicName?: string;
   /** Veterinarian's name, e.g. "Dr. Lee". Optional. */
@@ -240,12 +246,23 @@ export interface VetRecord extends BaseEntity {
    * currency metadata, no server. Optional.
    */
   cost?: number;
+  /**
+   * Whether a local appointment reminder is scheduled for this visit
+   * (Blueprint Premium). Missing/undefined means off — existing records stay
+   * free and reminder-free. Fires at the visit's date (and time, when set).
+   */
+  reminderEnabled?: boolean;
   /** Local file URI of an optional photo (picked on-device, stored directly). */
   photoUri?: string;
 }
 
 /** Input type for creating/updating a vet record (id/createdAt auto-assigned). */
 export type VetRecordInput = Omit<VetRecord, keyof BaseEntity> & Partial<BaseEntity>;
+
+/** Human summary of a visit's date and time, e.g. "2026-05-14 · 09:30" or "2026-05-14". */
+export function vetVisitWhenLabel(record: Pick<VetRecord, 'visitDate' | 'visitTime'>): string {
+  return record.visitTime ? `${record.visitDate} · ${record.visitTime}` : record.visitDate;
+}
 
 /** Human-readable cost for a vet record, e.g. "85.50" — null when unset. */
 export function vetCostLabel(cost?: number): string | null {
