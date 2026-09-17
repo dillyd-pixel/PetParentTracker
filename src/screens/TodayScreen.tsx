@@ -2,17 +2,20 @@
  * Today — the first tab of the design's IA.
  *
  * The Blueprint at a glance, on paper:
+ *  - The home title: the household's own name for the blueprint, editable in
+ *    place (tap it to rename — stored on-device, see storage/homeTitle).
  *  - Today: every pet's active medications and daily meals, tickable (the tick
  *    is kept on-device for today only — see storage/todayCheckoff).
- *  - Pets: the pets list, each row opening that pet's page in the Pets tab.
+ *  - Pets: the pets list, each row opening that pet's page in the Pets tab and
+ *    showing the pet's photo (or its species emoji when there is none).
  *  - The current month's spend snapshot across every pet, by category.
  *  - The Blueprint Premium card for anyone not yet premium.
  *
  * 100% offline: reads the existing contexts (which read AsyncStorage) and
  * navigates; no network, no analytics.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Image, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { usePets } from '../context/PetContext';
 import { usePremium } from '../context/PremiumContext';
@@ -22,8 +25,9 @@ import { useExpenses } from '../context/ExpensesContext';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import { loadTodayDone, toggleTodayDone } from '../storage/todayCheckoff';
-import { petMetaLine } from '../utils/petDisplay';
-import { BS, SPACE } from '../theme';
+import { DEFAULT_HOME_TITLE, loadHomeTitle, saveHomeTitle } from '../storage/homeTitle';
+import { petEmoji, petMetaLine } from '../utils/petDisplay';
+import { BS, COLOR, SPACE } from '../theme';
 
 /** One tickable line in the Today list. */
 interface TodayTask {
@@ -42,6 +46,11 @@ export default function TodayScreen(): React.JSX.Element {
   const { expenses } = useExpenses();
 
   const [done, setDone] = useState<string[]>([]);
+  const [homeTitle, setHomeTitle] = useState(DEFAULT_HOME_TITLE);
+  const [titleDraft, setTitleDraft] = useState(DEFAULT_HOME_TITLE);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleSaved, setTitleSaved] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,10 +59,47 @@ export default function TodayScreen(): React.JSX.Element {
         if (!cancelled) setDone(ids);
       })
       .catch(() => undefined);
+    loadHomeTitle()
+      .then((title) => {
+        if (cancelled) return;
+        setHomeTitle(title);
+        setTitleDraft(title);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // Drop the "Saved" timer if the screen goes away mid-confirmation.
+  useEffect(
+    () => () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+    },
+    [],
+  );
+
+  /** Start renaming: the draft begins at whatever the title reads now. */
+  const startTitleEdit = () => {
+    setTitleDraft(homeTitle);
+    setTitleSaved(false);
+    setEditingTitle(true);
+  };
+
+  /**
+   * Save the draft on submit or blur. Trimmed; an empty title reverts to the
+   * default. Shows a brief inline "Saved" confirmation.
+   */
+  const commitTitle = async () => {
+    if (!editingTitle) return;
+    setEditingTitle(false);
+    const next = await saveHomeTitle(titleDraft);
+    setHomeTitle(next);
+    setTitleDraft(next);
+    setTitleSaved(true);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setTitleSaved(false), 2500);
+  };
 
   const petName = useCallback(
     (petId: string) => pets.find((pet) => pet.id === petId)?.name ?? 'Pet',
@@ -113,7 +159,31 @@ export default function TodayScreen(): React.JSX.Element {
       <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <View style={BS.rowBetween}>
-          <Text style={BS.h1}>The Blueprint</Text>
+          {editingTitle ? (
+            <TextInput
+              style={[BS.h1, BS.homeTitleInput]}
+              value={titleDraft}
+              onChangeText={setTitleDraft}
+              onBlur={commitTitle}
+              onSubmitEditing={commitTitle}
+              autoFocus
+              returnKeyType="done"
+              maxLength={40}
+              accessibilityLabel="Home title"
+              placeholder={DEFAULT_HOME_TITLE}
+              placeholderTextColor={COLOR.textFaint}
+            />
+          ) : (
+            <TouchableOpacity
+              style={BS.homeTitlePress}
+              onPress={startTitleEdit}
+              accessibilityRole="button"
+              accessibilityLabel={`Rename the home title — currently ${homeTitle}`}
+            >
+              <Text style={BS.h1}>{homeTitle}</Text>
+              <Text style={BS.homeTitlePencil}>✎</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() => navigation.navigate('Shop', { screen: 'Search' })}
             accessibilityLabel="Search every record"
@@ -121,6 +191,16 @@ export default function TodayScreen(): React.JSX.Element {
             <Text style={BS.link}>Search ›</Text>
           </TouchableOpacity>
         </View>
+        {editingTitle ? (
+          <Text style={[BS.caption, { marginTop: -SPACE.s1 }]}>
+            Rename your blueprint — Enter or tap away to save; empty restores “
+            {DEFAULT_HOME_TITLE}”.
+          </Text>
+        ) : (
+          titleSaved && (
+            <Text style={[BS.caption, { marginTop: -SPACE.s1 }]}>Saved</Text>
+          )
+        )}
 
         <Text style={[BS.fieldLabel, { marginTop: SPACE.s2 }]}>Today</Text>
         {tasks.length === 0 ? (
@@ -155,6 +235,18 @@ export default function TodayScreen(): React.JSX.Element {
         ) : (
           pets.map((pet) => (
             <TouchableOpacity key={pet.id} style={BS.divRowBetween} onPress={() => openPet(pet.id)}>
+              {pet.photoUri ? (
+                <Image
+                  source={{ uri: pet.photoUri }}
+                  style={[BS.avatar, { marginRight: SPACE.s2 }]}
+                  resizeMode="cover"
+                  accessibilityLabel={`${pet.name}'s photo`}
+                />
+              ) : (
+                <Text style={[BS.avatarEmoji, { marginRight: SPACE.s2 }]}>
+                  {petEmoji(pet.species)}
+                </Text>
+              )}
               <View style={{ flex: 1 }}>
                 <Text style={BS.rowLabel}>
                   {pet.name}
