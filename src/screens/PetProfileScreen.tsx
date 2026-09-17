@@ -9,9 +9,25 @@
  * The `petId` route param makes the tapped pet active first, so every module
  * screen reached from here shows the right pet. Deleting cascades exactly as
  * before (all seven stores + the scheduled reminders for that pet).
+ *
+ * The photo plate is tappable: it opens the same two-step source choice the
+ * pet form uses — "Take a photo" (the camera) or "Choose from library" (the
+ * phone's photos). There is no camera on web, so that option only appears on a
+ * device. The picked file's local URI is written straight to the pet with
+ * `updatePet`, so the new picture shows here and everywhere else at once.
+ * Nothing leaves the device: no upload, no network.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { usePets } from '../context/PetContext';
@@ -33,12 +49,15 @@ import { medicationScheduleLabel } from '../types';
 import { petEmoji, petMetaLine, shortDate } from '../utils/petDisplay';
 import { BS, COLOR, SPACE } from '../theme';
 
+/** Which photo source the owner picked on the plate. */
+type PhotoSource = 'camera' | 'library';
+
 type Props = NativeStackScreenProps<PetsStackParamList, 'PetProfile'>;
 
 export default function PetProfileScreen({ navigation, route }: Props): React.JSX.Element {
   const routePetId = route.params?.petId;
   const rootNavigation = useTabRootNavigation();
-  const { pets, activePet, selectPet, deletePet } = usePets();
+  const { pets, activePet, selectPet, deletePet, updatePet } = usePets();
   const { vaccines, deleteVaccinesForPet } = useVaccines();
   const { medications, deleteMedicationsForPet } = useMedications();
   const { feedingSchedules, deleteFeedingForPet } = useFeeding();
@@ -46,6 +65,11 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
   const { deleteExpensesForPet } = useExpenses();
   const { journalEntries, deleteJournalForPet } = useJournal();
   const [processing, setProcessing] = useState(false);
+  const [photoChooserOpen, setPhotoChooserOpen] = useState(false);
+  const [pickingPhoto, setPickingPhoto] = useState(false);
+  // A quiet, inline line for a denied permission or a picker that would not
+  // open — Alert.alert does nothing on web, so the message lives on the page.
+  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
 
   // The tapped pet becomes the active one, so its module screens line up.
   useEffect(() => {
@@ -134,6 +158,48 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
     );
   };
 
+  /**
+   * Attach a photo straight to this pet from the chosen source. The camera asks
+   * for camera permission and opens the camera; the library asks for
+   * photo-library permission and opens the phone's photos. Web has no camera, so
+   * only the library is offered there (the same rule the pet form uses). Either
+   * way we keep the picked file's local URI and nothing else — no upload.
+   */
+  const pickPhoto = async (source: PhotoSource) => {
+    const useCamera = source === 'camera' && Platform.OS !== 'web';
+    setPhotoNotice(null);
+    setPickingPhoto(true);
+    try {
+      const permission = useCamera
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setPhotoNotice(
+          useCamera
+            ? 'Allow camera access to photograph your pet. You can turn it back on in your phone’s settings.'
+            : 'Allow photo library access to add a pet picture. You can turn it back on in your phone’s settings.',
+        );
+        return;
+      }
+      const options: ImagePicker.ImagePickerOptions = {
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      };
+      const result = useCamera
+        ? await ImagePicker.launchCameraAsync(options)
+        : await ImagePicker.launchImageLibraryAsync({ ...options, mediaTypes: ['images'] });
+      if (!result.canceled && result.assets?.length) {
+        await updatePet(pet.id, { photoUri: result.assets[0].uri });
+        setPhotoChooserOpen(false);
+      }
+    } catch {
+      setPhotoNotice('That photo could not be opened. Please try again.');
+    } finally {
+      setPickingPhoto(false);
+    }
+  };
+
   return (
     <View style={BS.screen}>
       <BackgroundCharacters />
@@ -142,16 +208,73 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
           <Text style={BS.link}>‹ Pets</Text>
         </TouchableOpacity>
 
-        {/* Photo plate — the design's big box, filled when a photo exists. */}
-        <View style={[BS.petPhotoBox, { marginTop: SPACE.s3 }]}>
+        {/* Photo plate — the design's big box, tappable to add or replace the photo. */}
+        <TouchableOpacity
+          style={[BS.petPhotoBox, { marginTop: SPACE.s3 }]}
+          onPress={() => {
+            setPhotoNotice(null);
+            setPhotoChooserOpen((open) => !open);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={
+            pet.photoUri ? 'Change the pet photo' : `Add a photo of ${pet.name}`
+          }
+          testID="pet-photo-plate"
+        >
           {pet.photoUri ? (
             <Image source={{ uri: pet.photoUri }} style={{ flex: 1 }} resizeMode="cover" />
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 64 }}>{petEmoji(pet.species)}</Text>
+              <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>Tap to add a photo</Text>
             </View>
           )}
-        </View>
+        </TouchableOpacity>
+
+        {/* The source step — the camera or the phone's own photo library. */}
+        {photoChooserOpen && (
+          <View style={[BS.card, { marginTop: 0, marginBottom: SPACE.s3 }]}>
+            <Text style={BS.cardKicker}>Pet photo</Text>
+            <Text style={BS.caption}>
+              Choose where the picture comes from. It is saved on this device only.
+            </Text>
+            {Platform.OS !== 'web' && (
+              <TouchableOpacity
+                style={[BS.btnPrimary, pickingPhoto && { opacity: 0.6 }]}
+                disabled={pickingPhoto}
+                onPress={() => pickPhoto('camera')}
+                accessibilityRole="button"
+                accessibilityLabel="Take a photo"
+                testID="photo-source-camera"
+              >
+                <Text style={BS.btnPrimaryText}>Take a photo</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[BS.btnSecondary, pickingPhoto && { opacity: 0.6 }]}
+              disabled={pickingPhoto}
+              onPress={() => pickPhoto('library')}
+              accessibilityRole="button"
+              accessibilityLabel="Choose from library"
+              testID="photo-source-library"
+            >
+              <Text style={BS.btnSecondaryText}>Choose from library</Text>
+            </TouchableOpacity>
+            {photoNotice ? (
+              <Text style={[BS.caption, { marginBottom: SPACE.s2 }]}>{photoNotice}</Text>
+            ) : null}
+            <TouchableOpacity
+              onPress={() => {
+                setPhotoChooserOpen(false);
+                setPhotoNotice(null);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel photo choice"
+            >
+              <Text style={[BS.link, { textAlign: 'center' }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <Text style={BS.h1}>{pet.name}</Text>
         <Text style={BS.kicker}>{petMetaLine(pet)}</Text>
