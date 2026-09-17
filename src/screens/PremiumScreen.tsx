@@ -113,7 +113,7 @@ export default function PremiumScreen() {
           <Text style={styles.heroEmoji}>👑</Text>
           <Text style={styles.heroTitle}>Blueprint Premium</Text>
           <Text style={styles.heroPrice}>
-            One-time unlock · <Text style={styles.heroPriceStrong}>$4/mo</Text>
+            One-time unlock · <Text style={styles.heroPriceStrong}>no subscription</Text>
           </Text>
           <View style={styles.trialBadge}>
             <Text style={styles.trialBadgeText}>
