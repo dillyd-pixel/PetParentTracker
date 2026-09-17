@@ -4,6 +4,9 @@
  * The Blueprint at a glance, on paper:
  *  - The home title: the household's own name for the blueprint, editable in
  *    place (tap it to rename — stored on-device, see storage/homeTitle).
+ *  - A gear in the header's top-right corner that opens Settings — the same
+ *    screen the Shop tab's "Settings" row opens, so the way in is visible from
+ *    the first screen instead of buried in a tab.
  *  - The live date and a clock that ticks every minute, rendered in the display
  *    time zone chosen in Settings (Shop → Settings → Date & time) — the device's
  *    own zone by default. Pure `Date()` + `Intl`, offline.
@@ -250,12 +253,27 @@ export default function TodayScreen(): React.JSX.Element {
               <Text style={BS.homeTitlePencil}>✎</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Shop', { screen: 'Search' })}
-            accessibilityLabel="Search every record"
-          >
-            <Text style={BS.link}>Search ›</Text>
-          </TouchableOpacity>
+          {/*
+            Right-hand group: the Search link, then the Settings gear at the
+            far right. Both are quiet Broadsheet text glyphs — no icon library,
+            no new dependency, nothing to load offline.
+          */}
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Shop', { screen: 'Search' })}
+              accessibilityLabel="Search every record"
+            >
+              <Text style={BS.link}>Search ›</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Shop', { screen: 'Settings' })}
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+              testID="today-settings-gear"
+            >
+              <Text style={styles.gear}>⚙</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         {editingTitle ? (
           <Text style={[BS.caption, { marginTop: -SPACE.s1 }]}>
@@ -446,6 +464,25 @@ function formatMoney(amount: number): string {
 }
 
 const styles = StyleSheet.create({
+  /**
+   * The Today header's right-hand group — the Search link and the Settings
+   * gear. Sits on the same text baseline as the home title, like the Search
+   * link did on its own before the gear was added.
+   */
+  headerRight: { flexDirection: 'row', alignItems: 'baseline', gap: SPACE.s2 },
+  /**
+   * The Settings gear (Today → top right → Shop → Settings). A Broadsheet text
+   * glyph in the link colour, not an icon font: nothing extra to bundle and it
+   * stays offline. The padding is what gives it a comfortable tap target —
+   * the glyph alone would be too small to hit (~40px box in total).
+   */
+  gear: {
+    fontSize: 20,
+    lineHeight: 22,
+    color: COLOR.accent700,
+    paddingHorizontal: SPACE.s1,
+    paddingBottom: SPACE.s2,
+  },
   /** The live date/clock line: hairline-ruled, like the rest of the sheet. */
   liveRow: {
     flexDirection: 'row',
