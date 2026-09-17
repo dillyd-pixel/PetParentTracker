@@ -23,7 +23,7 @@
  *  - Each tab that needs depth owns a web-safe nested stack, so the browser
  *    preview keeps working exactly as on device.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   NavigationContainer,
   DefaultTheme,
@@ -33,7 +33,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { createWebSafeStackNavigator } from './WebSafeStack';
 import { PetsNavigator } from './PetsNavigator';
@@ -54,6 +54,7 @@ import { JournalProvider } from '../context/JournalContext';
 import TodayScreen from '../screens/TodayScreen';
 import EmergencyCardScreen from '../screens/EmergencyCardScreen';
 import PetFormScreen from '../screens/PetFormScreen';
+import OnboardingScreen, { hasSeenOnboarding } from '../screens/OnboardingScreen';
 import { BS, COLOR } from '../theme';
 
 /** The five tabs of the design's IA, each carrying its nested stack. */
@@ -145,6 +146,28 @@ const navTheme = {
 
 /** Root navigation container + providers (Pet, Premium, then the six modules). */
 export default function RootNavigator(): React.JSX.Element {
+  /**
+   * First-run onboarding gate: `null` while the on-device flag is being read
+   * (paper-coloured blank instead of a flash of the wrong screen), `false`
+   * until it has been finished or skipped once, `true` afterwards.
+   */
+  const [onboarded, setOnboarded] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    hasSeenOnboarding()
+      .then(setOnboarded)
+      .catch(() => setOnboarded(true));
+  }, []);
+
+  if (onboarded === null) {
+    return <View style={BS.screen} />;
+  }
+
+  // First run only: the design's four steps, then the app itself.
+  if (!onboarded) {
+    return <OnboardingScreen onDone={() => setOnboarded(true)} />;
+  }
+
   return (
     <PetProvider>
       <PremiumProvider>
