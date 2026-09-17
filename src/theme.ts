@@ -54,6 +54,8 @@ export const COLOR = {
   divider: 'rgba(32,30,29,0.16)',
   /** Neutral grey — dashed empty boxes, inert glyphs. */
   neutral500: '#8f8d8c',
+  /** Scrim behind modals — ink at 45%, the one translucent tone in the design. */
+  scrim: 'rgba(32,30,29,0.45)',
 };
 
 /** The 5/10/15/20/30 spacing scale (a.k.a. `S`). */
@@ -340,8 +342,8 @@ export const AppColors = {
   placeholder: COLOR.textFaint,
   /** @deprecated `COLOR.divider`. */
   trackOff: COLOR.divider,
-  /** @deprecated No scrims in the Broadsheet design; ink at 45%. */
-  overlay: 'rgba(32,30,29,0.45)',
+  /** @deprecated `COLOR.scrim` — ink at 45% behind modals. */
+  overlay: COLOR.scrim,
   /** @deprecated `COLOR.accent2_700` (deep magenta) — destructive/alert. */
   danger: COLOR.accent2_700,
   /** @deprecated `COLOR.bg` — text on an accent-filled button. */
