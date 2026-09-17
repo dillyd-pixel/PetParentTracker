@@ -14,10 +14,13 @@
  */
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { usePremium } from '../context/PremiumContext';
-import { AppColors, cardShadow } from '../theme';
+import { AppColors, BS, cardShadow, SPACE } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
+import type { ShopStackParamList } from '../navigation/ShopNavigator';
 import { PREMIUM_TRIAL_DAYS } from '../storage/premium';
 
 /** The four premium features, in the owner's wording. */
@@ -53,6 +56,7 @@ function formatTrialEndDate(iso: string | undefined): string {
 }
 
 export default function PremiumScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<ShopStackParamList>>();
   const {
     isPremium,
     trialRemainingDays,
@@ -108,8 +112,13 @@ export default function PremiumScreen() {
     <View style={styles.container}>
       <BackgroundCharacters />
       <ScrollView contentContainerStyle={styles.scroll}>
+        {/* The design's in-page back link — this screen's own header. */}
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={BS.link}>‹ Shop</Text>
+        </TouchableOpacity>
+
         {/* Hero card */}
-        <View style={[styles.heroCard, cardShadow]}>
+        <View style={[styles.heroCard, cardShadow, { marginTop: SPACE.s3 }]}>
           <Text style={styles.heroEmoji}>👑</Text>
           <Text style={styles.heroTitle}>Blueprint Premium</Text>
           <Text style={styles.heroPrice}>
