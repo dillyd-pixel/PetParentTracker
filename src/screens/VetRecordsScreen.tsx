@@ -14,29 +14,35 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useVetRecords } from '../context/VetContext';
 import { usePets } from '../context/PetContext';
-import { AppColors, cardShadow } from '../theme';
+import { BS, COLOR, FONT_HEAD, SPACE } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
+import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import { isValidISODate, vetCostLabel } from '../types';
 import type { VetRecord, VetRecordInput } from '../types';
+import { shortDate } from '../utils/petDisplay';
+import { recordKind } from '../utils/records';
+
+type Props = NativeStackScreenProps<PetsStackParamList, 'VetRecords'>;
 
 /** Prompt shown when no pet is selected anywhere in the app. */
 function NoPetState() {
   return (
-    <View style={styles.empty}>
-      <Text style={styles.emptyEmoji}>🐾</Text>
-      <Text style={styles.emptyTitle}>No pet selected</Text>
-      <Text style={styles.emptyText}>
-        Pick or add a pet on the Home tab to start tracking vet records.
+    <View style={BS.pad}>
+      <Text style={BS.h1}>No pet selected</Text>
+      <Text style={BS.italic}>
+        Pick or add a pet on the Pets tab to start tracking vet records.
       </Text>
     </View>
   );
@@ -45,13 +51,9 @@ function NoPetState() {
 /** Prompt shown when the active pet has no vet records yet. */
 function EmptyVetRecords() {
   return (
-    <View style={styles.empty}>
-      <Text style={styles.emptyEmoji}>🏥</Text>
-      <Text style={styles.emptyTitle}>No vet records yet</Text>
-      <Text style={styles.emptyText}>
-        Tap “Add Visit” to record the first vet visit for this pet.
-      </Text>
-    </View>
+    <Text style={BS.italic}>
+      Nothing filed for this pet yet. Tap “Add a visit” to start the file.
+    </Text>
   );
 }
 
@@ -138,74 +140,75 @@ function VetFormModal({ visible, editing, saving, onCancel, onSave }: FormModalP
       >
         <View style={styles.modalCard}>
           <Text style={styles.modalTitle}>
-            {editing ? 'Edit Visit' : 'New Vet Visit'}
+            {editing ? 'Edit visit' : 'New visit'}
           </Text>
 
-          <Text style={styles.label}>Visit title *</Text>
+          <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
+
+          <Text style={[BS.fieldLabel, styles.label]}>Visit title *</Text>
           <TextInput
-            style={styles.input}
+            style={BS.input}
             value={form.visitTitle}
             onChangeText={(v) => set('visitTitle', v)}
             placeholder="e.g. Annual checkup"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
           />
 
-          <Text style={styles.label}>Visit date * (YYYY-MM-DD)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Visit date * (YYYY-MM-DD)</Text>
           <TextInput
-            style={styles.input}
+            style={BS.input}
             value={form.visitDate}
             onChangeText={(v) => set('visitDate', v)}
             placeholder="e.g. 2026-05-14"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
             keyboardType="numbers-and-punctuation"
           />
 
-          <Text style={styles.label}>Clinic (optional)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Clinic (optional)</Text>
           <TextInput
-            style={styles.input}
+            style={BS.input}
             value={form.clinicName}
             onChangeText={(v) => set('clinicName', v)}
             placeholder="e.g. Main Street Animal Hospital"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
           />
 
-          <Text style={styles.label}>Veterinarian (optional)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Veterinarian (optional)</Text>
           <TextInput
-            style={styles.input}
+            style={BS.input}
             value={form.veterinarian}
             onChangeText={(v) => set('veterinarian', v)}
             placeholder="e.g. Dr. Lee"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
           />
 
-          <Text style={styles.label}>Cost (optional, your currency)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Cost (optional, your currency)</Text>
           <TextInput
-            style={styles.input}
+            style={BS.input}
             value={form.cost}
             onChangeText={(v) => set('cost', v)}
             placeholder="e.g. 85.50"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
             keyboardType="decimal-pad"
           />
 
-          <Text style={styles.label}>Notes (optional)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Notes (optional)</Text>
           <TextInput
-            style={[styles.input, styles.notesInput]}
+            style={[BS.input, styles.notesInput]}
             value={form.notes}
             onChangeText={(v) => set('notes', v)}
             placeholder="e.g. vaccines given, follow-up in 6 months"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
             multiline
           />
 
-          <Text style={styles.label}>Photo (optional)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Photo (optional)</Text>
           <View style={styles.photoRow}>
             <TouchableOpacity style={styles.photoBox} onPress={pickPhoto}>
               {form.photoUri ? (
                 <Image source={{ uri: form.photoUri }} style={styles.photoPreview} />
               ) : (
                 <View style={[styles.photoPreview, styles.photoPlaceholder]}>
-                  <Text style={styles.photoEmoji}>📷</Text>
                   <Text style={styles.photoHint}>Add photo</Text>
                 </View>
               )}
@@ -215,7 +218,7 @@ function VetFormModal({ visible, editing, saving, onCancel, onSave }: FormModalP
                 style={styles.photoRemoveBtn}
                 onPress={() => set('photoUri', undefined)}
               >
-                <Text style={[styles.photoRemoveText, { color: AppColors.danger }]}>
+                <Text style={[styles.photoRemoveText, { color: COLOR.accent2_700 }]}>
                   Remove photo
                 </Text>
               </TouchableOpacity>
@@ -223,29 +226,27 @@ function VetFormModal({ visible, editing, saving, onCancel, onSave }: FormModalP
           </View>
 
           <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.modalBtn, styles.cancelBtn]}
-              onPress={onCancel}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
+            <TouchableOpacity style={[BS.btnSecondary, styles.modalBtn]} onPress={onCancel}>
+              <Text style={BS.btnSecondaryText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalBtn, styles.saveBtn, saving && styles.btnDisabled]}
+              style={[BS.btnPrimary, styles.modalBtn, saving && styles.btnDisabled]}
               onPress={() => onSave(form)}
               disabled={saving}
             >
-              <Text style={styles.saveText}>
-                {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Visit'}
+              <Text style={BS.btnPrimaryText}>
+                {saving ? 'Saving…' : editing ? 'Save changes' : 'Add visit'}
               </Text>
             </TouchableOpacity>
           </View>
+          </ScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
-export default function VetRecordsScreen() {
+export default function VetRecordsScreen({ navigation }: Props): React.JSX.Element {
   const { activePet } = usePets();
   const { vetRecordsForPet, addVetRecord, updateVetRecord, deleteVetRecord } =
     useVetRecords();
@@ -358,9 +359,14 @@ export default function VetRecordsScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
-            <Text style={styles.heading}>🏥 Vet Records</Text>
-            <Text style={styles.subheading}>
-              Vet visits for {activePet.name}
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={BS.link}>‹ {activePet.name}</Text>
+            </TouchableOpacity>
+            <Text style={[BS.h1, { marginTop: SPACE.s3 }]}>Vet records</Text>
+            <Text style={BS.kicker}>
+              {records.length === 0
+                ? 'Nothing filed yet'
+                : `${records.length} visit${records.length === 1 ? '' : 's'} on file`}
             </Text>
           </View>
         }
@@ -368,52 +374,44 @@ export default function VetRecordsScreen() {
         renderItem={({ item }) => {
           const cost = vetCostLabel(item.cost);
           return (
-            <View style={styles.card}>
-              <View style={styles.cardTop}>
-                <Text style={styles.cardName}>{item.visitTitle}</Text>
-                <View style={styles.cardActions}>
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => openEdit(item)}
-                  >
-                    <Text style={styles.actionText}>Edit</Text>
+            <View style={styles.row}>
+              {item.photoUri ? (
+                <Image source={{ uri: item.photoUri }} style={BS.thumb} />
+              ) : (
+                <View style={[BS.thumb, BS.thumbBlank]} />
+              )}
+              <View style={styles.rowMain}>
+                <Text style={BS.rowLabel}>{item.visitTitle}</Text>
+                <Text style={BS.caption}>
+                  {shortDate(item.visitDate)}
+                  {item.clinicName ? ` · ${item.clinicName}` : ''}
+                  {item.veterinarian ? ` · ${item.veterinarian}` : ''}
+                </Text>
+                {item.notes ? (
+                  <Text style={[BS.caption, styles.notes]}>{item.notes}</Text>
+                ) : null}
+                <View style={styles.rowActions}>
+                  <TouchableOpacity onPress={() => openEdit(item)}>
+                    <Text style={BS.link}>Edit</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => confirmDelete(item)}
-                  >
-                    <Text style={[styles.actionText, { color: AppColors.danger }]}>
-                      Delete
-                    </Text>
+                  <TouchableOpacity onPress={() => confirmDelete(item)}>
+                    <Text style={[BS.link, { color: COLOR.accent2_700 }]}>Delete</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-              <View style={[styles.badge, { backgroundColor: AppColors.primary + '1A' }]}>
-                <Text style={[styles.badgeText, { color: AppColors.primary }]}>
-                  📅 {item.visitDate}
-                </Text>
+              <View style={styles.rowEnd}>
+                <Text style={BS.rowLabel}>{cost ?? '—'}</Text>
+                <Text style={BS.caption}>{recordKind(item.notes)}</Text>
               </View>
-              {item.clinicName || item.veterinarian ? (
-                <Text style={styles.cardMeta}>
-                  {item.clinicName ? `🏨 ${item.clinicName}` : null}
-                  {item.clinicName && item.veterinarian ? ' · ' : null}
-                  {item.veterinarian ? `🩺 ${item.veterinarian}` : null}
-                </Text>
-              ) : null}
-              {cost ? (
-                <Text style={styles.cardCost}>💰 {cost}</Text>
-              ) : null}
-              {item.notes ? <Text style={styles.cardNotes}>{item.notes}</Text> : null}
-              {item.photoUri ? (
-                <Image source={{ uri: item.photoUri }} style={styles.cardPhoto} />
-              ) : null}
             </View>
           );
         }}
       />
-      <TouchableOpacity style={styles.addBtn} onPress={openAdd} disabled={saving}>
-        <Text style={styles.addBtnText}>＋ Add Visit</Text>
-      </TouchableOpacity>
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={BS.btnPrimary} onPress={openAdd} disabled={saving}>
+          <Text style={BS.btnPrimaryText}>＋ Add a visit</Text>
+        </TouchableOpacity>
+      </View>
 
       <VetFormModal
         visible={formVisible}
@@ -427,147 +425,76 @@ export default function VetRecordsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: AppColors.background },
-  list: { padding: 16, paddingBottom: 90 },
-  headerBlock: { marginBottom: 20, marginTop: 4 },
-  heading: { fontSize: 28, fontWeight: '800', color: AppColors.text },
-  subheading: { fontSize: 15, color: AppColors.textMuted, marginTop: 4, lineHeight: 21 },
-  empty: {
+  container: { flex: 1, backgroundColor: COLOR.bg },
+  list: { padding: SPACE.s4, paddingBottom: 120 },
+  headerBlock: { marginBottom: SPACE.s3 },
+
+  /* Rows — the design's hairline list: thumb, label + caption, cost at the end. */
+  row: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: AppColors.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    paddingVertical: 40,
-    paddingHorizontal: 24,
-    marginTop: 8,
-    ...cardShadow,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.divider,
   },
-  emptyEmoji: { fontSize: 56, marginBottom: 12 },
-  emptyTitle: { fontSize: 19, fontWeight: '800', color: AppColors.text },
-  emptyText: {
-    fontSize: 14,
-    color: AppColors.textMuted,
-    marginTop: 6,
-    textAlign: 'center',
-    lineHeight: 20,
+  rowMain: { flex: 1, marginLeft: SPACE.s2 },
+  rowEnd: { alignItems: 'flex-end', marginLeft: SPACE.s2 },
+  rowActions: { flexDirection: 'row', gap: SPACE.s3, marginTop: SPACE.s1 },
+  notes: { fontStyle: 'italic' },
+
+  /* Sticky primary action — the design's button, squared off on a hairline bar. */
+  bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: SPACE.s3,
+    paddingBottom: SPACE.s4,
+    backgroundColor: COLOR.bg,
+    borderTopWidth: 1,
+    borderTopColor: COLOR.divider,
   },
-  emptyCta: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 13,
-    marginTop: 18,
-    ...cardShadow,
+
+  /* Add / edit sheet — paper, an ink rule across the top, no rounded corners. */
+  modalOverlay: { flex: 1, backgroundColor: COLOR.scrim, justifyContent: 'flex-end' },
+  modalCard: {
+    backgroundColor: COLOR.bg,
+    borderTopWidth: 1.5,
+    borderTopColor: COLOR.text,
+    maxHeight: '92%',
   },
-  emptyCtaText: { color: AppColors.white, fontSize: 15, fontWeight: '700' },
-  card: {
-    backgroundColor: AppColors.card,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...cardShadow,
+  modalScroll: { padding: SPACE.s4, paddingBottom: SPACE.s6 },
+  modalTitle: {
+    fontFamily: FONT_HEAD,
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLOR.text,
+    paddingHorizontal: SPACE.s4,
+    paddingTop: SPACE.s4,
+    marginBottom: SPACE.s2,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'center' },
-  cardName: { flex: 1, fontSize: 17, fontWeight: '700', color: AppColors.text },
-  cardActions: { flexDirection: 'row' },
-  actionBtn: { padding: 6, marginLeft: 4 },
-  actionText: { fontSize: 14, fontWeight: '600', color: AppColors.primary },
-  badge: {
-    alignSelf: 'flex-start',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginTop: 8,
-  },
-  badgeText: { fontSize: 13, fontWeight: '700' },
-  cardCost: { fontSize: 14, color: AppColors.text, marginTop: 8, fontWeight: '600' },
-  cardMeta: { fontSize: 13, color: AppColors.textMuted, marginTop: 4 },
-  cardNotes: { fontSize: 13, color: AppColors.text, marginTop: 4, fontStyle: 'italic' },
-  cardPhoto: {
-    width: '100%',
-    height: 180,
-    borderRadius: 14,
-    marginTop: 10,
-    backgroundColor: AppColors.border,
-  },
+  label: { marginTop: SPACE.s3 },
+  notesInput: { minHeight: 72, textAlignVertical: 'top' },
   photoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
+    gap: SPACE.s3,
+    marginBottom: SPACE.s2,
   },
-  photoBox: { borderRadius: 10 },
-  photoPreview: { width: 88, height: 88, borderRadius: 12 },
-  photoPlaceholder: {
-    backgroundColor: AppColors.background,
+  photoBox: { borderRadius: 2 },
+  photoPreview: {
+    width: 88,
+    height: 88,
+    borderRadius: 2,
     borderWidth: 1,
-    borderColor: AppColors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: COLOR.divider,
+    backgroundColor: COLOR.surface,
   },
-  photoEmoji: { fontSize: 24 },
-  photoHint: { fontSize: 11, color: AppColors.textMuted, marginTop: 2 },
-  photoRemoveBtn: { paddingVertical: 8, paddingHorizontal: 6 },
-  photoRemoveText: { fontSize: 14, fontWeight: '600' },
-  addBtn: {
-    position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
-    backgroundColor: AppColors.primary,
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: 'center',
-    ...cardShadow,
-  },
-  addBtnText: { color: AppColors.white, fontSize: 17, fontWeight: '700' },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: AppColors.overlay,
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: AppColors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 32,
-  },
-  modalTitle: { fontSize: 22, fontWeight: '800', color: AppColors.text, marginBottom: 14 },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: AppColors.text,
-    marginBottom: 6,
-    marginTop: 8,
-  },
-  input: {
-    backgroundColor: AppColors.background,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: AppColors.text,
-    marginBottom: 12,
-  },
-  notesInput: { minHeight: 64, textAlignVertical: 'top' },
-  modalActions: { flexDirection: 'row', marginTop: 12 },
-  modalBtn: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  cancelBtn: { backgroundColor: AppColors.border },
-  cancelText: { fontSize: 15, fontWeight: '600', color: AppColors.text },
-  saveBtn: { backgroundColor: AppColors.primary },
-  btnDisabled: { opacity: 0.6 },
-  saveText: { color: AppColors.white, fontSize: 15, fontWeight: '700' },
+  photoPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  photoHint: { fontSize: 12.5, fontStyle: 'italic', color: COLOR.textMuted },
+  photoRemoveBtn: { paddingVertical: SPACE.s2, paddingHorizontal: SPACE.s1 },
+  photoRemoveText: { fontSize: 13, fontWeight: '600' },
+  modalActions: { flexDirection: 'row', gap: SPACE.s2, marginTop: SPACE.s4 },
+  modalBtn: { flex: 1 },
+  btnDisabled: { opacity: 0.45 },
 });

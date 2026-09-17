@@ -2,10 +2,12 @@
  * Shared native-header options for the paper-coloured Broadsheet look.
  *
  * The design puts every page title in the page itself (an `h1` with a back
- * link), so the five tab roots hide the navigator header and render their own
- * headings. The nested stacks — whose module screens still carry their
- * title/back in the header — keep one, restyled: paper background, no shadow,
- * serif title, deep-teal tint.
+ * link), so the five tab roots, the pet/module stack, the Records stack and the
+ * Shop stack's interior screens all render their own headings and hide the
+ * navigator header — one header per screen, never a stacked duplicate. Search
+ * is the one exception (its page is the search field, with no in-page title),
+ * so it keeps this header: paper background, no shadow, serif title, deep-teal
+ * tint.
  */
 import { COLOR, FONT_HEAD } from '../theme';
 

@@ -16,21 +16,24 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useFeeding } from '../context/FeedingContext';
 import { usePets } from '../context/PetContext';
 import { usePremium } from '../context/PremiumContext';
 import { hasNotificationPermission } from '../storage/notifications';
-import { AppColors, cardShadow } from '../theme';
+import { BS, COLOR, FONT_HEAD, SPACE } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { PremiumReminderRow } from '../components/PremiumReminderRow';
+import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import {
   DAY_NAMES_SHORT,
   MEAL_TYPE_OPTIONS,
@@ -45,14 +48,15 @@ import type {
   PortionUnit,
 } from '../types';
 
+type Props = NativeStackScreenProps<PetsStackParamList, 'Feeding'>;
+
 /** Prompt shown when no pet is selected anywhere in the app. */
 function NoPetState() {
   return (
-    <View style={styles.empty}>
-      <Text style={styles.emptyEmoji}>🐾</Text>
-      <Text style={styles.emptyTitle}>No pet selected</Text>
-      <Text style={styles.emptyText}>
-        Pick or add a pet on the Home tab to start tracking feeding.
+    <View style={BS.pad}>
+      <Text style={BS.h1}>No pet selected</Text>
+      <Text style={BS.italic}>
+        Pick or add a pet on the Pets tab to start tracking feeding.
       </Text>
     </View>
   );
@@ -61,13 +65,9 @@ function NoPetState() {
 /** Prompt shown when the active pet has no feeding entries yet. */
 function EmptyFeeding() {
   return (
-    <View style={styles.empty}>
-      <Text style={styles.emptyEmoji}>🍖</Text>
-      <Text style={styles.emptyTitle}>No feeding schedule yet</Text>
-      <Text style={styles.emptyText}>
-        Tap “Add Meal” to record the first meal for this pet.
-      </Text>
-    </View>
+    <Text style={BS.italic}>
+      No feeding schedule yet. Tap “Add meal” to record the first one for this pet.
+    </Text>
   );
 }
 
@@ -174,65 +174,60 @@ function FeedingFormModal({
       >
         <View style={styles.modalCard}>
           <Text style={styles.modalTitle}>
-            {editing ? 'Edit Meal' : 'New Meal'}
+            {editing ? 'Edit meal' : 'New meal'}
           </Text>
 
-          <Text style={styles.label}>Meal</Text>
-          <View style={styles.chipRow}>
+          <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
+
+          <Text style={[BS.fieldLabel, styles.label]}>Meal</Text>
+          <View style={BS.rowWrap}>
             {MEAL_TYPE_OPTIONS.map((meal) => (
               <TouchableOpacity
                 key={meal}
-                style={[styles.chip, form.mealType === meal && styles.chipOn]}
+                style={[BS.tag, form.mealType === meal && BS.tagActive]}
                 onPress={() => set('mealType', meal)}
               >
-                <Text
-                  style={[styles.chipText, form.mealType === meal && styles.chipTextOn]}
-                >
+                <Text style={form.mealType === meal ? BS.tagTextActive : BS.tagText}>
                   {meal}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Text style={styles.label}>Time * (24h, HH:mm)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Time * (24h, HH:mm)</Text>
           <TextInput
-            style={styles.input}
+            style={BS.input}
             value={form.time}
             onChangeText={(v) => set('time', v)}
             placeholder="e.g. 08:00"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
             keyboardType="numbers-and-punctuation"
           />
 
-          <Text style={styles.label}>Portion *</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Portion *</Text>
           <View style={styles.twoCol}>
             <View style={[styles.col, { flex: 1 }]}>
               <TextInput
-                style={styles.input}
+                style={BS.input}
                 value={form.portionAmount}
                 onChangeText={(v) => set('portionAmount', v)}
                 placeholder="e.g. 150"
-                placeholderTextColor={AppColors.placeholder}
+                placeholderTextColor={COLOR.textFaint}
                 keyboardType="decimal-pad"
               />
             </View>
             <View style={[styles.col, { flex: 1.2 }]}>
-              <View style={styles.chipRow}>
+              <View style={BS.rowWrap}>
                 {PORTION_UNIT_OPTIONS.map((unit) => (
                   <TouchableOpacity
                     key={unit}
-                    style={[
-                      styles.chip,
-                      styles.unitChip,
-                      form.portionUnit === unit && styles.chipOn,
-                    ]}
+                    style={[BS.tag, form.portionUnit === unit && BS.tagActive]}
                     onPress={() => set('portionUnit', unit)}
                   >
                     <Text
-                      style={[
-                        styles.chipText,
-                        form.portionUnit === unit && styles.chipTextOn,
-                      ]}
+                      style={
+                        form.portionUnit === unit ? BS.tagTextActive : BS.tagText
+                      }
                     >
                       {unit}
                     </Text>
@@ -242,23 +237,21 @@ function FeedingFormModal({
             </View>
           </View>
 
-          <Text style={styles.label}>Days (none selected = every day)</Text>
-          <View style={styles.chipRow}>
+          <Text style={[BS.fieldLabel, styles.label]}>Days (none selected = every day)</Text>
+          <View style={BS.rowWrap}>
             {DAY_NAMES_SHORT.map((name, day) => (
               <TouchableOpacity
                 key={name}
                 style={[
-                  styles.chip,
-                  styles.dayChip,
-                  form.daysOfWeek.includes(day) && styles.chipOn,
+                  BS.tag,
+                  form.daysOfWeek.includes(day) && BS.tagActive,
                 ]}
                 onPress={() => toggleDay(day)}
               >
                 <Text
-                  style={[
-                    styles.chipText,
-                    form.daysOfWeek.includes(day) && styles.chipTextOn,
-                  ]}
+                  style={
+                    form.daysOfWeek.includes(day) ? BS.tagTextActive : BS.tagText
+                  }
                 >
                   {name}
                 </Text>
@@ -267,18 +260,19 @@ function FeedingFormModal({
           </View>
           {form.daysOfWeek.length > 0 && (
             <TouchableOpacity onPress={() => set('daysOfWeek', [])}>
-              <Text style={styles.clearDays}>Clear (back to every day)</Text>
+              <Text style={[BS.link, { marginTop: SPACE.s2 }]}>
+                Clear (back to every day)
+              </Text>
             </TouchableOpacity>
           )}
 
-          <Text style={styles.label}>Photo (optional)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Photo (optional)</Text>
           <View style={styles.photoRow}>
             <TouchableOpacity style={styles.photoBox} onPress={pickPhoto}>
               {form.photoUri ? (
                 <Image source={{ uri: form.photoUri }} style={styles.photoPreview} />
               ) : (
                 <View style={[styles.photoPreview, styles.photoPlaceholder]}>
-                  <Text style={styles.photoEmoji}>📷</Text>
                   <Text style={styles.photoHint}>Add photo</Text>
                 </View>
               )}
@@ -288,24 +282,24 @@ function FeedingFormModal({
                 style={styles.photoRemoveBtn}
                 onPress={() => set('photoUri', undefined)}
               >
-                <Text style={[styles.photoRemoveText, { color: AppColors.danger }]}>
+                <Text style={[styles.photoRemoveText, { color: COLOR.accent2_700 }]}>
                   Remove photo
                 </Text>
               </TouchableOpacity>
             ) : null}
           </View>
 
-          <Text style={styles.label}>Notes (optional)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Notes (optional)</Text>
           <TextInput
-            style={[styles.input, styles.notesInput]}
+            style={[BS.input, styles.notesInput]}
             value={form.notes}
             onChangeText={(v) => set('notes', v)}
             placeholder="e.g. soak kibble in warm water"
-            placeholderTextColor={AppColors.placeholder}
+            placeholderTextColor={COLOR.textFaint}
             multiline
           />
 
-          <Text style={styles.label}>Mealtime reminder (Blueprint Premium)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>Mealtime reminder (Blueprint Premium)</Text>
           <PremiumReminderRow
             compact
             label="Remind me"
@@ -323,29 +317,27 @@ function FeedingFormModal({
             )}
 
           <View style={styles.modalActions}>
-            <TouchableOpacity
-              style={[styles.modalBtn, styles.cancelBtn]}
-              onPress={onCancel}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
+            <TouchableOpacity style={[BS.btnSecondary, styles.modalBtn]} onPress={onCancel}>
+              <Text style={BS.btnSecondaryText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalBtn, styles.saveBtn, saving && styles.btnDisabled]}
+              style={[BS.btnPrimary, styles.modalBtn, saving && styles.btnDisabled]}
               onPress={() => onSave(form)}
               disabled={saving}
             >
-              <Text style={styles.saveText}>
-                {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Meal'}
+              <Text style={BS.btnPrimaryText}>
+                {saving ? 'Saving…' : editing ? 'Save changes' : 'Add meal'}
               </Text>
             </TouchableOpacity>
           </View>
+          </ScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
-export default function FeedingScreen() {
+export default function FeedingScreen({ navigation }: Props): React.JSX.Element {
   const { activePet } = usePets();
   const {
     feedingForPet,
@@ -490,70 +482,71 @@ export default function FeedingScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
-            <Text style={styles.heading}>🍖 Feeding</Text>
-            <Text style={styles.subheading}>
-              Feeding schedule for {activePet.name}
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={BS.link}>‹ {activePet.name}</Text>
+            </TouchableOpacity>
+            <Text style={[BS.h1, { marginTop: SPACE.s3 }]}>Feeding</Text>
+            <Text style={BS.kicker}>
+              {records.length === 0
+                ? 'No meals on file'
+                : `${records.length} meal${records.length === 1 ? '' : 's'} a day`}
             </Text>
           </View>
         }
         ListEmptyComponent={<EmptyFeeding />}
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardTop}>
-              <Text style={styles.cardName}>
-                {item.mealType} · {item.time}
-              </Text>
-              <View style={styles.cardActions}>
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => openEdit(item)}
-                >
-                  <Text style={styles.actionText}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => confirmDelete(item)}
-                >
-                  <Text style={[styles.actionText, { color: AppColors.danger }]}>
-                    Delete
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View style={[styles.badge, { backgroundColor: AppColors.primary + '1A' }]}>
-              <Text style={[styles.badgeText, { color: AppColors.primary }]}>
-                ⏰ {item.time}
-              </Text>
-            </View>
-            {item.reminderEnabled ? (
-              <View style={[styles.badge, { backgroundColor: AppColors.accent + '1A' }]}>
-                <Text style={[styles.badgeText, { color: AppColors.accent }]}>
-                  🔔 Reminders on
+          <View>
+            <View style={styles.row}>
+              {item.photoUri ? (
+                <Image source={{ uri: item.photoUri }} style={BS.thumb} />
+              ) : (
+                <View style={[BS.thumb, BS.thumbBlank]} />
+              )}
+              <View style={styles.rowMain}>
+                <Text style={BS.rowLabel}>{item.mealType}</Text>
+                <Text style={BS.caption}>
+                  {item.portionAmount} {item.portionUnit} ·{' '}
+                  {feedingDaysLabel(item.daysOfWeek)}
                 </Text>
+                {item.notes ? (
+                  <Text style={[BS.caption, styles.notes]}>{item.notes}</Text>
+                ) : null}
+                <View style={styles.rowActions}>
+                  <TouchableOpacity onPress={() => openEdit(item)}>
+                    <Text style={BS.link}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => confirmDelete(item)}>
+                    <Text style={[BS.link, { color: COLOR.accent2_700 }]}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            ) : null}
-            <Text style={styles.cardPortion}>
-              🍽️ {item.portionAmount} {item.portionUnit}
-            </Text>
-            <Text style={styles.cardMeta}>{feedingDaysLabel(item.daysOfWeek)}</Text>
-            {item.notes ? <Text style={styles.cardNotes}>{item.notes}</Text> : null}
-            {reminderNotes[item.id] ? (
-              <Text style={styles.reminderNote}>{reminderNotes[item.id]}</Text>
-            ) : null}
-            {item.photoUri ? (
-              <Image source={{ uri: item.photoUri }} style={styles.cardPhoto} />
-            ) : null}
-            <PremiumReminderRow
-              label="Reminders"
-              value={item.reminderEnabled ?? false}
-              onToggle={(v) => onToggleReminders(item, v)}
-            />
+              <View style={styles.rowEnd}>
+                <Text style={BS.rowLabel}>{item.time}</Text>
+                {item.reminderEnabled ? (
+                  <View style={[BS.tag, BS.tagAccent2, { marginTop: SPACE.s1 }]}>
+                    <Text style={BS.tagTextAccent2}>Reminder set</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+            <View style={styles.reminderBlock}>
+              <PremiumReminderRow
+                label="Reminders"
+                value={item.reminderEnabled ?? false}
+                onToggle={(v) => onToggleReminders(item, v)}
+              />
+              {reminderNotes[item.id] ? (
+                <Text style={styles.reminderNote}>{reminderNotes[item.id]}</Text>
+              ) : null}
+            </View>
           </View>
         )}
       />
-      <TouchableOpacity style={styles.addBtn} onPress={openAdd} disabled={saving}>
-        <Text style={styles.addBtnText}>＋ Add Meal</Text>
-      </TouchableOpacity>
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={BS.btnPrimary} onPress={openAdd} disabled={saving}>
+          <Text style={BS.btnPrimaryText}>＋ Add meal</Text>
+        </TouchableOpacity>
+      </View>
 
       <FeedingFormModal
         visible={formVisible}
@@ -568,175 +561,90 @@ export default function FeedingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: AppColors.background },
-  list: { padding: 16, paddingBottom: 90 },
-  headerBlock: { marginBottom: 20, marginTop: 4 },
-  heading: { fontSize: 28, fontWeight: '800', color: AppColors.text },
-  subheading: { fontSize: 15, color: AppColors.textMuted, marginTop: 4, lineHeight: 21 },
-  empty: {
+  container: { flex: 1, backgroundColor: COLOR.bg },
+  list: { padding: SPACE.s4, paddingBottom: 120 },
+  headerBlock: { marginBottom: SPACE.s3 },
+
+  /* Rows — the design's hairline list: thumb, label + caption, time at the end. */
+  row: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: AppColors.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    paddingVertical: 40,
-    paddingHorizontal: 24,
-    marginTop: 8,
-    ...cardShadow,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.divider,
   },
-  emptyEmoji: { fontSize: 56, marginBottom: 12 },
-  emptyTitle: { fontSize: 19, fontWeight: '800', color: AppColors.text },
-  emptyText: {
-    fontSize: 14,
-    color: AppColors.textMuted,
-    marginTop: 6,
-    textAlign: 'center',
-    lineHeight: 20,
+  rowMain: { flex: 1, marginLeft: SPACE.s2 },
+  rowEnd: { alignItems: 'flex-end', marginLeft: SPACE.s2 },
+  rowActions: { flexDirection: 'row', gap: SPACE.s3, marginTop: SPACE.s1 },
+  notes: { fontStyle: 'italic' },
+  reminderBlock: {
+    paddingVertical: SPACE.s2,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.divider,
   },
-  emptyCta: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 13,
-    marginTop: 18,
-    ...cardShadow,
+  reminderNote: {
+    fontSize: 12.5,
+    color: COLOR.accent2_700,
+    fontWeight: '600',
+    marginTop: SPACE.s1,
   },
-  emptyCtaText: { color: AppColors.white, fontSize: 15, fontWeight: '700' },
-  card: {
-    backgroundColor: AppColors.card,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...cardShadow,
+
+  /* Sticky primary action — the design's button, squared off on a hairline bar. */
+  bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: SPACE.s3,
+    paddingBottom: SPACE.s4,
+    backgroundColor: COLOR.bg,
+    borderTopWidth: 1,
+    borderTopColor: COLOR.divider,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'center' },
-  cardName: { flex: 1, fontSize: 17, fontWeight: '700', color: AppColors.text },
-  cardActions: { flexDirection: 'row' },
-  actionBtn: { padding: 6, marginLeft: 4 },
-  actionText: { fontSize: 14, fontWeight: '600', color: AppColors.primary },
-  badge: {
-    alignSelf: 'flex-start',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginTop: 8,
+
+  /* Add / edit sheet — paper, an ink rule across the top, no rounded corners. */
+  modalOverlay: { flex: 1, backgroundColor: COLOR.scrim, justifyContent: 'flex-end' },
+  modalCard: {
+    backgroundColor: COLOR.bg,
+    borderTopWidth: 1.5,
+    borderTopColor: COLOR.text,
+    maxHeight: '92%',
   },
-  badgeText: { fontSize: 13, fontWeight: '700' },
-  cardPortion: { fontSize: 14, color: AppColors.text, marginTop: 8, fontWeight: '600' },
-  cardMeta: { fontSize: 13, color: AppColors.textMuted, marginTop: 4 },
-  cardNotes: { fontSize: 13, color: AppColors.text, marginTop: 4, fontStyle: 'italic' },
-  reminderNote: { fontSize: 13, color: AppColors.danger, marginTop: 6, fontWeight: '600' },
-  permissionNote: {
-    fontSize: 12,
-    color: AppColors.danger,
-    marginTop: 6,
-    lineHeight: 16,
+  modalScroll: { padding: SPACE.s4, paddingBottom: SPACE.s6 },
+  modalTitle: {
+    fontFamily: FONT_HEAD,
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLOR.text,
+    paddingHorizontal: SPACE.s4,
+    paddingTop: SPACE.s4,
+    marginBottom: SPACE.s2,
   },
-  cardPhoto: {
-    width: '100%',
-    height: 180,
-    borderRadius: 14,
-    marginTop: 10,
-    backgroundColor: AppColors.border,
-  },
+  label: { marginTop: SPACE.s3 },
+  twoCol: { flexDirection: 'row', gap: SPACE.s3 },
+  col: { flex: 1 },
+  notesInput: { minHeight: 64, textAlignVertical: 'top' },
   photoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
+    gap: SPACE.s3,
+    marginBottom: SPACE.s2,
   },
-  photoBox: { borderRadius: 10 },
-  photoPreview: { width: 88, height: 88, borderRadius: 12 },
-  photoPlaceholder: {
-    backgroundColor: AppColors.background,
+  photoBox: { borderRadius: 2 },
+  photoPreview: {
+    width: 88,
+    height: 88,
+    borderRadius: 2,
     borderWidth: 1,
-    borderColor: AppColors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: COLOR.divider,
+    backgroundColor: COLOR.surface,
   },
-  photoEmoji: { fontSize: 24 },
-  photoHint: { fontSize: 11, color: AppColors.textMuted, marginTop: 2 },
-  photoRemoveBtn: { paddingVertical: 8, paddingHorizontal: 6 },
-  photoRemoveText: { fontSize: 14, fontWeight: '600' },
-  addBtn: {
-    position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
-    backgroundColor: AppColors.primary,
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: 'center',
-    ...cardShadow,
-  },
-  addBtnText: { color: AppColors.white, fontSize: 17, fontWeight: '700' },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: AppColors.overlay,
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: AppColors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 32,
-  },
-  modalTitle: { fontSize: 22, fontWeight: '800', color: AppColors.text, marginBottom: 14 },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: AppColors.text,
-    marginBottom: 6,
-    marginTop: 8,
-  },
-  input: {
-    backgroundColor: AppColors.background,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: AppColors.text,
-    marginBottom: 12,
-  },
-  notesInput: { minHeight: 64, textAlignVertical: 'top' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  chip: {
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  chipOn: { backgroundColor: AppColors.primary, borderColor: AppColors.primary },
-  chipText: { fontSize: 14, fontWeight: '600', color: AppColors.text },
-  chipTextOn: { color: AppColors.white },
-  unitChip: { paddingHorizontal: 10, paddingVertical: 6 },
-  dayChip: { paddingHorizontal: 10, paddingVertical: 6 },
-  clearDays: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: AppColors.primary,
-    marginBottom: 4,
-  },
-  twoCol: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  col: { flex: 1 },
-  modalActions: { flexDirection: 'row', marginTop: 12 },
-  modalBtn: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  cancelBtn: { backgroundColor: AppColors.border },
-  cancelText: { fontSize: 15, fontWeight: '600', color: AppColors.text },
-  saveBtn: { backgroundColor: AppColors.primary },
-  btnDisabled: { opacity: 0.6 },
-  saveText: { color: AppColors.white, fontSize: 15, fontWeight: '700' },
+  photoPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  photoHint: { fontSize: 12.5, fontStyle: 'italic', color: COLOR.textMuted },
+  photoRemoveBtn: { paddingVertical: SPACE.s2, paddingHorizontal: SPACE.s1 },
+  photoRemoveText: { fontSize: 13, fontWeight: '600' },
+  permissionNote: { fontSize: 12, color: COLOR.accent2_700, lineHeight: 16, marginTop: 6 },
+  modalActions: { flexDirection: 'row', gap: SPACE.s2, marginTop: SPACE.s4 },
+  modalBtn: { flex: 1 },
+  btnDisabled: { opacity: 0.45 },
 });

@@ -14,6 +14,11 @@
  * Premium is not an upsell product: it is the app's paid tier, presented on its
  * own screen. The upsell products stay untouched and ON HOLD for the owner.
  *
+ * Every screen here except Search draws the design's own in-page header (an
+ * `h1` plus a back link), so the navigator header is hidden on those — one
+ * header per screen. Search has no in-page title (the field is the page), so it
+ * keeps the restyled paper header and its back button.
+ *
  * Products: Printable Pet Planner, Memorial Book, Custom Pet Artwork,
  * Emergency Pet Card.
  */
@@ -46,10 +51,10 @@ export function ShopNavigator(): React.JSX.Element {
       <Stack.Screen
         name="Premium"
         component={PremiumScreen}
-        options={{ title: 'Blueprint Premium' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen name="Search" component={SearchScreen} options={{ title: 'Search' }} />
-      <Stack.Screen name="PetPlanner" options={{ title: 'Pet Planner' }}>
+      <Stack.Screen name="PetPlanner" options={{ headerShown: false }}>
         {() => (
           <PlaceholderScreen
             title="Printable Pet Planner"
@@ -57,7 +62,7 @@ export function ShopNavigator(): React.JSX.Element {
           />
         )}
       </Stack.Screen>
-      <Stack.Screen name="MemorialBook" options={{ title: 'Memorial Book' }}>
+      <Stack.Screen name="MemorialBook" options={{ headerShown: false }}>
         {() => (
           <PlaceholderScreen
             title="Memorial Book"
@@ -65,7 +70,7 @@ export function ShopNavigator(): React.JSX.Element {
           />
         )}
       </Stack.Screen>
-      <Stack.Screen name="Artwork" options={{ title: 'Custom Artwork' }}>
+      <Stack.Screen name="Artwork" options={{ headerShown: false }}>
         {() => (
           <PlaceholderScreen
             title="Custom Pet Artwork"
@@ -73,7 +78,7 @@ export function ShopNavigator(): React.JSX.Element {
           />
         )}
       </Stack.Screen>
-      <Stack.Screen name="EmergencyCard" options={{ title: 'Emergency Card' }}>
+      <Stack.Screen name="EmergencyCard" options={{ headerShown: false }}>
         {() => (
           <PlaceholderScreen
             title="Emergency Pet Card"
