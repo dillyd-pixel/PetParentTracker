@@ -29,7 +29,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { useJournal } from '../context/JournalContext';
 import { usePets } from '../context/PetContext';
-import { AppColors, cardShadow } from '../theme';
+import { COLOR, FONT_HEAD, SPACE } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import {
   JOURNAL_MOOD_OPTIONS,
@@ -43,7 +43,6 @@ import type { JournalEntry, JournalEntryInput, JournalMood } from '../types';
 function NoPetState() {
   return (
     <View style={styles.empty}>
-      <Text style={styles.emptyEmoji}>🐾</Text>
       <Text style={styles.emptyTitle}>No pet selected</Text>
       <Text style={styles.emptyText}>
         Pick or add a pet on the Home tab to start journaling.
@@ -56,7 +55,6 @@ function NoPetState() {
 function EmptyJournal() {
   return (
     <View style={styles.empty}>
-      <Text style={styles.emptyEmoji}>📔</Text>
       <Text style={styles.emptyTitle}>No entries yet</Text>
       <Text style={styles.emptyText}>
         Tap “Add Entry” to write the first journal entry for this pet.
@@ -151,7 +149,7 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
               value={form.title}
               onChangeText={(v) => set('title', v)}
               placeholder="e.g. First day at the park"
-              placeholderTextColor={AppColors.placeholder}
+              placeholderTextColor={COLOR.textFaint}
             />
 
             <Text style={styles.label}>Entry *</Text>
@@ -160,7 +158,7 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
               value={form.body}
               onChangeText={(v) => set('body', v)}
               placeholder="What was their mood like today? Any funny or odd behavior?"
-              placeholderTextColor={AppColors.placeholder}
+              placeholderTextColor={COLOR.textFaint}
               multiline
             />
 
@@ -170,7 +168,7 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
               value={form.entryDate}
               onChangeText={(v) => set('entryDate', v)}
               placeholder="e.g. 2026-05-14"
-              placeholderTextColor={AppColors.placeholder}
+              placeholderTextColor={COLOR.textFaint}
               keyboardType="numbers-and-punctuation"
             />
 
@@ -217,7 +215,6 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
                   <Image source={{ uri: form.photoUri }} style={styles.photoPreview} />
                 ) : (
                   <View style={[styles.photoPreview, styles.photoPlaceholder]}>
-                    <Text style={styles.photoEmoji}>📷</Text>
                     <Text style={styles.photoHint}>Add photo</Text>
                   </View>
                 )}
@@ -227,7 +224,7 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
                   style={styles.photoRemoveBtn}
                   onPress={() => set('photoUri', undefined)}
                 >
-                  <Text style={[styles.photoRemoveText, { color: AppColors.danger }]}>
+                  <Text style={[styles.photoRemoveText, { color: COLOR.accent2_700 }]}>
                     Remove photo
                   </Text>
                 </TouchableOpacity>
@@ -360,7 +357,7 @@ export default function JournalScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
-            <Text style={styles.heading}>📔 Journal</Text>
+            <Text style={styles.heading}>Journal</Text>
             <Text style={styles.subheading}>
               Personality journal for {activePet.name} · {entries.length}{' '}
               {entries.length === 1 ? 'entry' : 'entries'}
@@ -383,7 +380,7 @@ export default function JournalScreen() {
                   style={styles.actionBtn}
                   onPress={() => confirmDelete(item)}
                 >
-                  <Text style={[styles.actionText, { color: AppColors.danger }]}>
+                  <Text style={[styles.actionText, { color: COLOR.accent2_700 }]}>
                     Delete
                   </Text>
                 </TouchableOpacity>
@@ -395,10 +392,10 @@ export default function JournalScreen() {
                 <View
                   style={[
                     styles.badge,
-                    { backgroundColor: AppColors.primary + '1A' },
+                    { backgroundColor: COLOR.accent + '1A' },
                   ]}
                 >
-                  <Text style={[styles.badgeText, { color: AppColors.primary }]}>
+                  <Text style={[styles.badgeText, { color: COLOR.accent }]}>
                     {journalMoodEmoji(item.mood)} {journalMoodLabel(item.mood)}
                   </Text>
                 </View>
@@ -427,172 +424,209 @@ export default function JournalScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: AppColors.background },
-  list: { padding: 16, paddingBottom: 90 },
-  headerBlock: { marginBottom: 20, marginTop: 4 },
-  heading: { fontSize: 28, fontWeight: '800', color: AppColors.text },
-  subheading: { fontSize: 15, color: AppColors.textMuted, marginTop: 4, lineHeight: 21 },
-  empty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: AppColors.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    paddingVertical: 40,
-    paddingHorizontal: 24,
-    marginTop: 8,
-    ...cardShadow,
+  container: { flex: 1, backgroundColor: COLOR.bg },
+  list: { padding: SPACE.s4, paddingBottom: 120 },
+  headerBlock: { marginBottom: SPACE.s3 },
+  heading: {
+    fontFamily: FONT_HEAD,
+    fontWeight: '700',
+    fontSize: 30,
+    color: COLOR.text,
+    letterSpacing: -0.3,
+    marginBottom: SPACE.s2,
   },
-  emptyEmoji: { fontSize: 56, marginBottom: 12 },
-  emptyTitle: { fontSize: 19, fontWeight: '800', color: AppColors.text },
+  subheading: {
+    fontSize: 11,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: COLOR.textMuted,
+  },
+
+  /* Empty states — italic paper, no card. */
+  empty: { paddingVertical: SPACE.s2 },
+  emptyTitle: { fontFamily: FONT_HEAD, fontSize: 19, fontWeight: '700', color: COLOR.text },
   emptyText: {
     fontSize: 14,
-    color: AppColors.textMuted,
-    marginTop: 6,
-    textAlign: 'center',
+    fontStyle: 'italic',
+    color: COLOR.textMuted,
+    paddingVertical: SPACE.s1,
     lineHeight: 20,
   },
   emptyCta: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 13,
-    marginTop: 18,
-    ...cardShadow,
-  },
-  emptyCtaText: { color: AppColors.white, fontSize: 15, fontWeight: '700' },
-  card: {
-    backgroundColor: AppColors.card,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...cardShadow,
-  },
-  cardTop: { flexDirection: 'row', alignItems: 'center' },
-  cardName: { flex: 1, fontSize: 17, fontWeight: '700', color: AppColors.text },
-  cardActions: { flexDirection: 'row' },
-  actionBtn: { padding: 6, marginLeft: 4 },
-  actionText: { fontSize: 14, fontWeight: '600', color: AppColors.primary },
-  cardMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 10,
-  },
-  cardDate: { fontSize: 13, color: AppColors.textMuted },
-  badge: {
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeText: { fontSize: 13, fontWeight: '700' },
-  cardBody: { fontSize: 14, color: AppColors.text, marginTop: 8, lineHeight: 20 },
-  cardPhoto: {
-    width: '100%',
-    height: 180,
-    borderRadius: 14,
-    marginTop: 10,
-    backgroundColor: AppColors.border,
-  },
-  addBtn: {
-    position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
-    backgroundColor: AppColors.primary,
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: 'center',
-    ...cardShadow,
-  },
-  addBtnText: { color: AppColors.white, fontSize: 17, fontWeight: '700' },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: AppColors.overlay,
-    justifyContent: 'flex-end',
-  },
-  modalScroll: { flex: 1, justifyContent: 'flex-end' },
-  modalCardScroll: { justifyContent: 'flex-end' },
-  modalCard: {
-    backgroundColor: AppColors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 32,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: AppColors.text,
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: AppColors.text,
-    marginBottom: 6,
-    marginTop: 8,
-  },
-  input: {
-    backgroundColor: AppColors.background,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    paddingHorizontal: 14,
+    backgroundColor: COLOR.accent,
+    borderRadius: 2,
+    paddingHorizontal: SPACE.s4,
     paddingVertical: 12,
-    fontSize: 16,
-    color: AppColors.text,
-    marginBottom: 12,
+    marginTop: SPACE.s3,
+    alignItems: 'center',
   },
-  bodyInput: { minHeight: 96, textAlignVertical: 'top' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12, gap: 8 },
-  chip: {
+  emptyCtaText: { color: COLOR.bg, fontSize: 15, fontWeight: '700', fontFamily: FONT_HEAD },
+
+  /* Spend summary — the design's ink-ruled plate. */
+  totalCard: {
+    borderWidth: 1.5,
+    borderColor: COLOR.text,
+    padding: SPACE.s4,
+    marginBottom: SPACE.s3,
+  },
+  totalLabel: {
+    fontSize: 11,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: COLOR.textMuted,
+  },
+  totalValue: {
+    fontFamily: FONT_HEAD,
+    fontSize: 30,
+    fontWeight: '700',
+    color: COLOR.text,
+    letterSpacing: -0.3,
+  },
+  totalsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: SPACE.s2,
+    borderTopWidth: 1,
+    borderTopColor: COLOR.divider,
+    paddingTop: SPACE.s2,
+    marginTop: SPACE.s2,
+  },
+
+  /* Rows — the design's hairline list. */
+  card: { paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: COLOR.divider },
+  cardTop: { flexDirection: 'row', alignItems: 'baseline' },
+  cardName: { flex: 1, fontSize: 16, fontWeight: '600', color: COLOR.text },
+  cardAmount: { fontSize: 16, fontWeight: '600', color: COLOR.text },
+  cardDate: { fontSize: 12.5, color: COLOR.textMuted, marginTop: 2 },
+  cardMeta: { fontSize: 12.5, color: COLOR.textMuted, marginTop: 2 },
+  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s2, marginTop: SPACE.s1 },
+  cardNotes: { fontSize: 12.5, color: COLOR.textMuted, fontStyle: 'italic', marginTop: 2 },
+  cardPhoto: { width: '100%', height: 160, borderRadius: 2, marginTop: SPACE.s2 },
+  cardActions: { flexDirection: 'row', gap: SPACE.s3, marginTop: SPACE.s1 },
+  actionBtn: { paddingVertical: 2 },
+  actionText: { fontSize: 13, color: COLOR.accent700, fontWeight: '600' },
+  badge: {
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: AppColors.border,
-    backgroundColor: AppColors.background,
+    backgroundColor: COLOR.surface,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    alignSelf: 'flex-start',
   },
-  chipSelected: {
-    backgroundColor: AppColors.primary,
-    borderColor: AppColors.primary,
+  badgeText: { fontSize: 12, color: COLOR.text },
+
+  /* Category / filter chips — the design's tags. */
+  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2, marginBottom: SPACE.s2 },
+  categoryChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: COLOR.surface,
   },
-  chipText: { fontSize: 13, fontWeight: '600', color: AppColors.textMuted },
-  chipTextSelected: { color: AppColors.white },
+  categoryChipSelected: { backgroundColor: COLOR.accent },
+  categoryChipText: { fontSize: 13, color: COLOR.text },
+  categoryChipTextSelected: { fontSize: 13, color: COLOR.bg, fontWeight: '600' },
+
+  /* Sticky primary action — the design's button, squared off. */
+  addBtn: {
+    position: 'absolute',
+    left: SPACE.s3,
+    right: SPACE.s3,
+    bottom: SPACE.s3,
+    backgroundColor: COLOR.accent,
+    borderRadius: 2,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  addBtnText: { color: COLOR.bg, fontWeight: '700', fontSize: 15, fontFamily: FONT_HEAD },
+
+  /* Add / edit sheet — paper, an ink rule across the top, no rounded corners. */
+  modalOverlay: { flex: 1, backgroundColor: COLOR.scrim, justifyContent: 'flex-end' },
+  modalCard: {
+    backgroundColor: COLOR.bg,
+    borderTopWidth: 1.5,
+    borderTopColor: COLOR.text,
+    maxHeight: '92%',
+  },
+  modalScroll: { padding: SPACE.s4, paddingBottom: SPACE.s6 },
+  modalTitle: {
+    fontFamily: FONT_HEAD,
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLOR.text,
+    marginBottom: SPACE.s2,
+  },
+  label: {
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: COLOR.textMuted,
+    marginBottom: SPACE.s1,
+    marginTop: SPACE.s3,
+  },
+  input: {
+    minHeight: 40,
+    paddingHorizontal: SPACE.s2,
+    paddingVertical: SPACE.s1,
+    fontSize: 15,
+    color: COLOR.text,
+    backgroundColor: COLOR.surface,
+    borderWidth: 1,
+    borderColor: COLOR.divider,
+    borderRadius: 2,
+    marginBottom: SPACE.s2,
+  },
+  notesInput: { minHeight: 72, textAlignVertical: 'top' },
   photoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
+    gap: SPACE.s3,
+    marginBottom: SPACE.s2,
   },
-  photoBox: { borderRadius: 10 },
-  photoPreview: { width: 88, height: 88, borderRadius: 12 },
-  photoPlaceholder: {
-    backgroundColor: AppColors.background,
+  photoBox: { borderRadius: 2 },
+  photoPreview: {
+    width: 88,
+    height: 88,
+    borderRadius: 2,
     borderWidth: 1,
-    borderColor: AppColors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: COLOR.divider,
+    backgroundColor: COLOR.surface,
   },
-  photoEmoji: { fontSize: 24 },
-  photoHint: { fontSize: 11, color: AppColors.textMuted, marginTop: 2 },
-  photoRemoveBtn: { paddingVertical: 8, paddingHorizontal: 6 },
-  photoRemoveText: { fontSize: 14, fontWeight: '600' },
-  modalActions: { flexDirection: 'row', marginTop: 12 },
-  modalBtn: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginHorizontal: 4,
+  photoPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  photoHint: { fontSize: 12.5, fontStyle: 'italic', color: COLOR.textMuted },
+  photoRemoveBtn: { paddingVertical: SPACE.s2, paddingHorizontal: SPACE.s1 },
+  photoRemoveText: { fontSize: 13, fontWeight: '600' },
+  modalActions: { flexDirection: 'row', gap: SPACE.s2, marginTop: SPACE.s4 },
+  modalBtn: { flex: 1, borderRadius: 2, paddingVertical: 12, alignItems: 'center' },
+  cancelBtn: { borderWidth: 1, borderColor: COLOR.divider },
+  cancelText: { color: COLOR.text, fontWeight: '700', fontSize: 15, fontFamily: FONT_HEAD },
+  saveBtn: { backgroundColor: COLOR.accent },
+  saveText: { color: COLOR.bg, fontWeight: '700', fontSize: 15, fontFamily: FONT_HEAD },
+  btnDisabled: { opacity: 0.45 },
+  /* Journal-specific keys (mood chips, quote body, scrolled sheet). */
+  cardBody: { fontSize: 14, fontStyle: 'italic', color: COLOR.textMuted, paddingVertical: SPACE.s1 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2, marginBottom: SPACE.s2 },
+  chip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: COLOR.surface,
   },
-  cancelBtn: { backgroundColor: AppColors.border },
-  cancelText: { fontSize: 15, fontWeight: '600', color: AppColors.text },
-  saveBtn: { backgroundColor: AppColors.primary },
-  btnDisabled: { opacity: 0.6 },
-  saveText: { color: AppColors.white, fontSize: 15, fontWeight: '700' },
+  chipSelected: { backgroundColor: COLOR.accent },
+  chipText: { fontSize: 13, color: COLOR.text },
+  chipTextSelected: { fontSize: 13, color: COLOR.bg, fontWeight: '600' },
+  bodyInput: {
+    minHeight: 96,
+    paddingHorizontal: SPACE.s2,
+    paddingVertical: SPACE.s1,
+    fontSize: 15,
+    color: COLOR.text,
+    backgroundColor: COLOR.surface,
+    borderWidth: 1,
+    borderColor: COLOR.divider,
+    borderRadius: 2,
+    marginBottom: SPACE.s2,
+    textAlignVertical: 'top',
+  },
+  modalCardScroll: { padding: SPACE.s4, paddingBottom: SPACE.s6 },
 });
