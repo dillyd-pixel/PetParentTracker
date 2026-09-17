@@ -1,18 +1,27 @@
 /**
  * The app's root state: every screen lives in (or is reachable from) this tree.
  *
- * Layering:
- *  - `PetProvider` wraps everything (active-pet selection, pet CRUD).
- *  - `VaccinesProvider`, `MedicationsProvider`, `FeedingProvider` and
- *    `VetProvider` sit inside it, so module screens can read the active pet
- *    and their own collections together.
- *  - A `NativeStack` hosts the `MainTabs` plus a modal `PetForm` screen.
- *  - The bottom tab bar: Home (Pet Profiles, fully working) + module tabs
- *    (Vaccines + Meds + Feeding + Vet Records fully working, the rest
- *    placeholder) + "More" (upsell tabs).
+ * Information architecture (Phase 1 of the Broadsheet design port) — five
+ * text-only tabs, exactly as the design lays them out:
  *
- * Future modules plug in here by swapping a placeholder screen for the real
- * module screen; the data layer and active-pet context are already wired.
+ *   Today   — today's meds + meals across every pet, the pets list, the spend
+ *             snapshot and the premium card.
+ *   Pets    — the pets list → a pet's page (photo plate, meta, Vaccines and
+ *             Feeding buttons, medications, journal) → every per-pet module
+ *             (vaccines, meds, feeding, vet records, expenses, journal).
+ *   Records — every pet's vet records in one list, plus add-a-record with
+ *             camera / library capture.
+ *   Card    — the pet's emergency card, exportable/printable on-device.
+ *   Shop    — Blueprint Premium (trial + one-time unlock), the offline
+ *             co-parent share and PDF export entries, and the keepsake
+ *             products (on hold).
+ *
+ * Layering:
+ *  - `PetProvider` wraps everything (active-pet selection, pet CRUD), then the
+ *    premium provider and the six module providers.
+ *  - A web-safe `NativeStack` hosts `MainTabs` plus the modal `PetForm`.
+ *  - Each tab that needs depth owns a web-safe nested stack, so the browser
+ *    preview keeps working exactly as on device.
  */
 import React from 'react';
 import {
@@ -20,14 +29,21 @@ import {
   DefaultTheme,
   useNavigation,
 } from '@react-navigation/native';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
-import { Text, TouchableOpacity } from 'react-native';
+import { Text } from 'react-native';
 
 import { createWebSafeStackNavigator } from './WebSafeStack';
+import { PetsNavigator } from './PetsNavigator';
+import type { PetsStackParamList } from './PetsNavigator';
+import { RecordsNavigator } from './RecordsNavigator';
+import type { RecordsStackParamList } from './RecordsNavigator';
+import { ShopNavigator } from './ShopNavigator';
+import type { ShopStackParamList } from './ShopNavigator';
 
-import { PetProvider, usePets } from '../context/PetContext';
+import { PetProvider } from '../context/PetContext';
 import { PremiumProvider } from '../context/PremiumContext';
 import { VaccinesProvider } from '../context/VaccinesContext';
 import { MedicationsProvider } from '../context/MedicationsContext';
@@ -35,28 +51,18 @@ import { FeedingProvider } from '../context/FeedingContext';
 import { VetProvider } from '../context/VetContext';
 import { ExpensesProvider } from '../context/ExpensesContext';
 import { JournalProvider } from '../context/JournalContext';
-import HomeScreen from '../screens/HomeScreen';
+import TodayScreen from '../screens/TodayScreen';
+import EmergencyCardScreen from '../screens/EmergencyCardScreen';
 import PetFormScreen from '../screens/PetFormScreen';
-import {
-  VaccinesScreen,
-  MedsScreen,
-  FeedingScreen,
-  VetRecordsScreen,
-  ExpensesScreen,
-  JournalScreen,
-} from '../screens/modules';
-import { UpsellsNavigator } from '../screens/upsells';
-import { AppColors } from '../theme';
+import { BS, COLOR } from '../theme';
 
+/** The five tabs of the design's IA, each carrying its nested stack. */
 export type MainTabParamList = {
-  Home: undefined;
-  Vaccines: undefined;
-  Meds: undefined;
-  Feeding: undefined;
-  VetRecords: undefined;
-  Expenses: undefined;
-  Journal: undefined;
-  Upsells: undefined;
+  Today: undefined;
+  Pets: NavigatorScreenParams<PetsStackParamList> | undefined;
+  Records: NavigatorScreenParams<RecordsStackParamList> | undefined;
+  Card: undefined;
+  Shop: NavigatorScreenParams<ShopStackParamList> | undefined;
 };
 
 export type RootStackParamList = {
@@ -64,99 +70,63 @@ export type RootStackParamList = {
   PetForm: { petId?: string } | undefined;
 };
 
+/**
+ * Tab-root screens navigate to sibling tabs *and* to the root stack's pet-form
+ * modal; at runtime react-navigation bubbles a route the current navigator
+ * doesn't own up to the parent. Typing the hook against both param lists keeps
+ * that honest without casts.
+ */
+export type TabRootNavigation = NativeStackNavigationProp<
+  MainTabParamList & RootStackParamList
+>;
+
+/** Convenience hook for the tab-root screens. */
+export function useTabRootNavigation(): TabRootNavigation {
+  return useNavigation<TabRootNavigation>();
+}
+
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createWebSafeStackNavigator<RootStackParamList>();
 
-/** Simple emoji-based tab icons (no icon library dependency — fewer native deps). */
-function TabIcon({ emoji, color }: { emoji: string; color?: string }) {
-  return <Text style={{ fontSize: 20, color }}>{emoji}</Text>;
-}
+/** Tab labels, in the design's wording. */
+const TAB_LABELS: Record<keyof MainTabParamList, string> = {
+  Today: 'Today',
+  Pets: 'Pets',
+  Records: 'Records',
+  Card: 'Card',
+  Shop: 'Shop',
+};
 
 /**
- * Home tab. HomeScreen needs the ROOT stack's navigation (to open the PetForm
- * modal), but it is rendered inside the bottom tab navigator. `useNavigation`
- * returns the nearest navigator's navigation object, which at runtime is the
- * tab's — and `navigate('PetForm')` bubbles up to the root stack, exactly as
- * when HomeScreen was registered as the tab's own component. We fetch it via
- * the generic hook so HomeScreen's prop type is satisfied with no cast.
+ * The bottom tab bar, restyled to the design: five text-only items on paper,
+ * one hairline on top, muted labels with the active one in deep teal.
  */
-function HomeTab() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Main'>>();
-  return <HomeScreen navigation={navigation} />;
-}
-
-/** The six future core-module tabs; each is a props-free placeholder screen. */
-const PLACEHOLDER_TABS: Array<{
-  name: keyof MainTabParamList;
-  label: string;
-  emoji: string;
-  component: React.ComponentType;
-}> = [
-  { name: 'Vaccines', label: 'Vaccines', emoji: '💉', component: VaccinesScreen },
-  { name: 'Meds', label: 'Meds', emoji: '💊', component: MedsScreen },
-  { name: 'Feeding', label: 'Feeding', emoji: '🍖', component: FeedingScreen },
-  { name: 'VetRecords', label: 'Vet', emoji: '🏥', component: VetRecordsScreen },
-  { name: 'Expenses', label: 'Expenses', emoji: '💰', component: ExpensesScreen },
-  { name: 'Journal', label: 'Journal', emoji: '📔', component: JournalScreen },
-];
-
-/** Global search entry: opens the premium-gated Search screen in the More stack. */
-function SearchHeaderButton() {
-  const navigation = useNavigation<any>();
-  const { activePet } = usePets();
-  return (
-    <TouchableOpacity
-      style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}
-      onPress={() => navigation.navigate('Upsells', { screen: 'Search' })}
-      accessibilityLabel="Search all records"
-    >
-      <Text style={{ fontSize: 18, marginRight: activePet ? 8 : 0 }}>🔍</Text>
-      <Text style={{ fontSize: 13, color: AppColors.textMuted }}>
-        {activePet ? `🐾 ${activePet.name}` : 'No pet selected'}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-/** Bottom tabs: Home + six future modules (all placeholder except Home). */
-function MainTabs() {
+function MainTabs(): React.JSX.Element {
   return (
     <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: AppColors.primary,
-        tabBarInactiveTintColor: AppColors.placeholder,
-        headerTitleStyle: { fontWeight: '700' },
-        headerRight: () => <SearchHeaderButton />,
-      }}
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        // Text-only tabs — the design has no icon row.
+        tabBarIcon: () => null,
+        tabBarLabel: ({ focused }) => (
+          <Text style={focused ? BS.tabTextActive : BS.tabText}>
+            {TAB_LABELS[route.name as keyof MainTabParamList]}
+          </Text>
+        ),
+        tabBarStyle: {
+          backgroundColor: COLOR.bg,
+          borderTopWidth: 1,
+          borderTopColor: COLOR.divider,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: { fontSize: 11, marginBottom: 4 },
+      })}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeTab}
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <TabIcon emoji="🐾" color={color} />,
-        }}
-      />
-      {PLACEHOLDER_TABS.map((tab) => (
-        <Tab.Screen
-          key={tab.name}
-          name={tab.name}
-          component={tab.component}
-          options={{
-            title: tab.label,
-            tabBarIcon: ({ color }) => <TabIcon emoji={tab.emoji} color={color} />,
-          }}
-        />
-      ))}
-      <Tab.Screen
-        name="Upsells"
-        component={UpsellsNavigator}
-        options={{
-          title: 'More',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <TabIcon emoji="✨" color={color} />,
-        }}
-      />
+      <Tab.Screen name="Today" component={TodayScreen} />
+      <Tab.Screen name="Pets" component={PetsNavigator} />
+      <Tab.Screen name="Records" component={RecordsNavigator} />
+      <Tab.Screen name="Card" component={EmergencyCardScreen} />
+      <Tab.Screen name="Shop" component={ShopNavigator} />
     </Tab.Navigator>
   );
 }
@@ -165,15 +135,15 @@ const navTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: AppColors.primary,
-    background: AppColors.background,
-    card: AppColors.card,
-    text: AppColors.text,
-    border: AppColors.border,
+    primary: COLOR.accent,
+    background: COLOR.bg,
+    card: COLOR.bg,
+    text: COLOR.text,
+    border: COLOR.divider,
   },
 };
 
-/** Root navigation container + providers (Pet, Premium, then Vaccines + Medications + Feeding). */
+/** Root navigation container + providers (Pet, Premium, then the six modules). */
 export default function RootNavigator(): React.JSX.Element {
   return (
     <PetProvider>
@@ -196,7 +166,7 @@ export default function RootNavigator(): React.JSX.Element {
                           name="PetForm"
                           component={PetFormScreen}
                           options={({ route }) => ({
-                            title: route.params?.petId ? 'Edit Pet' : 'New Pet',
+                            title: route.params?.petId ? 'Edit pet' : 'Add a pet',
                             presentation: 'modal',
                           })}
                         />
