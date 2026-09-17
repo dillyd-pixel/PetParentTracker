@@ -10,10 +10,17 @@
  * (breed, birthdate, weight + unit) in the same paper-and-rule language, and a
  * single full-width primary button. Photo capture uses expo-image-picker to
  * grab a local file URI; all on-device, no upload.
+ *
+ * The photo plate is a two-step choice: tapping it reveals "Take a photo"
+ * (the camera) and "Choose from library" (the phone's photos). Both ask for
+ * their own permission, keep the square crop, and store the picked file's local
+ * URI on the pet — so the picture also shows on the Today tab and can be
+ * replaced any time by editing the pet.
  */
 import React, { useEffect, useState } from 'react';
 import {
   Image,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -31,6 +38,9 @@ import type { PetInput, Species, WeightUnit } from '../types';
 import { petEmoji } from '../utils/petDisplay';
 import { BS, COLOR, SPACE } from '../theme';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+
+/** Which photo source the owner picked on the plate. */
+type PhotoSource = 'camera' | 'library';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PetForm'>;
 
@@ -51,6 +61,7 @@ export default function PetFormScreen({ navigation, route }: Props) {
 
   const [form, setForm] = useState<PetInput>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [photoChooserOpen, setPhotoChooserOpen] = useState(false);
 
   // Hydrate the form when editing an existing pet.
   useEffect(() => {
@@ -70,18 +81,37 @@ export default function PetFormScreen({ navigation, route }: Props) {
   const set = <K extends keyof PetInput>(key: K, value: PetInput[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const pickPhoto = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('Permission needed', 'Allow photo library access to add a pet picture.');
+  /**
+   * Attach a photo from the chosen source. The camera asks for camera
+   * permission and opens the camera; the library asks for photo-library
+   * permission and opens the phone's photos. There is no camera on web, so the
+   * "Take a photo" button falls back to the browser's own picker there (the
+   * same rule AddRecordScreen uses). Either way the picked file's local URI is
+   * all we keep — nothing is uploaded.
+   */
+  const pickPhoto = async (source: PhotoSource) => {
+    setPhotoChooserOpen(false);
+    const useCamera = source === 'camera' && Platform.OS !== 'web';
+    const permission = useCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        'Permission needed',
+        useCamera
+          ? 'Allow camera access to photograph your pet. You can turn it back on in your phone’s settings.'
+          : 'Allow photo library access to add a pet picture. You can turn it back on in your phone’s settings.',
+      );
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+    const options: ImagePicker.ImagePickerOptions = {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
-    });
+    };
+    const result = useCamera
+      ? await ImagePicker.launchCameraAsync(options)
+      : await ImagePicker.launchImageLibraryAsync({ ...options, mediaTypes: ['images'] });
     if (!result.canceled && result.assets?.length) {
       set('photoUri', result.assets[0].uri);
     }
@@ -123,11 +153,12 @@ export default function PetFormScreen({ navigation, route }: Props) {
           {editingId ? `Edit ${editingPet?.name ?? 'pet'}` : 'Add a pet'}
         </Text>
 
-        {/* Photo plate — the design's box, showing the picked photo or a hint. */}
+        {/* Photo plate — tapping it offers the camera or the phone's library. */}
         <TouchableOpacity
           style={BS.petPhotoBox}
-          onPress={pickPhoto}
-          accessibilityLabel="Add a pet photo"
+          onPress={() => setPhotoChooserOpen((open) => !open)}
+          accessibilityRole="button"
+          accessibilityLabel={form.photoUri ? 'Change the pet photo' : 'Add a pet photo'}
         >
           {form.photoUri ? (
             <Image source={{ uri: form.photoUri }} style={{ flex: 1 }} resizeMode="cover" />
@@ -140,6 +171,39 @@ export default function PetFormScreen({ navigation, route }: Props) {
             </View>
           )}
         </TouchableOpacity>
+
+        {/* The source step — camera or the phone's own photo library. */}
+        {photoChooserOpen && (
+          <View style={[BS.card, { marginTop: 0, marginBottom: SPACE.s3 }]}>
+            <Text style={BS.cardKicker}>Pet photo</Text>
+            <Text style={BS.caption}>
+              Choose where the picture comes from. It is saved on this device only.
+            </Text>
+            <TouchableOpacity
+              style={BS.btnPrimary}
+              onPress={() => pickPhoto('camera')}
+              accessibilityRole="button"
+              accessibilityLabel="Take a photo"
+            >
+              <Text style={BS.btnPrimaryText}>Take a photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={BS.btnSecondary}
+              onPress={() => pickPhoto('library')}
+              accessibilityRole="button"
+              accessibilityLabel="Choose from library"
+            >
+              <Text style={BS.btnSecondaryText}>Choose from library</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setPhotoChooserOpen(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel photo choice"
+            >
+              <Text style={[BS.link, { textAlign: 'center' }]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={BS.field}>
           <Text style={BS.fieldLabel}>Name</Text>

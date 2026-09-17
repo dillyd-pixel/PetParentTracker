@@ -119,6 +119,18 @@ export const BS = StyleSheet.create({
     marginBottom: SPACE.s3,
   },
   row: { flexDirection: 'row', gap: SPACE.s2 },
+  /** The tappable home title block in the Today header. */
+  homeTitlePress: { flexDirection: 'row', alignItems: 'baseline', gap: SPACE.s1, flexShrink: 1 },
+  /** In-place rename: the h1 itself becomes the field. */
+  homeTitleInput: {
+    flex: 1,
+    marginRight: SPACE.s2,
+    padding: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.divider,
+  },
+  /** The quiet "you can rename this" glyph beside the title. */
+  homeTitlePencil: { fontSize: 14, color: COLOR.textFaint },
   rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2 },
   /** Stacked row with a hairline under it (list of rows). */
   divRow: {
@@ -235,6 +247,10 @@ export const BS = StyleSheet.create({
   /* ---- media ---- */
   /** The big photo plate on a pet's page. */
   petPhotoBox: { height: 180, backgroundColor: COLOR.surface, marginBottom: SPACE.s3 },
+  /** Small round avatar used in list rows when a pet has a photo. */
+  avatar: { width: 40, height: 40, borderRadius: 999, backgroundColor: COLOR.surface },
+  /** The emoji stand-in shown in the same slot when there is no photo. */
+  avatarEmoji: { fontSize: 26, width: 40, textAlign: 'center' },
   thumb: { width: 46, height: 58, borderRadius: 2 },
   thumbBlank: { backgroundColor: COLOR.surface },
   recordPreview: { width: '100%', height: 180, borderRadius: 2, marginBottom: SPACE.s3 },
@@ -275,6 +291,9 @@ export const {
   rowBetween,
   row,
   rowWrap,
+  homeTitlePress,
+  homeTitleInput,
+  homeTitlePencil,
   divRow,
   divRowBetween,
   field,
@@ -302,6 +321,8 @@ export const {
   cardTitleLg,
   priceText,
   petPhotoBox,
+  avatar,
+  avatarEmoji,
   thumb,
   thumbBlank,
   recordPreview,
