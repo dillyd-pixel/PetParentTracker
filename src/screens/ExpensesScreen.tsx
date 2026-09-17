@@ -23,11 +23,14 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useExpenses } from '../context/ExpensesContext';
 import { usePets } from '../context/PetContext';
-import { COLOR, FONT_HEAD, SPACE } from '../theme';
+import { BS, COLOR, FONT_HEAD, SPACE } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
+import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import {
   EXPENSE_CATEGORY_OPTIONS,
   expenseAmountLabel,
@@ -286,6 +289,7 @@ function ExpenseFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
 }
 
 export default function ExpensesScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<PetsStackParamList>>();
   const { activePet } = usePets();
   const { expensesForPet, addExpense, updateExpense, deleteExpense } =
     useExpenses();
@@ -402,7 +406,10 @@ export default function ExpensesScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
-            <Text style={styles.heading}>Expenses</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={BS.link}>‹ {activePet.name}</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heading, { marginTop: SPACE.s3 }]}>Expenses</Text>
             <Text style={styles.subheading}>
               Spending for {activePet.name}
             </Text>

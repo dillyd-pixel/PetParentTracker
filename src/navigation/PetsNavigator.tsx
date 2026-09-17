@@ -6,8 +6,12 @@
  *                Vaccines / Feeding buttons, medications, journal quotes and
  *                rows into the remaining modules.
  *   Vaccines, Meds, Feeding, VetRecords, Expenses, Journal — the existing
- *                module screens, unchanged, all reachable from the pet page
- *                (each reads the active pet from PetContext).
+ *                module screens, restyled to the design, all reachable from the
+ *                pet page (each reads the active pet from PetContext).
+ *
+ * Every screen in this stack draws the design's own in-page header — an `h1`
+ * plus a `‹ back` link — so the navigator header stays hidden throughout:
+ * exactly one header per screen, no stacked duplicate titles.
  *
  * `createWebSafeStackNavigator` keeps the browser preview working (JS stack on
  * web, native stack on Android).
@@ -15,7 +19,6 @@
 import React from 'react';
 
 import { createWebSafeStackNavigator } from './WebSafeStack';
-import { PAPER_HEADER } from './headerOptions';
 import PetListScreen from '../screens/PetListScreen';
 import PetProfileScreen from '../screens/PetProfileScreen';
 import {
@@ -42,19 +45,15 @@ const Stack = createWebSafeStackNavigator<PetsStackParamList>();
 
 export function PetsNavigator(): React.JSX.Element {
   return (
-    <Stack.Navigator screenOptions={PAPER_HEADER}>
-      <Stack.Screen name="PetList" component={PetListScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="PetProfile" component={PetProfileScreen} options={{ title: 'Pet page' }} />
-      <Stack.Screen name="Vaccines" component={VaccinesScreen} options={{ title: 'Vaccines' }} />
-      <Stack.Screen name="Meds" component={MedsScreen} options={{ title: 'Medications' }} />
-      <Stack.Screen name="Feeding" component={FeedingScreen} options={{ title: 'Feeding' }} />
-      <Stack.Screen
-        name="VetRecords"
-        component={VetRecordsScreen}
-        options={{ title: 'Vet records' }}
-      />
-      <Stack.Screen name="Expenses" component={ExpensesScreen} options={{ title: 'Expenses' }} />
-      <Stack.Screen name="Journal" component={JournalScreen} options={{ title: 'Journal' }} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="PetList" component={PetListScreen} />
+      <Stack.Screen name="PetProfile" component={PetProfileScreen} />
+      <Stack.Screen name="Vaccines" component={VaccinesScreen} />
+      <Stack.Screen name="Meds" component={MedsScreen} />
+      <Stack.Screen name="Feeding" component={FeedingScreen} />
+      <Stack.Screen name="VetRecords" component={VetRecordsScreen} />
+      <Stack.Screen name="Expenses" component={ExpensesScreen} />
+      <Stack.Screen name="Journal" component={JournalScreen} />
     </Stack.Navigator>
   );
 }

@@ -188,10 +188,14 @@ export default function RootNavigator(): React.JSX.Element {
                         <Stack.Screen
                           name="PetForm"
                           component={PetFormScreen}
-                          options={({ route }) => ({
-                            title: route.params?.petId ? 'Edit pet' : 'Add a pet',
+                          options={{
+                            // The form draws the design's own header (an h1 plus
+                            // a `‹ Pets` / `‹ Pet page` link), so the native
+                            // header is hidden — the modal is dismissed by that
+                            // in-page link (and Android's back gesture/button).
                             presentation: 'modal',
-                          })}
+                            headerShown: false,
+                          }}
                         />
                       </Stack.Navigator>
                     </NavigationContainer>

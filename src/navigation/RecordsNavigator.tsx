@@ -10,11 +10,14 @@
  * Records are the app's existing `VetRecord` entities (with their optional
  * photo), so a record added here also shows on the pet's own Vet records screen
  * and in premium search — one store, two views, zero servers.
+ *
+ * Both screens draw the design's own in-page header (an `h1` plus a `‹ back`
+ * link), so the navigator header is hidden for the whole stack — one header per
+ * screen, no duplicated titles.
  */
 import React from 'react';
 
 import { createWebSafeStackNavigator } from './WebSafeStack';
-import { PAPER_HEADER } from './headerOptions';
 import RecordsScreen from '../screens/RecordsScreen';
 import AddRecordScreen from '../screens/AddRecordScreen';
 
@@ -27,17 +30,9 @@ const Stack = createWebSafeStackNavigator<RecordsStackParamList>();
 
 export function RecordsNavigator(): React.JSX.Element {
   return (
-    <Stack.Navigator screenOptions={PAPER_HEADER}>
-      <Stack.Screen
-        name="RecordsList"
-        component={RecordsScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="AddRecord"
-        component={AddRecordScreen}
-        options={{ title: 'Add a record' }}
-      />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="RecordsList" component={RecordsScreen} />
+      <Stack.Screen name="AddRecord" component={AddRecordScreen} />
     </Stack.Navigator>
   );
 }
