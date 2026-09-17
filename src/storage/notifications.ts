@@ -619,3 +619,22 @@ export async function cancelVetRemindersForPet(
     petRecords.map((r) => cancelVetReminders(r.id).catch(() => undefined)),
   );
 }
+/**
+ * Cancel every local notification this app has scheduled — medication,
+ * feeding, vaccine and vet-visit reminders alike.
+ *
+ * Used by the Settings screen's "delete account" wipe: once the records that
+ * armed those reminders are gone, no reminder may survive them (and the id maps
+ * that pointed at them are wiped with the rest of the app's keys). Best-effort
+ * by design — the wipe must finish even if the OS call fails.
+ *
+ * Web: the browser preview never schedules anything, so this is a no-op.
+ */
+export async function cancelAllScheduledReminders(): Promise<void> {
+  if (IS_WEB) return;
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch {
+    // Ignore: the local data wipe continues regardless.
+  }
+}

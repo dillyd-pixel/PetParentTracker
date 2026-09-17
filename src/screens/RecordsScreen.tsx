@@ -15,6 +15,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { usePets } from '../context/PetContext';
 import { useVetRecords } from '../context/VetContext';
+import { useAccount } from '../context/AccountContext';
 import { usePremium } from '../context/PremiumContext';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
@@ -29,6 +30,8 @@ export default function RecordsScreen({ navigation }: Props): React.JSX.Element 
   const rootNavigation = useTabRootNavigation();
   const { pets } = usePets();
   const { vetRecords } = useVetRecords();
+  /** The owner's chosen display time zone (Settings → Date & time). */
+  const { timeZone } = useAccount();
   const premium = usePremium();
 
   const rows = useMemo(() => {
@@ -67,7 +70,7 @@ export default function RecordsScreen({ navigation }: Props): React.JSX.Element 
                 <Text style={BS.caption}>
                   {record.petName}
                   {record.clinicName ? ` · ${record.clinicName}` : ''} ·{' '}
-                  {shortDate(record.visitDate)}
+                  {shortDate(record.visitDate, timeZone)}
                   {record.visitTime ? ` ${record.visitTime}` : ''}
                 </Text>
               </View>

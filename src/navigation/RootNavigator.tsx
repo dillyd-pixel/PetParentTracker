@@ -23,7 +23,7 @@
  *  - Each tab that needs depth owns a web-safe nested stack, so the browser
  *    preview keeps working exactly as on device.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   NavigationContainer,
   DefaultTheme,
@@ -44,6 +44,7 @@ import { ShopNavigator } from './ShopNavigator';
 import type { ShopStackParamList } from './ShopNavigator';
 
 import { PetProvider } from '../context/PetContext';
+import { AccountProvider } from '../context/AccountContext';
 import { PremiumProvider } from '../context/PremiumContext';
 import { VaccinesProvider } from '../context/VaccinesContext';
 import { MedicationsProvider } from '../context/MedicationsContext';
@@ -159,6 +160,15 @@ export default function RootNavigator(): React.JSX.Element {
       .catch(() => setOnboarded(true));
   }, []);
 
+  /**
+   * After a full local wipe from Settings ("delete account"), the app goes back
+   * to the first-run flow. Flipping `onboarded` unmounts the entire data tree —
+   * every provider and screen — so nothing survives in memory either, and the
+   * onboarding flag it just deleted is honoured without a reload. Works offline
+   * on device and in the browser, with no new dependency.
+   */
+  const handleAccountDeleted = useCallback(() => setOnboarded(false), []);
+
   if (onboarded === null) {
     return <View style={BS.screen} />;
   }
@@ -169,43 +179,45 @@ export default function RootNavigator(): React.JSX.Element {
   }
 
   return (
-    <PetProvider>
-      <PremiumProvider>
-        <VaccinesProvider>
-          <MedicationsProvider>
-            <FeedingProvider>
-              <VetProvider>
-                <ExpensesProvider>
-                  <JournalProvider>
-                    <NavigationContainer theme={navTheme}>
-                      <StatusBar style="auto" />
-                      <Stack.Navigator>
-                        <Stack.Screen
-                          name="Main"
-                          component={MainTabs}
-                          options={{ headerShown: false }}
-                        />
-                        <Stack.Screen
-                          name="PetForm"
-                          component={PetFormScreen}
-                          options={{
-                            // The form draws the design's own header (an h1 plus
-                            // a `‹ Pets` / `‹ Pet page` link), so the native
-                            // header is hidden — the modal is dismissed by that
-                            // in-page link (and Android's back gesture/button).
-                            presentation: 'modal',
-                            headerShown: false,
-                          }}
-                        />
-                      </Stack.Navigator>
-                    </NavigationContainer>
-                  </JournalProvider>
-                </ExpensesProvider>
-              </VetProvider>
-            </FeedingProvider>
-          </MedicationsProvider>
-        </VaccinesProvider>
-      </PremiumProvider>
-    </PetProvider>
+    <AccountProvider onDeleted={handleAccountDeleted}>
+      <PetProvider>
+        <PremiumProvider>
+          <VaccinesProvider>
+            <MedicationsProvider>
+              <FeedingProvider>
+                <VetProvider>
+                  <ExpensesProvider>
+                    <JournalProvider>
+                      <NavigationContainer theme={navTheme}>
+                        <StatusBar style="auto" />
+                        <Stack.Navigator>
+                          <Stack.Screen
+                            name="Main"
+                            component={MainTabs}
+                            options={{ headerShown: false }}
+                          />
+                          <Stack.Screen
+                            name="PetForm"
+                            component={PetFormScreen}
+                            options={{
+                              // The form draws the design's own header (an h1 plus
+                              // a `‹ Pets` / `‹ Pet page` link), so the native
+                              // header is hidden — the modal is dismissed by that
+                              // in-page link (and Android's back gesture/button).
+                              presentation: 'modal',
+                              headerShown: false,
+                            }}
+                          />
+                        </Stack.Navigator>
+                      </NavigationContainer>
+                    </JournalProvider>
+                  </ExpensesProvider>
+                </VetProvider>
+              </FeedingProvider>
+            </MedicationsProvider>
+          </VaccinesProvider>
+        </PremiumProvider>
+      </PetProvider>
+    </AccountProvider>
   );
 }

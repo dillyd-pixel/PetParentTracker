@@ -3,6 +3,7 @@
  * Pure formatting of on-device data — no storage, no network.
  */
 import type { Pet } from '../types';
+import { AUTO_TIME_ZONE, formatDateOnlyInTimeZone } from './datetime';
 
 /** Emoji avatar for a species (the app bundles no image assets). */
 export function petEmoji(species: Pet['species']): string {
@@ -41,10 +42,22 @@ const MONTHS_SHORT = [
   'Dec',
 ];
 
-/** ISO date (YYYY-MM-DD) → "9 Aug 2026"; falls back to the raw value. */
-export function shortDate(iso: string): string {
+/**
+ * ISO date (YYYY-MM-DD) → "9 Aug 2026"; falls back to the raw value.
+ *
+ * A stored date is a calendar fact, not a moment in time: the date the owner
+ * typed is the date they see, so passing a `timeZone` never shuffles it onto
+ * the neighbouring day (see `formatDateOnlyInTimeZone`, which anchors it at
+ * midday). Without a zone — or with `auto` — this is the original fast path
+ * that needs no `Intl` at all.
+ */
+export function shortDate(iso: string, timeZone?: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!match) return iso;
+  if (timeZone && timeZone !== AUTO_TIME_ZONE) {
+    const inZone = formatDateOnlyInTimeZone(iso, timeZone);
+    if (inZone) return inZone;
+  }
   const [, year, month, day] = match;
   return `${Number(day)} ${MONTHS_SHORT[Number(month) - 1] ?? month} ${year}`;
 }

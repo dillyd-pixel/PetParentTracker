@@ -29,6 +29,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { useVetRecords } from '../context/VetContext';
 import { usePets } from '../context/PetContext';
+import { useAccount } from '../context/AccountContext';
 import { usePremium } from '../context/PremiumContext';
 import { BS, COLOR, FONT_HEAD, SPACE } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
@@ -38,6 +39,7 @@ import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import { isValidISODate, isValidTime, vetCostLabel } from '../types';
 import type { VetRecord, VetRecordInput } from '../types';
 import { shortDate } from '../utils/petDisplay';
+import { AUTO_TIME_ZONE, timeZoneLabel } from '../utils/datetime';
 import { recordKind } from '../utils/records';
 
 type Props = NativeStackScreenProps<PetsStackParamList, 'VetRecords'>;
@@ -320,6 +322,8 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
     toggleVetReminders,
   } = useVetRecords();
   const { isPremium } = usePremium();
+  /** The owner's chosen display time zone (Settings → Date & time). */
+  const { timeZone } = useAccount();
 
   const [formVisible, setFormVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<VetRecord | null>(null);
@@ -485,6 +489,18 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
                 ? 'Nothing filed yet'
                 : `${records.length} visit${records.length === 1 ? '' : 's'} on file`}
             </Text>
+            {/*
+              Visit dates are calendar dates and appointment times are the
+              wall-clock times the owner wrote, so the only thing the display
+              zone changes here is *how the date is written*. Say so, rather
+              than implying the appointment moved.
+            */}
+            {timeZone !== AUTO_TIME_ZONE && (
+              <Text style={BS.caption}>
+                Dates shown in {timeZoneLabel(timeZone)} · appointment times are exactly as
+                written.
+              </Text>
+            )}
           </View>
         }
         ListEmptyComponent={<EmptyVetRecords />}
@@ -501,7 +517,7 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
                 <View style={styles.rowMain}>
                   <Text style={BS.rowLabel}>{item.visitTitle}</Text>
                   <Text style={BS.caption}>
-                    {shortDate(item.visitDate)}
+                    {shortDate(item.visitDate, timeZone)}
                     {item.visitTime ? ` · ${item.visitTime}` : ''}
                     {item.clinicName ? ` · ${item.clinicName}` : ''}
                     {item.veterinarian ? ` · ${item.veterinarian}` : ''}

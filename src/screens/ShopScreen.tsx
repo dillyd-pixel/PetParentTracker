@@ -157,6 +157,25 @@ export default function ShopScreen(): React.JSX.Element {
           Keepsake products are on hold while the owner reviews the app — no prices, no purchase
           flow yet.
         </Text>
+
+        {/* ---- Settings (quiet row — account, display zone, premium, wipe) ---- */}
+        <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>App</Text>
+        <TouchableOpacity
+          style={BS.divRowBetween}
+          onPress={() => navigation.navigate('Shop', { screen: 'Settings' })}
+          accessibilityLabel="Settings"
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={BS.rowLabel}>Settings</Text>
+            <Text style={BS.caption}>
+              Your name, time zone, premium and billing details, and deleting your data
+            </Text>
+          </View>
+          <Text style={BS.link}>›</Text>
+        </TouchableOpacity>
+        <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
+          Device settings, not an account: one name and one time zone, both stored only here.
+        </Text>
       </ScrollView>
     </View>
   );
