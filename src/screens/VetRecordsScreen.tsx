@@ -1,10 +1,13 @@
 /**
  * Vet Records tab — per-pet veterinary visit records, fully working.
  *
- * Lists the active pet's vet visits (title, date, clinic, vet, notes, cost)
- * sorted by visit date (newest first), and lets the user add, edit, and
- * delete records. All data flows through VetContext → vetRepository →
- * AsyncStorage; 100% offline. No notifications.
+ * Lists the active pet's vet visits (title, date, optional appointment time,
+ * clinic, vet, notes, cost) sorted by visit date (newest first), and lets the
+ * user add, edit, and delete records. A visit can carry an optional "HH:mm"
+ * appointment time and a premium appointment reminder (Blueprint Premium
+ * feature 1/4) that fires locally on that date + time — see
+ * storage/notifications. All data flows through VetContext → vetRepository →
+ * AsyncStorage; 100% offline, no server, no push.
  */
 import React, { useEffect, useState } from 'react';
 import {
@@ -26,10 +29,13 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { useVetRecords } from '../context/VetContext';
 import { usePets } from '../context/PetContext';
+import { usePremium } from '../context/PremiumContext';
 import { BS, COLOR, FONT_HEAD, SPACE } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
+import { PremiumReminderRow } from '../components/PremiumReminderRow';
+import { hasNotificationPermission } from '../storage/notifications';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
-import { isValidISODate, vetCostLabel } from '../types';
+import { isValidISODate, isValidTime, vetCostLabel } from '../types';
 import type { VetRecord, VetRecordInput } from '../types';
 import { shortDate } from '../utils/petDisplay';
 import { recordKind } from '../utils/records';
@@ -60,32 +66,38 @@ function EmptyVetRecords() {
 interface FormState {
   visitTitle: string;
   visitDate: string;
+  visitTime: string;
   clinicName: string;
   veterinarian: string;
   notes: string;
   cost: string;
   photoUri: string | undefined;
+  reminderEnabled: boolean;
 }
 
 const emptyForm = (): FormState => ({
   visitTitle: '',
   visitDate: '',
+  visitTime: '',
   clinicName: '',
   veterinarian: '',
   notes: '',
   cost: '',
   photoUri: undefined,
+  reminderEnabled: false,
 });
 
 function formFromRecord(r: VetRecord): FormState {
   return {
     visitTitle: r.visitTitle,
     visitDate: r.visitDate,
+    visitTime: r.visitTime ?? '',
     clinicName: r.clinicName ?? '',
     veterinarian: r.veterinarian ?? '',
     notes: r.notes ?? '',
     cost: r.cost === undefined ? '' : String(r.cost),
     photoUri: r.photoUri,
+    reminderEnabled: r.reminderEnabled ?? false,
   };
 }
 
@@ -93,12 +105,20 @@ interface FormModalProps {
   visible: boolean;
   editing: VetRecord | null;
   saving: boolean;
+  notificationPermissionDenied: boolean;
   onCancel: () => void;
   onSave: (form: FormState) => void;
 }
 
 /** Modal add/edit form — styled to match the app (cards, primary buttons). */
-function VetFormModal({ visible, editing, saving, onCancel, onSave }: FormModalProps) {
+function VetFormModal({
+  visible,
+  editing,
+  saving,
+  notificationPermissionDenied,
+  onCancel,
+  onSave,
+}: FormModalProps) {
   const [form, setForm] = useState<FormState>(emptyForm);
 
   // Hydrate on open: fresh form for "add", the record's values for "edit".
@@ -164,6 +184,18 @@ function VetFormModal({ visible, editing, saving, onCancel, onSave }: FormModalP
             keyboardType="numbers-and-punctuation"
           />
 
+          <Text style={[BS.fieldLabel, styles.label]}>
+            Visit time (optional, HH:mm)
+          </Text>
+          <TextInput
+            style={BS.input}
+            value={form.visitTime}
+            onChangeText={(v) => set('visitTime', v)}
+            placeholder="e.g. 09:30 — leave blank for no time"
+            placeholderTextColor={COLOR.textFaint}
+            keyboardType="numbers-and-punctuation"
+          />
+
           <Text style={[BS.fieldLabel, styles.label]}>Clinic (optional)</Text>
           <TextInput
             style={BS.input}
@@ -201,6 +233,38 @@ function VetFormModal({ visible, editing, saving, onCancel, onSave }: FormModalP
             placeholderTextColor={COLOR.textFaint}
             multiline
           />
+
+          <Text style={[BS.fieldLabel, styles.label]}>
+            Appointment reminder (Blueprint Premium)
+          </Text>
+          <PremiumReminderRow
+            compact
+            label="Remind me on the visit date"
+            value={form.reminderEnabled}
+            onToggle={(v) => set('reminderEnabled', v)}
+          />
+          {form.reminderEnabled && !form.visitDate.trim() && (
+            <Text style={styles.permissionNote}>
+              Set a visit date above so the reminder has a date to fire on.
+            </Text>
+          )}
+          {form.reminderEnabled &&
+            form.visitDate.trim() &&
+            !form.visitTime.trim() && (
+              <Text style={styles.hintNote}>
+                No time set — the reminder fires at 9:00 on the visit date. Add a
+                time above to fire at the appointment instead.
+              </Text>
+            )}
+          {form.reminderEnabled &&
+            notificationPermissionDenied &&
+            Platform.OS !== 'web' && (
+              <Text style={styles.permissionNote}>
+                Notifications are disabled in system settings — reminders will be
+                saved but not delivered. Enable notifications for the app to arm
+                them.
+              </Text>
+            )}
 
           <Text style={[BS.fieldLabel, styles.label]}>Photo (optional)</Text>
           <View style={styles.photoRow}>
@@ -248,12 +312,20 @@ function VetFormModal({ visible, editing, saving, onCancel, onSave }: FormModalP
 
 export default function VetRecordsScreen({ navigation }: Props): React.JSX.Element {
   const { activePet } = usePets();
-  const { vetRecordsForPet, addVetRecord, updateVetRecord, deleteVetRecord } =
-    useVetRecords();
+  const {
+    vetRecordsForPet,
+    addVetRecord,
+    updateVetRecord,
+    deleteVetRecord,
+    toggleVetReminders,
+  } = useVetRecords();
+  const { isPremium } = usePremium();
 
   const [formVisible, setFormVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<VetRecord | null>(null);
   const [saving, setSaving] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [reminderNotes, setReminderNotes] = useState<Record<string, string>>({});
 
   // No active pet: prompt the user to pick/add one on Home.
   if (!activePet) {
@@ -280,7 +352,7 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
   const confirmDelete = (r: VetRecord) => {
     Alert.alert(
       `Delete “${r.visitTitle}” on ${r.visitDate}?`,
-      'This vet record will be permanently removed from this device. This cannot be undone.',
+      'This vet record will be permanently removed from this device and its scheduled reminder cancelled. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -296,9 +368,41 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
     );
   };
 
+  /** Show reminder status on the card after scheduling/cancelling. */
+  const flashReminderNote = (id: string, text: string) => {
+    setReminderNotes((prev) => ({ ...prev, [id]: text }));
+    setTimeout(() => {
+      setReminderNotes((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }, 4000);
+  };
+
+  const onToggleReminders = async (r: VetRecord, enabled: boolean) => {
+    const updated = await toggleVetReminders(r.id, enabled);
+    setPermissionDenied(!(await hasNotificationPermission()));
+    if (updated) {
+      if (enabled) {
+        flashReminderNote(
+          r.id,
+          Platform.OS === 'web'
+            ? 'Reminders saved — not supported in the web preview'
+            : updated.reminderEnabled
+              ? 'Reminders scheduled 🔔'
+              : 'Reminders not scheduled (permission denied)',
+        );
+      } else {
+        flashReminderNote(r.id, 'Reminders cancelled');
+      }
+    }
+  };
+
   const submitForm = async (form: FormState) => {
     const visitTitle = form.visitTitle.trim();
     const visitDate = form.visitDate.trim().replace(/\s+/g, '');
+    const visitTime = form.visitTime.trim().replace(/\s+/g, '');
     if (!visitTitle) {
       Alert.alert('Missing title', 'Enter a title for the visit, e.g. “Annual checkup”.');
       return;
@@ -307,6 +411,13 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
       Alert.alert(
         'Invalid date',
         'Enter a valid date as YYYY-MM-DD, e.g. 2026-05-14.',
+      );
+      return;
+    }
+    if (visitTime && !isValidTime(visitTime)) {
+      Alert.alert(
+        'Invalid time',
+        'Enter the appointment time as HH:mm in 24-hour form, e.g. 09:30 — or leave it empty.',
       );
       return;
     }
@@ -327,12 +438,17 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
       petId,
       visitTitle,
       visitDate,
+      visitTime: visitTime ? visitTime : undefined,
       clinicName: form.clinicName.trim() ? form.clinicName.trim() : undefined,
       veterinarian: form.veterinarian.trim()
         ? form.veterinarian.trim()
         : undefined,
       notes: form.notes.trim() ? form.notes.trim() : undefined,
       cost,
+      // Non-premium users can't arm reminders: always persist off. Premium
+      // state can only change via the Premium screen, so gating at save keeps
+      // stored data honest.
+      reminderEnabled: isPremium() ? form.reminderEnabled : false,
       photoUri: form.photoUri,
     };
     setSaving(true);
@@ -342,6 +458,7 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
       } else {
         await addVetRecord(input);
       }
+      setPermissionDenied(!(await hasNotificationPermission()));
       setFormVisible(false);
     } finally {
       setSaving(false);
@@ -374,34 +491,47 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
         renderItem={({ item }) => {
           const cost = vetCostLabel(item.cost);
           return (
-            <View style={styles.row}>
-              {item.photoUri ? (
-                <Image source={{ uri: item.photoUri }} style={BS.thumb} />
-              ) : (
-                <View style={[BS.thumb, BS.thumbBlank]} />
-              )}
-              <View style={styles.rowMain}>
-                <Text style={BS.rowLabel}>{item.visitTitle}</Text>
-                <Text style={BS.caption}>
-                  {shortDate(item.visitDate)}
-                  {item.clinicName ? ` · ${item.clinicName}` : ''}
-                  {item.veterinarian ? ` · ${item.veterinarian}` : ''}
-                </Text>
-                {item.notes ? (
-                  <Text style={[BS.caption, styles.notes]}>{item.notes}</Text>
-                ) : null}
-                <View style={styles.rowActions}>
-                  <TouchableOpacity onPress={() => openEdit(item)}>
-                    <Text style={BS.link}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => confirmDelete(item)}>
-                    <Text style={[BS.link, { color: COLOR.accent2_700 }]}>Delete</Text>
-                  </TouchableOpacity>
+            <View>
+              <View style={styles.row}>
+                {item.photoUri ? (
+                  <Image source={{ uri: item.photoUri }} style={BS.thumb} />
+                ) : (
+                  <View style={[BS.thumb, BS.thumbBlank]} />
+                )}
+                <View style={styles.rowMain}>
+                  <Text style={BS.rowLabel}>{item.visitTitle}</Text>
+                  <Text style={BS.caption}>
+                    {shortDate(item.visitDate)}
+                    {item.visitTime ? ` · ${item.visitTime}` : ''}
+                    {item.clinicName ? ` · ${item.clinicName}` : ''}
+                    {item.veterinarian ? ` · ${item.veterinarian}` : ''}
+                  </Text>
+                  {item.notes ? (
+                    <Text style={[BS.caption, styles.notes]}>{item.notes}</Text>
+                  ) : null}
+                  <View style={styles.rowActions}>
+                    <TouchableOpacity onPress={() => openEdit(item)}>
+                      <Text style={BS.link}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => confirmDelete(item)}>
+                      <Text style={[BS.link, { color: COLOR.accent2_700 }]}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.rowEnd}>
+                  <Text style={BS.rowLabel}>{cost ?? '—'}</Text>
+                  <Text style={BS.caption}>{recordKind(item.notes)}</Text>
                 </View>
               </View>
-              <View style={styles.rowEnd}>
-                <Text style={BS.rowLabel}>{cost ?? '—'}</Text>
-                <Text style={BS.caption}>{recordKind(item.notes)}</Text>
+              <View style={styles.reminderBlock}>
+                <PremiumReminderRow
+                  label="Appointment reminder"
+                  value={item.reminderEnabled ?? false}
+                  onToggle={(v) => onToggleReminders(item, v)}
+                />
+                {reminderNotes[item.id] ? (
+                  <Text style={styles.reminderNote}>{reminderNotes[item.id]}</Text>
+                ) : null}
               </View>
             </View>
           );
@@ -417,6 +547,7 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
         visible={formVisible}
         editing={editingRecord}
         saving={saving}
+        notificationPermissionDenied={permissionDenied}
         onCancel={() => setFormVisible(false)}
         onSave={submitForm}
       />
@@ -441,6 +572,17 @@ const styles = StyleSheet.create({
   rowEnd: { alignItems: 'flex-end', marginLeft: SPACE.s2 },
   rowActions: { flexDirection: 'row', gap: SPACE.s3, marginTop: SPACE.s1 },
   notes: { fontStyle: 'italic' },
+  reminderBlock: {
+    paddingVertical: SPACE.s2,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.divider,
+  },
+  reminderNote: {
+    fontSize: 12.5,
+    color: COLOR.accent2_700,
+    fontWeight: '600',
+    marginTop: SPACE.s1,
+  },
 
   /* Sticky primary action — the design's button, squared off on a hairline bar. */
   bottomBar: {
@@ -474,6 +616,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.s2,
   },
   label: { marginTop: SPACE.s3 },
+  permissionNote: { fontSize: 12, color: COLOR.accent2_700, lineHeight: 16, marginTop: 6 },
+  hintNote: { fontSize: 12, color: COLOR.textMuted, lineHeight: 16, marginTop: 6 },
   notesInput: { minHeight: 72, textAlignVertical: 'top' },
   photoRow: {
     flexDirection: 'row',

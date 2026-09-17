@@ -149,7 +149,9 @@ export function buildPetFileHtml(data: PetFileData): string {
       ? emptyNote('vet records')
       : `<ul>${vetRecords
           .map(
-            (r) => `<li><strong>${esc(r.visitTitle)}</strong> · ${esc(r.visitDate)}<br/>
+            (r) => `<li><strong>${esc(r.visitTitle)}</strong> · ${esc(r.visitDate)}${
+              r.visitTime ? ` · ${esc(r.visitTime)}` : ''
+            }<br/>
               <span class="meta">${[r.clinicName, r.veterinarian].filter(Boolean).map(esc).join(' · ') || '—'}${
                 typeof r.cost === 'number' && Number.isFinite(r.cost)
                   ? ` · cost ${esc(r.cost.toFixed(2))}`
