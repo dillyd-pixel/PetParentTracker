@@ -19,7 +19,7 @@ export function petWeightLabel(pet: Pet): string {
 
 /** One-line meta under a pet's name, e.g. "Dog · Golden retriever · 31 kg". */
 export function petMetaLine(pet: Pet): string {
-  const parts = [pet.species];
+  const parts: string[] = [pet.species];
   if (pet.breed) parts.push(pet.breed);
   const weight = petWeightLabel(pet);
   if (weight) parts.push(weight);
