@@ -38,7 +38,7 @@ import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import { loadTodayDone, toggleTodayDone } from '../storage/todayCheckoff';
 import { DEFAULT_HOME_TITLE, loadHomeTitle, saveHomeTitle } from '../storage/homeTitle';
-import { petEmoji, petMetaLine } from '../utils/petDisplay';
+import { petEmojiFor, petMetaLine } from '../utils/petDisplay';
 import { buildUpcoming } from '../utils/upcoming';
 import type { UpcomingItem } from '../utils/upcoming';
 import {
@@ -382,7 +382,7 @@ export default function TodayScreen(): React.JSX.Element {
                 />
               ) : (
                 <Text style={[BS.avatarEmoji, { marginRight: SPACE.s2 }]}>
-                  {petEmoji(pet.species)}
+                  {petEmojiFor(pet)}
                 </Text>
               )}
               <View style={{ flex: 1 }}>

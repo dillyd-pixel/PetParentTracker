@@ -14,7 +14,7 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { usePets } from '../context/PetContext';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
-import { petEmoji, petMetaLine } from '../utils/petDisplay';
+import { petEmojiFor, petMetaLine } from '../utils/petDisplay';
 import { BS, SPACE } from '../theme';
 import type { Pet } from '../types';
 
@@ -25,7 +25,7 @@ function PetThumb({ pet }: { pet: Pet }): React.JSX.Element {
   }
   return (
     <View style={[BS.thumb, BS.thumbBlank, { alignItems: 'center', justifyContent: 'center' }]}>
-      <Text style={{ fontSize: 22 }}>{petEmoji(pet.species)}</Text>
+      <Text style={{ fontSize: 22 }}>{petEmojiFor(pet)}</Text>
     </View>
   );
 }

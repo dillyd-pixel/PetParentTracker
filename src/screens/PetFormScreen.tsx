@@ -35,7 +35,7 @@ import { usePets } from '../context/PetContext';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { SPECIES_OPTIONS, WEIGHT_UNIT_OPTIONS } from '../types';
 import type { PetInput, Species, WeightUnit } from '../types';
-import { petEmoji } from '../utils/petDisplay';
+import { petEmojiFor } from '../utils/petDisplay';
 import { BS, COLOR, SPACE } from '../theme';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -181,7 +181,7 @@ export default function PetFormScreen({ navigation, route }: Props) {
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 44 }}>
-                {petEmoji((form.species ?? 'Other') as Species)}
+                {petEmojiFor(form)}
               </Text>
               <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>Tap to add a photo</Text>
             </View>
