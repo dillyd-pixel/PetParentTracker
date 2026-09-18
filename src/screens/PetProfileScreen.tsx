@@ -46,7 +46,7 @@ import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import { medicationScheduleLabel } from '../types';
-import { petEmoji, petMetaLine, shortDate } from '../utils/petDisplay';
+import { petEmojiFor, petMetaLine, shortDate } from '../utils/petDisplay';
 import { BS, COLOR, SPACE } from '../theme';
 
 /** Which photo source the owner picked on the plate. */
@@ -225,7 +225,7 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
             <Image source={{ uri: pet.photoUri }} style={{ flex: 1 }} resizeMode="cover" />
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 64 }}>{petEmoji(pet.species)}</Text>
+              <Text style={{ fontSize: 64 }}>{petEmojiFor(pet)}</Text>
               <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>Tap to add a photo</Text>
             </View>
           )}

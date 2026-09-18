@@ -34,7 +34,7 @@ import { useExpenses } from '../context/ExpensesContext';
 import { useJournal } from '../context/JournalContext';
 import { AppColors, cardShadow } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
-import { petSpeciesLabel } from '../utils/petDisplay';
+import { petEmojiFor, petSpeciesLabel } from '../utils/petDisplay';
 import {
   expenseAmountLabel,
   feedingScheduleLabel,
@@ -82,13 +82,21 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
     const byId = new Map(pets.map((pet) => [pet.id, pet.name]));
     return (petId: string): string => byId.get(petId) ?? 'Unknown pet';
   }, [pets]);
+  /** The hit's pet own animal glyph, marking who each result belongs to. */
+  const petGlyph = useMemo(() => {
+    const byId = new Map(pets.map((pet) => [pet.id, pet]));
+    return (petId: string): string => {
+      const pet = byId.get(petId);
+      return pet ? petEmojiFor(pet) : '🐾';
+    };
+  }, [pets]);
 
   const groups: SearchGroup[] = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     const withPet = (hit: Omit<SearchHit, 'subtitle'>, subtitle: string): SearchHit => ({
       ...hit,
-      subtitle: `🐾 ${petName(hit.petId)}${subtitle ? ` · ${subtitle}` : ''}`,
+      subtitle: `${petGlyph(hit.petId)} ${petName(hit.petId)}${subtitle ? ` · ${subtitle}` : ''}`,
     });
     const found: SearchGroup[] = [];
 
@@ -206,7 +214,7 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
     }
 
     return found;
-  }, [query, pets, vaccines, medications, feedingSchedules, vetRecords, expenses, journalEntries, petName]);
+  }, [query, pets, vaccines, medications, feedingSchedules, vetRecords, expenses, journalEntries, petName, petGlyph]);
 
   const totalHits = groups.reduce((sum, group) => sum + group.hits.length, 0);
 

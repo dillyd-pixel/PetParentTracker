@@ -23,7 +23,7 @@ import BackgroundCharacters from '../components/BackgroundCharacters';
 import { ExportPetPdfRow } from '../components/ExportPetPdfRow';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import { medicationScheduleLabel } from '../types';
-import { petEmoji, petMetaLine, shortDate } from '../utils/petDisplay';
+import { petEmojiFor, petMetaLine, shortDate } from '../utils/petDisplay';
 import { BS, SPACE } from '../theme';
 
 export default function EmergencyCardScreen(): React.JSX.Element {
@@ -100,7 +100,7 @@ export default function EmergencyCardScreen(): React.JSX.Element {
             <Image source={{ uri: pet.photoUri }} style={{ flex: 1 }} resizeMode="cover" />
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 64 }}>{petEmoji(pet.species)}</Text>
+              <Text style={{ fontSize: 64 }}>{petEmojiFor(pet)}</Text>
             </View>
           )}
         </View>
