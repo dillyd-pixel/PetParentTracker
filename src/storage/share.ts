@@ -118,6 +118,8 @@ export function buildPetShareFile(data: PetFileData): PetShareFile {
     fileVersion: PET_FILE_VERSION,
     premiumShared: true,
     exportedAt: new Date().toISOString(),
+    // The pet record travels whole, so an 'Other' pet's own species name
+    // (`customSpecies`) is preserved exactly as typed on the exporting device.
     pet: data.pet,
     vaccines: data.vaccines,
     medications: data.medications,
@@ -177,6 +179,16 @@ const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   'Other',
 ];
 const MOODS: JournalMood[] = ['Happy', 'Playful', 'Sleepy', 'Grumpy', 'Sick'];
+
+/**
+ * The custom species a shared pet is allowed to carry: only an 'Other' pet may
+ * name its own species, and a blank/whitespace value folds away to undefined —
+ * so a Dog file that happens to hold a stray string never imports dead data.
+ */
+function cleanCustomSpecies(species: unknown, customSpecies: unknown): string | undefined {
+  if (species !== 'Other' || typeof customSpecies !== 'string') return undefined;
+  return customSpecies.trim() || undefined;
+}
 
 /** Lenient record check: required identity + parent link present and sane. */
 function isPlausibleRecord(
@@ -294,6 +306,7 @@ export function parsePetShareFile(
     petRaw.name.trim() === '' ||
     typeof petRaw.species !== 'string' ||
     !(SPECIES as string[]).includes(petRaw.species) ||
+    (petRaw.customSpecies !== undefined && typeof petRaw.customSpecies !== 'string') ||
     typeof petRaw.createdAt !== 'string'
   ) {
     return { ok: false, problem: 'missing-pet' };
@@ -322,7 +335,10 @@ export function parsePetShareFile(
       premiumShared: parsed.premiumShared === true,
       exportedAt:
         typeof parsed.exportedAt === 'string' ? parsed.exportedAt : new Date().toISOString(),
-      pet: petRaw as unknown as Pet,
+      pet: {
+        ...(petRaw as unknown as Pet),
+        customSpecies: cleanCustomSpecies(petRaw.species, petRaw.customSpecies),
+      },
       vaccines,
       medications,
       feeding,
@@ -381,6 +397,8 @@ export async function importPetShareFile(
   const petInput: PetInput = {
     name: petName ?? file.pet.name,
     species: file.pet.species,
+    // An 'Other' pet keeps the species name its owner typed (fish, bunny…).
+    customSpecies: cleanCustomSpecies(file.pet.species, file.pet.customSpecies),
     breed: file.pet.breed,
     birthdate: file.pet.birthdate,
     weight: file.pet.weight,

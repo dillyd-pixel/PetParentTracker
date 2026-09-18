@@ -47,12 +47,24 @@ type Props = NativeStackScreenProps<RootStackParamList, 'PetForm'>;
 const emptyForm = (): PetInput => ({
   name: '',
   species: 'Dog',
+  customSpecies: '',
   breed: '',
   birthdate: '',
   weight: undefined,
   weightUnit: 'kg',
   photoUri: undefined,
 });
+
+/**
+ * Tidy a typed species name ("  bunny " → "Bunny") on save: trimmed, with the
+ * first letter capitalised so the label reads like the built-in species. Blank
+ * becomes undefined, which is what an 'Other' pet with nothing typed stores.
+ */
+function tidyCustomSpecies(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
 
 export default function PetFormScreen({ navigation, route }: Props) {
   const { pets, addPet, updatePet } = usePets();
@@ -69,6 +81,7 @@ export default function PetFormScreen({ navigation, route }: Props) {
       setForm({
         name: editingPet.name,
         species: editingPet.species,
+        customSpecies: editingPet.customSpecies ?? '',
         breed: editingPet.breed ?? '',
         birthdate: editingPet.birthdate ?? '',
         weight: editingPet.weight,
@@ -126,6 +139,9 @@ export default function PetFormScreen({ navigation, route }: Props) {
       ...form,
       name: form.name.trim(),
       weight: typeof form.weight === 'number' && form.weight > 0 ? form.weight : undefined,
+      // Only an 'Other' pet carries a custom species; anything typed while
+      // another species is selected is dropped rather than stored as dead data.
+      customSpecies: form.species === 'Other' ? tidyCustomSpecies(form.customSpecies) : undefined,
       photoUri: form.photoUri,
     };
     setSaving(true);
@@ -230,6 +246,30 @@ export default function PetFormScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/*
+         * "Other" asks which species it actually is (fish, bunny, frog, horse…).
+         * What's typed here becomes the pet's official species label on the
+         * profile, the pet list, search and the PDF. The row only exists while
+         * Other is selected; the typed text stays in state if the owner taps
+         * another species and taps back.
+         */}
+        {form.species === 'Other' && (
+          <View style={[BS.field, { marginTop: SPACE.s4 }]}>
+            <Text style={BS.fieldLabel}>Species type</Text>
+            <TextInput
+              style={BS.input}
+              value={form.customSpecies ?? ''}
+              onChangeText={(v) => set('customSpecies', v)}
+              placeholder="e.g. Fish, bunny, frog…"
+              placeholderTextColor={COLOR.textFaint}
+              accessibilityLabel="Species type"
+            />
+            <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
+              Shown as the species on this pet’s profile.
+            </Text>
+          </View>
+        )}
 
         <View style={[BS.field, { marginTop: SPACE.s4 }]}>
           <Text style={BS.fieldLabel}>Breed (optional)</Text>

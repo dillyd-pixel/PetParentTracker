@@ -23,6 +23,13 @@ export type WeightUnit = 'kg' | 'lb';
 export interface Pet extends BaseEntity {
   name: string;
   species: Species;
+  /**
+   * The pet's own species name when `species` is 'Other', e.g. "Bunny", "Fish",
+   * "Horse". Free text typed by the owner; only meaningful (and only shown) for
+   * an 'Other' pet, where it becomes the official species label everywhere the
+   * species is displayed. Absent means the label stays "Other".
+   */
+  customSpecies?: string;
   breed?: string;
   birthdate?: string; // ISO date (YYYY-MM-DD)
   weight?: number;

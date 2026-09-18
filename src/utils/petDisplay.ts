@@ -12,6 +12,20 @@ export function petEmoji(species: Pet['species']): string {
   return '🐾';
 }
 
+/**
+ * The official species label for a pet: the owner's own species name when the
+ * pet is an 'Other' pet and they typed one (e.g. "Bunny"), otherwise the plain
+ * species ("Dog" / "Cat" / "Other"). This is the single place the species TEXT
+ * is decided — `petEmoji` stays separate and untouched.
+ */
+export function petSpeciesLabel(pet: Pick<Pet, 'species' | 'customSpecies'>): string {
+  if (pet.species === 'Other') {
+    const custom = pet.customSpecies?.trim();
+    if (custom) return custom;
+  }
+  return pet.species;
+}
+
 /** Weight with its unit, e.g. "31 kg" — empty string when unset. */
 export function petWeightLabel(pet: Pet): string {
   if (typeof pet.weight !== 'number') return '';
@@ -20,7 +34,7 @@ export function petWeightLabel(pet: Pet): string {
 
 /** One-line meta under a pet's name, e.g. "Dog · Golden retriever · 31 kg". */
 export function petMetaLine(pet: Pet): string {
-  const parts: string[] = [pet.species];
+  const parts: string[] = [petSpeciesLabel(pet)];
   if (pet.breed) parts.push(pet.breed);
   const weight = petWeightLabel(pet);
   if (weight) parts.push(weight);
