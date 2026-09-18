@@ -34,6 +34,7 @@ import { useExpenses } from '../context/ExpensesContext';
 import { useJournal } from '../context/JournalContext';
 import { AppColors, cardShadow } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
+import { petSpeciesLabel } from '../utils/petDisplay';
 import {
   expenseAmountLabel,
   feedingScheduleLabel,
@@ -92,11 +93,11 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
     const found: SearchGroup[] = [];
 
     const petHits: SearchHit[] = pets
-      .filter((pet) => matches(q, [pet.name, pet.species, pet.breed]))
+      .filter((pet) => matches(q, [pet.name, pet.species, pet.customSpecies, pet.breed]))
       .map((pet) =>
         withPet(
           { key: `pet-${pet.id}`, petId: pet.id, title: pet.name, screen: 'PetProfile' },
-          `${pet.species}${pet.breed ? ` · ${pet.breed}` : ''}`,
+          `${petSpeciesLabel(pet)}${pet.breed ? ` · ${pet.breed}` : ''}`,
         ),
       );
     if (petHits.length > 0) {

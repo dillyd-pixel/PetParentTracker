@@ -25,6 +25,7 @@ import {
   type Vaccine,
   type VetRecord,
 } from '../types';
+import { petSpeciesLabel } from '../utils/petDisplay';
 
 /** Everything the document needs for one pet — gathered by the caller. */
 export interface PetFileData {
@@ -76,7 +77,7 @@ function profileRows(pet: Pet): string {
   const weight =
     typeof pet.weight === 'number' ? `${pet.weight.toLocaleString()} ${pet.weightUnit ?? 'kg'}` : '—';
   const rows: Array<[string, string]> = [
-    ['Species', esc(pet.species)],
+    ['Species', esc(petSpeciesLabel(pet))],
     ['Breed', pet.breed ? esc(pet.breed) : '—'],
     ['Date of birth', pet.birthdate ? esc(pet.birthdate) : '—'],
     ['Weight', esc(weight)],
