@@ -15,10 +15,12 @@
  *   Shop    — Blueprint Premium (trial + one-time unlock), the offline
  *             co-parent share and PDF export entries, and the keepsake
  *             products (on hold).
+ *   Sitter  — Sitter Mode: care passes, the create form (premium, owner side)
+ *             and opening a pass someone shared (free, sitter side).
  *
  * Layering:
  *  - `PetProvider` wraps everything (active-pet selection, pet CRUD), then the
- *    premium provider and the six module providers.
+ *    premium provider, the Sitter Mode provider and the six module providers.
  *  - A web-safe `NativeStack` hosts `MainTabs` plus the modal `PetForm`.
  *  - Each tab that needs depth owns a web-safe nested stack, so the browser
  *    preview keeps working exactly as on device.
@@ -42,10 +44,13 @@ import { RecordsNavigator } from './RecordsNavigator';
 import type { RecordsStackParamList } from './RecordsNavigator';
 import { ShopNavigator } from './ShopNavigator';
 import type { ShopStackParamList } from './ShopNavigator';
+import { SitterNavigator } from './SitterNavigator';
+import type { SitterStackParamList } from './SitterNavigator';
 
 import { PetProvider } from '../context/PetContext';
 import { AccountProvider } from '../context/AccountContext';
 import { PremiumProvider } from '../context/PremiumContext';
+import { SitterProvider } from '../context/SitterContext';
 import { VaccinesProvider } from '../context/VaccinesContext';
 import { MedicationsProvider } from '../context/MedicationsContext';
 import { FeedingProvider } from '../context/FeedingContext';
@@ -58,13 +63,19 @@ import PetFormScreen from '../screens/PetFormScreen';
 import OnboardingScreen, { hasSeenOnboarding } from '../screens/OnboardingScreen';
 import { BS, COLOR } from '../theme';
 
-/** The five tabs of the design's IA, each carrying its nested stack. */
+/**
+ * The tabs of the design's IA plus Sitter Mode, each carrying its nested stack.
+ * Sitter is the sixth tab: the owner's side (create a care pass, premium) and
+ * the sitter's side (open a pass someone shared, always free) live together in
+ * one place.
+ */
 export type MainTabParamList = {
   Today: undefined;
   Pets: NavigatorScreenParams<PetsStackParamList> | undefined;
   Records: NavigatorScreenParams<RecordsStackParamList> | undefined;
   Card: undefined;
   Shop: NavigatorScreenParams<ShopStackParamList> | undefined;
+  Sitter: NavigatorScreenParams<SitterStackParamList> | undefined;
 };
 
 export type RootStackParamList = {
@@ -97,11 +108,12 @@ const TAB_LABELS: Record<keyof MainTabParamList, string> = {
   Records: 'Records',
   Card: 'Card',
   Shop: 'Shop',
+  Sitter: 'Sitter',
 };
 
 /**
- * The bottom tab bar, restyled to the design: five text-only items on paper,
- * one hairline on top, muted labels with the active one in deep teal.
+ * The bottom tab bar, restyled to the design: text-only items on paper, one
+ * hairline on top, muted labels with the active one in deep teal.
  */
 function MainTabs(): React.JSX.Element {
   return (
@@ -129,6 +141,7 @@ function MainTabs(): React.JSX.Element {
       <Tab.Screen name="Records" component={RecordsNavigator} />
       <Tab.Screen name="Card" component={EmergencyCardScreen} />
       <Tab.Screen name="Shop" component={ShopNavigator} />
+      <Tab.Screen name="Sitter" component={SitterNavigator} />
     </Tab.Navigator>
   );
 }
@@ -182,40 +195,42 @@ export default function RootNavigator(): React.JSX.Element {
     <AccountProvider onDeleted={handleAccountDeleted}>
       <PetProvider>
         <PremiumProvider>
-          <VaccinesProvider>
-            <MedicationsProvider>
-              <FeedingProvider>
-                <VetProvider>
-                  <ExpensesProvider>
-                    <JournalProvider>
-                      <NavigationContainer theme={navTheme}>
-                        <StatusBar style="auto" />
-                        <Stack.Navigator>
-                          <Stack.Screen
-                            name="Main"
-                            component={MainTabs}
-                            options={{ headerShown: false }}
-                          />
-                          <Stack.Screen
-                            name="PetForm"
-                            component={PetFormScreen}
-                            options={{
-                              // The form draws the design's own header (an h1 plus
-                              // a `‹ Pets` / `‹ Pet page` link), so the native
-                              // header is hidden — the modal is dismissed by that
-                              // in-page link (and Android's back gesture/button).
-                              presentation: 'modal',
-                              headerShown: false,
-                            }}
-                          />
-                        </Stack.Navigator>
-                      </NavigationContainer>
-                    </JournalProvider>
-                  </ExpensesProvider>
-                </VetProvider>
-              </FeedingProvider>
-            </MedicationsProvider>
-          </VaccinesProvider>
+          <SitterProvider>
+            <VaccinesProvider>
+              <MedicationsProvider>
+                <FeedingProvider>
+                  <VetProvider>
+                    <ExpensesProvider>
+                      <JournalProvider>
+                        <NavigationContainer theme={navTheme}>
+                          <StatusBar style="auto" />
+                          <Stack.Navigator>
+                            <Stack.Screen
+                              name="Main"
+                              component={MainTabs}
+                              options={{ headerShown: false }}
+                            />
+                            <Stack.Screen
+                              name="PetForm"
+                              component={PetFormScreen}
+                              options={{
+                                // The form draws the design's own header (an h1 plus
+                                // a `‹ Pets` / `‹ Pet page` link), so the native
+                                // header is hidden — the modal is dismissed by that
+                                // in-page link (and Android's back gesture/button).
+                                presentation: 'modal',
+                                headerShown: false,
+                              }}
+                            />
+                          </Stack.Navigator>
+                        </NavigationContainer>
+                      </JournalProvider>
+                    </ExpensesProvider>
+                  </VetProvider>
+                </FeedingProvider>
+              </MedicationsProvider>
+            </VaccinesProvider>
+          </SitterProvider>
         </PremiumProvider>
       </PetProvider>
     </AccountProvider>
