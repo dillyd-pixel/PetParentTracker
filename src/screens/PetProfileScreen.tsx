@@ -37,6 +37,7 @@ import { useFeeding } from '../context/FeedingContext';
 import { useVetRecords } from '../context/VetContext';
 import { useExpenses } from '../context/ExpensesContext';
 import { useJournal } from '../context/JournalContext';
+import { useCareInstructions } from '../context/CareInstructionsContext';
 import {
   cancelFeedingForPet,
   cancelMedicationsForPet,
@@ -45,7 +46,7 @@ import {
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
-import { medicationScheduleLabel } from '../types';
+import { medicationScheduleLabel, careInstructionsSummary } from '../types';
 import { petEmojiFor, petMetaLine, shortDate } from '../utils/petDisplay';
 import { BS, COLOR, SPACE } from '../theme';
 
@@ -64,6 +65,8 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
   const { vetRecords, deleteVetRecordsForPet } = useVetRecords();
   const { deleteExpensesForPet } = useExpenses();
   const { journalEntries, deleteJournalForPet } = useJournal();
+  const { getForPet: getCareInstructions, deleteForPet: deleteCareInstructionsForPet } =
+    useCareInstructions();
   const [processing, setProcessing] = useState(false);
   const [photoChooserOpen, setPhotoChooserOpen] = useState(false);
   const [pickingPhoto, setPickingPhoto] = useState(false);
@@ -106,6 +109,9 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
         : [],
     [journalEntries, pet],
   );
+  // This pet's Sitter Mode care notes (a plain lookup, so it can sit here —
+  // before the no-pet early return, where hooks may not be added).
+  const petInstructions = pet ? getCareInstructions(pet.id) : undefined;
 
   if (!pet) {
     return (
@@ -128,7 +134,7 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
   const confirmDelete = () => {
     Alert.alert(
       `Delete ${pet.name}?`,
-      'This permanently removes the pet, its vaccine, medication, feeding, vet, expense, and journal records, and its other on-device data. This cannot be undone.',
+      'This permanently removes the pet, its vaccine, medication, feeding, vet, expense, and journal records, its care instructions, and its other on-device data. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -144,6 +150,7 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
               await deleteVetRecordsForPet(pet.id);
               await deleteExpensesForPet(pet.id);
               await deleteJournalForPet(pet.id);
+              await deleteCareInstructionsForPet(pet.id);
               await cancelMedicationsForPet(pet.id, medications);
               await cancelFeedingForPet(pet.id, feedingSchedules);
               await cancelVaccinesForPet(pet.id, vaccines);
@@ -307,6 +314,23 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
             <Text style={BS.btnSecondaryText}>Vet records</Text>
           </TouchableOpacity>
         </View>
+
+        <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Sitter Mode</Text>
+        <TouchableOpacity
+          style={BS.divRowBetween}
+          onPress={() => navigation.navigate('CareInstructions', { petId: pet.id })}
+          accessibilityRole="button"
+          accessibilityLabel={`Care instructions for ${pet.name}`}
+          testID="pet-care-instructions"
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={BS.rowLabel}>Care instructions</Text>
+            <Text style={BS.caption}>
+              Food, bathroom, sleep, behaviour and quirks — what a sitter follows.
+            </Text>
+          </View>
+          <Text style={BS.link}>{careInstructionsSummary(petInstructions)} ›</Text>
+        </TouchableOpacity>
 
         <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Medications</Text>
         {petMeds.length === 0 ? (

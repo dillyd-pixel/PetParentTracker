@@ -5,6 +5,10 @@
  *    non-entitled user is routed to the Blueprint Premium screen instead of
  *    the form. The button is always visible — the feature is never hidden.
  *  - "Open a Care Pass" (the sitter's side): free, no account, no premium.
+ *  - "Care instructions for your pets" (owner side): the permanent per-pet
+ *    notes a sitter follows. Free to write and NOT premium-gated — the content
+ *    is always the owner's; only creating a pass is premium. Each row opens
+ *    that pet's notes (read view, then editor) in the Pets tab's stack.
  *
  * Each row shows who the pass is for, the dates, the pets it covers and a
  * status badge: Active (usable today), Expired (end date has passed) or
@@ -21,13 +25,16 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import CarePassStatusBadge from '../components/CarePassStatusBadge';
 import { useGoToPremium } from '../components/CarePassPremiumLock';
+import { useCareInstructions } from '../context/CareInstructionsContext';
 import { usePremium } from '../context/PremiumContext';
 import { usePets } from '../context/PetContext';
 import { useSitter } from '../context/SitterContext';
+import { useTabRootNavigation } from '../navigation/RootNavigator';
 import type { SitterStackParamList } from '../navigation/SitterNavigator';
 import { resolveCarePassPets } from '../storage/carePasses';
-import { carePassStatus, carePassStatusLabel } from '../types';
+import { careInstructionsSummary, carePassStatus, carePassStatusLabel } from '../types';
 import type { CarePass } from '../types';
+import { petEmojiFor } from '../utils/petDisplay';
 import { BS, COLOR, SPACE } from '../theme';
 
 type Props = NativeStackScreenProps<SitterStackParamList, 'SitterHome'>;
@@ -35,8 +42,10 @@ type Props = NativeStackScreenProps<SitterStackParamList, 'SitterHome'>;
 export default function SitterHomeScreen({ navigation }: Props): React.JSX.Element {
   const { carePasses } = useSitter();
   const { pets } = usePets();
+  const { getForPet: getCareInstructions } = useCareInstructions();
   const premium = usePremium();
   const goToPremium = useGoToPremium();
+  const rootNavigation = useTabRootNavigation();
   const entitled = premium.isPremium();
 
   // The pets a pass covers: the live pets here, or the snapshots that came
@@ -124,6 +133,44 @@ export default function SitterHomeScreen({ navigation }: Props): React.JSX.Eleme
               </TouchableOpacity>
             );
           })
+        )}
+
+        {/* ---- Care instructions (owner side, always free) ---- */}
+        <Text style={[BS.fieldLabel, { marginTop: SPACE.s6 }]}>
+          Care instructions for your pets
+        </Text>
+        <Text style={[BS.caption, { marginBottom: SPACE.s2 }]}>
+          Write once what a sitter needs to know about each pet — food, bathroom, sleep,
+          behaviour and quirks. It stays on this device, and it’s the content a Care Pass shows.
+          Free: only creating a pass is part of Blueprint Premium.
+        </Text>
+        {pets.length === 0 ? (
+          <View style={BS.dashedBox}>
+            <Text style={BS.caption}>
+              Add a pet first — care instructions belong to a pet.
+            </Text>
+          </View>
+        ) : (
+          pets.map((pet) => (
+            <TouchableOpacity
+              key={pet.id}
+              style={BS.divRowBetween}
+              onPress={() =>
+                rootNavigation.navigate('Pets', {
+                  screen: 'CareInstructions',
+                  params: { petId: pet.id },
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel={`Care instructions for ${pet.name}`}
+              testID={`sitter-care-instructions-${pet.id}`}
+            >
+              <Text style={BS.rowLabel}>
+                {petEmojiFor(pet)} {pet.name}
+              </Text>
+              <Text style={BS.link}>{careInstructionsSummary(getCareInstructions(pet.id))} ›</Text>
+            </TouchableOpacity>
+          ))
         )}
       </ScrollView>
     </View>
