@@ -13,6 +13,7 @@
  */
 export * from './carePass';
 export * from './careInstructions';
+export * from './checkIn';
 
 /** Common fields for every persisted entity. */
 export interface BaseEntity {

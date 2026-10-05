@@ -83,6 +83,34 @@ export function petMetaLine(pet: Pet): string {
   return parts.join(' · ');
 }
 
+/**
+ * The pet's age as a short phrase, e.g. "3 yr 4 mo", "7 mo", "2 yr" — the line
+ * the crew carousel shows under a name.
+ *
+ * `birthdate` is an ISO calendar date (the day the owner typed, a fact with no
+ * time zone of its own), so the age is counted in whole months against the
+ * device's today. Unknown, malformed or future dates return an empty string —
+ * the carousel simply shows no age rather than guessing one.
+ */
+export function petAgeLabel(pet: Pick<Pet, 'birthdate'>, today: Date = new Date()): string {
+  const iso = pet.birthdate;
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
+  const [year, month, day] = iso.split('-').map(Number);
+  const born = new Date(year, month - 1, day);
+  if (Number.isNaN(born.getTime())) return '';
+
+  let months =
+    (today.getFullYear() - born.getFullYear()) * 12 + (today.getMonth() - born.getMonth());
+  if (today.getDate() < born.getDate()) months -= 1;
+  if (months < 0) return '';
+
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  if (years === 0) return `${months} mo`;
+  if (rest === 0) return `${years} yr`;
+  return `${years} yr ${rest} mo`;
+}
+
 const MONTHS_SHORT = [
   'Jan',
   'Feb',
