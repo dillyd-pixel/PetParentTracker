@@ -64,6 +64,7 @@ import { VaccinesProvider } from '../context/VaccinesContext';
 import { MedicationsProvider } from '../context/MedicationsContext';
 import { FeedingProvider } from '../context/FeedingContext';
 import { CheckInsProvider } from '../context/CheckInsContext';
+import { AwardsProvider } from '../context/AwardsContext';
 import { VetProvider } from '../context/VetContext';
 import { ExpensesProvider } from '../context/ExpensesContext';
 import { JournalProvider } from '../context/JournalContext';
@@ -86,7 +87,8 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
-  Main: undefined;
+  /** The five-slot shell; Quick Add sends it nested params to open a screen. */
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   PetForm: { petId?: string } | undefined;
   QuickAdd: undefined;
 };
@@ -192,45 +194,47 @@ export default function RootNavigator(): React.JSX.Element {
                 <MedicationsProvider>
                   <FeedingProvider>
                     <CheckInsProvider>
-                      <VetProvider>
-                        <ExpensesProvider>
-                          <JournalProvider>
-                          <NavigationContainer theme={navTheme}>
-                            <StatusBar style="auto" />
-                            <Stack.Navigator>
-                              <Stack.Screen
-                                name="Main"
-                                component={MainTabs}
-                                options={{ headerShown: false }}
-                              />
-                              <Stack.Screen
-                                name="PetForm"
-                                component={PetFormScreen}
-                                options={{
-                                  // The form draws the design's own header (an h1 plus
-                                  // a `‹ Pets` / `‹ Pet page` link), so the native
-                                  // header is hidden — the modal is dismissed by that
-                                  // in-page link (and Android's back gesture/button).
-                                  presentation: 'modal',
-                                  headerShown: false,
-                                }}
-                              />
-                              <Stack.Screen
-                                name="QuickAdd"
-                                component={QuickAddSheetScreen}
-                                options={{
-                                  // The raised "+" opens this sheet; it draws its own
-                                  // grabber, title and close affordances, and dismisses
-                                  // by its scrim, its Close button or Android's back.
-                                  presentation: 'modal',
-                                  headerShown: false,
-                                }}
-                              />
-                            </Stack.Navigator>
-                          </NavigationContainer>
-                        </JournalProvider>
-                      </ExpensesProvider>
-                    </VetProvider>
+                      <AwardsProvider>
+                        <VetProvider>
+                          <ExpensesProvider>
+                            <JournalProvider>
+                            <NavigationContainer theme={navTheme}>
+                              <StatusBar style="auto" />
+                              <Stack.Navigator>
+                                <Stack.Screen
+                                  name="Main"
+                                  component={MainTabs}
+                                  options={{ headerShown: false }}
+                                />
+                                <Stack.Screen
+                                  name="PetForm"
+                                  component={PetFormScreen}
+                                  options={{
+                                    // The form draws the design's own header (an h1 plus
+                                    // a `‹ Pets` / `‹ Pet page` link), so the native
+                                    // header is hidden — the modal is dismissed by that
+                                    // in-page link (and Android's back gesture/button).
+                                    presentation: 'modal',
+                                    headerShown: false,
+                                  }}
+                                />
+                                <Stack.Screen
+                                  name="QuickAdd"
+                                  component={QuickAddSheetScreen}
+                                  options={{
+                                    // The raised "+" opens this sheet; it draws its own
+                                    // grabber, title and close affordances, and dismisses
+                                    // by its scrim, its Close button or Android's back.
+                                    presentation: 'modal',
+                                    headerShown: false,
+                                  }}
+                                />
+                              </Stack.Navigator>
+                            </NavigationContainer>
+                            </JournalProvider>
+                          </ExpensesProvider>
+                        </VetProvider>
+                      </AwardsProvider>
                     </CheckInsProvider>
                   </FeedingProvider>
                 </MedicationsProvider>

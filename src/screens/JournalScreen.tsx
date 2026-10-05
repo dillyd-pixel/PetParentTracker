@@ -26,13 +26,15 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useJournal } from '../context/JournalContext';
 import { usePets } from '../context/PetContext';
 import { BS, COLOR, FONT_HEAD, SPACE } from '../theme';
 import BackgroundCharacters from '../components/BackgroundCharacters';
+import { petEmojiFor, todayISO } from '../utils/petDisplay';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import {
   JOURNAL_MOOD_OPTIONS,
@@ -72,14 +74,26 @@ interface FormState {
   entryDate: string;
   mood: JournalMood | null; // null = no mood set
   photoUri: string | undefined;
+  /** A built-in animal glyph standing in for a photo (no picker needed). */
+  photoEmoji: string | undefined;
 }
+
+/**
+ * The glyphs a memory can carry instead of a photo. The pet's own face is
+ * offered first (see `petEmojiFor`), then a small, cheerful set of the animals
+ * the app knows — so the photo flow works on a device (or a browser preview)
+ * with no camera roll at all.
+ */
+const PHOTO_GLYPHS = ['🐶', '🐱', '🐰', '🐦', '🐹', '🐢', '🐴', '🐾'];
 
 const emptyForm = (): FormState => ({
   title: '',
   body: '',
-  entryDate: '',
+  // A new entry is about today unless the owner says otherwise.
+  entryDate: todayISO(),
   mood: null,
   photoUri: undefined,
+  photoEmoji: undefined,
 });
 
 function formFromEntry(e: JournalEntry): FormState {
@@ -89,6 +103,7 @@ function formFromEntry(e: JournalEntry): FormState {
     entryDate: e.entryDate,
     mood: e.mood ?? null,
     photoUri: e.photoUri,
+    photoEmoji: e.photoEmoji,
   };
 }
 
@@ -96,12 +111,24 @@ interface FormModalProps {
   visible: boolean;
   editing: JournalEntry | null;
   saving: boolean;
+  /** A "Photo" quick-add: spotlight the picture row as the form opens. */
+  photoFocus?: boolean;
+  /** The pet's own species glyph — offered first in the face picker. */
+  petGlyph: string;
   onCancel: () => void;
   onSave: (form: FormState) => void;
 }
 
 /** Modal add/edit form — styled to match the app (cards, primary buttons). */
-function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormModalProps) {
+function JournalFormModal({
+  visible,
+  editing,
+  saving,
+  photoFocus,
+  petGlyph,
+  onCancel,
+  onSave,
+}: FormModalProps) {
   const [form, setForm] = useState<FormState>(emptyForm);
 
   // Hydrate on open: fresh form for "add", the record's values for "edit".
@@ -130,6 +157,8 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
       quality: 0.8,
     });
     if (!result.canceled && result.assets?.length) {
+      // A real photo always wins over a stand-in glyph.
+      set('photoEmoji', undefined);
       set('photoUri', result.assets[0].uri);
     }
   };
@@ -155,7 +184,7 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
               placeholderTextColor={COLOR.textFaint}
             />
 
-            <Text style={styles.label}>Entry *</Text>
+            <Text style={styles.label}>Entry (or just a photo)</Text>
             <TextInput
               style={[styles.input, styles.bodyInput]}
               value={form.body}
@@ -211,27 +240,63 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
               })}
             </View>
 
-            <Text style={styles.label}>Photo (optional)</Text>
+            <Text style={[styles.label, photoFocus && styles.labelSpotlight]}>
+              Photo {photoFocus ? '(pick a face)' : '(optional)'}
+            </Text>
             <View style={styles.photoRow}>
               <TouchableOpacity style={styles.photoBox} onPress={pickPhoto}>
                 {form.photoUri ? (
                   <Image source={{ uri: form.photoUri }} style={styles.photoPreview} />
+                ) : form.photoEmoji ? (
+                  <View style={[styles.photoPreview, styles.photoGlyphPlate]}>
+                    <Text style={styles.photoGlyph}>{form.photoEmoji}</Text>
+                  </View>
                 ) : (
                   <View style={[styles.photoPreview, styles.photoPlaceholder]}>
                     <Text style={styles.photoHint}>Add photo</Text>
                   </View>
                 )}
               </TouchableOpacity>
-              {form.photoUri ? (
+              {form.photoUri || form.photoEmoji ? (
                 <TouchableOpacity
                   style={styles.photoRemoveBtn}
-                  onPress={() => set('photoUri', undefined)}
+                  onPress={() => {
+                    set('photoUri', undefined);
+                    set('photoEmoji', undefined);
+                  }}
                 >
                   <Text style={[styles.photoRemoveText, { color: COLOR.accent2_700 }]}>
-                    Remove photo
+                    Remove picture
                   </Text>
                 </TouchableOpacity>
               ) : null}
+            </View>
+            {/*
+              No camera roll here? Every memory can still have a picture: pick
+              one of the app's own animal glyphs and it is stored with the entry
+              and shown exactly where a photo would be.
+            */}
+            <Text style={styles.photoHintLine}>Or use a face instead of a photo</Text>
+            <View style={styles.glyphRow}>
+              {[petGlyph, ...PHOTO_GLYPHS]
+                .filter((glyph, index, all) => all.indexOf(glyph) === index)
+                .map((glyph) => {
+                  const selected = form.photoEmoji === glyph && !form.photoUri;
+                  return (
+                    <TouchableOpacity
+                      key={glyph}
+                      style={[styles.glyphChip, selected && styles.glyphChipSelected]}
+                      onPress={() => {
+                        set('photoUri', undefined);
+                        set('photoEmoji', glyph);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Use ${glyph} as this entry's picture`}
+                    >
+                      <Text style={styles.glyphChipText}>{glyph}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
             </View>
 
             <View style={styles.modalActions}>
@@ -260,6 +325,7 @@ function JournalFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
 
 export default function JournalScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PetsStackParamList>>();
+  const route = useRoute<RouteProp<PetsStackParamList, 'Journal'>>();
   const { activePet } = usePets();
   const { journalForPet, addJournalEntry, updateJournalEntry, deleteJournalEntry } =
     useJournal();
@@ -271,6 +337,21 @@ export default function JournalScreen() {
   // Per-pet listing is computed before the no-pet guard so every hook runs
   // unconditionally (Rules of Hooks). With no pet the list is empty.
   const entries = journalForPet(activePet?.id ?? '');
+
+  /**
+   * Quick Add's "Note" / "Photo" taps arrive with a fresh `openNew` nonce: the
+   * screen is already on the stack, so a newer number means a newer tap and
+   * re-opens the form. A "Photo" tap additionally spotlights the picture row.
+   */
+  const openNew = route.params?.openNew;
+  const quickFocus = route.params?.focus;
+  const [photoFocus, setPhotoFocus] = useState(false);
+  useEffect(() => {
+    if (!openNew) return;
+    setEditingEntry(null);
+    setPhotoFocus(quickFocus === 'photo');
+    setFormVisible(true);
+  }, [openNew, quickFocus]);
 
   // No active pet: prompt the user to pick/add one on Home.
   if (!activePet) {
@@ -286,6 +367,7 @@ export default function JournalScreen() {
 
   const openAdd = () => {
     setEditingEntry(null);
+    setPhotoFocus(false);
     setFormVisible(true);
   };
 
@@ -317,10 +399,12 @@ export default function JournalScreen() {
     const title = form.title.trim();
     const body = form.body.trim();
     const entryDate = form.entryDate.trim().replace(/\s+/g, '');
-    if (!body) {
+    // An entry is words, or a picture, or both — a photo on its own is a
+    // perfectly good memory, so it is never blocked for having no words.
+    if (!body && !form.photoUri && !form.photoEmoji) {
       Alert.alert(
-        'Missing entry',
-        'Write something in the entry field — what was your pet like today?',
+        'Nothing to save yet',
+        'Write a line about today, or add a photo or a face to the entry.',
       );
       return;
     }
@@ -338,6 +422,7 @@ export default function JournalScreen() {
       entryDate,
       mood: form.mood ?? undefined,
       photoUri: form.photoUri,
+      photoEmoji: form.photoUri ? undefined : form.photoEmoji,
     };
     setSaving(true);
     try {
@@ -411,6 +496,10 @@ export default function JournalScreen() {
             <Text style={styles.cardBody}>{item.body}</Text>
             {item.photoUri ? (
               <Image source={{ uri: item.photoUri }} style={styles.cardPhoto} />
+            ) : item.photoEmoji ? (
+              <View style={[styles.cardPhoto, styles.cardPhotoGlyph]}>
+                <Text style={styles.cardPhotoGlyphText}>{item.photoEmoji}</Text>
+              </View>
             ) : null}
           </View>
         )}
@@ -423,7 +512,12 @@ export default function JournalScreen() {
         visible={formVisible}
         editing={editingEntry}
         saving={saving}
-        onCancel={() => setFormVisible(false)}
+        photoFocus={photoFocus}
+        petGlyph={petEmojiFor(activePet)}
+        onCancel={() => {
+          setFormVisible(false);
+          setPhotoFocus(false);
+        }}
         onSave={submitForm}
       />
     </View>
@@ -601,6 +695,30 @@ const styles = StyleSheet.create({
   },
   photoPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   photoHint: { fontSize: 12.5, fontStyle: 'italic', color: COLOR.textMuted },
+  /* A face instead of a photo — the offline-friendly picture picker. */
+  photoGlyphPlate: { alignItems: 'center', justifyContent: 'center' },
+  photoGlyph: { fontSize: 40 },
+  photoHintLine: { fontSize: 12, color: COLOR.textMuted, marginBottom: SPACE.s1 },
+  glyphRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2, marginBottom: SPACE.s2 },
+  glyphChip: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLOR.divider,
+    backgroundColor: COLOR.surface,
+  },
+  glyphChipSelected: { borderColor: COLOR.accent, backgroundColor: COLOR.accent + '1A' },
+  glyphChipText: { fontSize: 22 },
+  labelSpotlight: { color: COLOR.accent },
+  cardPhotoGlyph: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLOR.surfaceSoft,
+  },
+  cardPhotoGlyphText: { fontSize: 56 },
   photoRemoveBtn: { paddingVertical: SPACE.s2, paddingHorizontal: SPACE.s1 },
   photoRemoveText: { fontSize: 13, fontWeight: '600' },
   modalActions: { flexDirection: 'row', gap: SPACE.s2, marginTop: SPACE.s4 },

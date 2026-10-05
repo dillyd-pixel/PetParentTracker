@@ -23,7 +23,8 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useExpenses } from '../context/ExpensesContext';
@@ -290,6 +291,7 @@ function ExpenseFormModal({ visible, editing, saving, onCancel, onSave }: FormMo
 
 export default function ExpensesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PetsStackParamList>>();
+  const route = useRoute<RouteProp<PetsStackParamList, 'Expenses'>>();
   const { activePet } = usePets();
   const { expensesForPet, addExpense, updateExpense, deleteExpense } =
     useExpenses();
@@ -297,6 +299,18 @@ export default function ExpensesScreen() {
   const [formVisible, setFormVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [saving, setSaving] = useState(false);
+
+  /**
+   * Quick Add's "Expense" tap arrives with a fresh `openNew` nonce — the screen
+   * is already on the stack, so a newer number means a newer tap and re-opens
+   * the form. Declared before the no-pet guard so every hook runs.
+   */
+  const openNew = route.params?.openNew;
+  useEffect(() => {
+    if (!openNew) return;
+    setEditingExpense(null);
+    setFormVisible(true);
+  }, [openNew]);
 
   // Per-pet listing + totals are computed before the no-pet guard so every
   // hook runs unconditionally (Rules of Hooks). With no pet the list is empty.
