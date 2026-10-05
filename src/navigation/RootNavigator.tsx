@@ -1,28 +1,36 @@
 /**
  * The app's root state: every screen lives in (or is reachable from) this tree.
  *
- * Information architecture (Phase 1 of the Broadsheet design port) — five
- * text-only tabs, exactly as the design lays them out:
+ * Information architecture (design Phase A — the "Pet Parent Command Center"
+ * shell). The bottom nav is exactly five slots, in order:
  *
- *   Today   — today's meds + meals across every pet, the pets list, the spend
- *             snapshot and the premium card.
+ *   Home    — today's meds and meals across every pet, the pets list, the
+ *             spend snapshot and the premium card (the Today dashboard; its
+ *             content is rebuilt in Phase B).
  *   Pets    — the pets list → a pet's page (photo plate, meta, Vaccines and
  *             Feeding buttons, medications, journal) → every per-pet module
  *             (vaccines, meds, feeding, vet records, expenses, journal).
+ *   +       — the raised centre button. It is not a route: it opens the
+ *             root-stack Quick Add modal (the real one-tap sheet arrives in
+ *             Phase C; today the sheet previews the nine actions honestly).
  *   Records — every pet's vet records in one list, plus add-a-record with
  *             camera / library capture.
- *   Card    — the pet's emergency card, exportable/printable on-device.
- *   Shop    — Blueprint Premium (trial + one-time unlock), the offline
- *             co-parent share and PDF export entries, and the keepsake
- *             products (on hold).
- *   Sitter  — Sitter Mode: care passes, the create form (premium, owner side)
- *             and opening a pass someone shared (free, sitter side).
+ *   More    — everything else, grouped: Care Circle / Care Calendar
+ *             placeholders and the Emergency Card (Your circle), Sitter Mode
+ *             and Open a Care Pass (Care & handoff), Shop & keepsakes, record
+ *             search and Settings (Extras), plus the offline promise.
+ *
+ * Nothing was lost in the pivot: the old Card, Shop and Sitter tabs are the
+ * More stack's `EmergencyCard`, nested `Shop` and nested `Sitter` screens, so
+ * every one of them is still two taps away. Sitter Mode keeps its premium gate
+ * and per-pet care instructions untouched.
  *
  * Layering:
  *  - `PetProvider` wraps everything (active-pet selection, pet CRUD), then the
  *    premium provider, the Sitter Mode provider (care passes) with the care
  *    instructions provider inside it, and the six module providers.
- *  - A web-safe `NativeStack` hosts `MainTabs` plus the modal `PetForm`.
+ *  - A web-safe `NativeStack` hosts `MainTabs` plus the modal `PetForm` and
+ *    the modal `QuickAdd` sheet.
  *  - Each tab that needs depth owns a web-safe nested stack, so the browser
  *    preview keeps working exactly as on device.
  */
@@ -36,17 +44,16 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { createWebSafeStackNavigator } from './WebSafeStack';
+import { CCTabBar } from './CCTabBar';
 import { PetsNavigator } from './PetsNavigator';
 import type { PetsStackParamList } from './PetsNavigator';
 import { RecordsNavigator } from './RecordsNavigator';
 import type { RecordsStackParamList } from './RecordsNavigator';
-import { ShopNavigator } from './ShopNavigator';
-import type { ShopStackParamList } from './ShopNavigator';
-import { SitterNavigator } from './SitterNavigator';
-import type { SitterStackParamList } from './SitterNavigator';
+import { MoreNavigator } from './MoreNavigator';
+import type { MoreStackParamList } from './MoreNavigator';
 
 import { PetProvider } from '../context/PetContext';
 import { AccountProvider } from '../context/AccountContext';
@@ -60,36 +67,34 @@ import { VetProvider } from '../context/VetContext';
 import { ExpensesProvider } from '../context/ExpensesContext';
 import { JournalProvider } from '../context/JournalContext';
 import TodayScreen from '../screens/TodayScreen';
-import EmergencyCardScreen from '../screens/EmergencyCardScreen';
 import PetFormScreen from '../screens/PetFormScreen';
+import QuickAddSheetScreen from '../screens/QuickAddSheetScreen';
 import OnboardingScreen, { hasSeenOnboarding } from '../screens/OnboardingScreen';
 import { BS, COLOR } from '../theme';
 
 /**
- * The tabs of the design's IA plus Sitter Mode, each carrying its nested stack.
- * Sitter is the sixth tab: the owner's side (create a care pass, premium) and
- * the sitter's side (open a pass someone shared, always free) live together in
- * one place.
+ * The four real slots of the design's IA, each carrying its nested stack. The
+ * fifth slot — the raised "+" — is drawn by `CCTabBar` and opens the root
+ * stack's Quick Add modal, so it is deliberately not a route here.
  */
 export type MainTabParamList = {
-  Today: undefined;
+  Home: undefined;
   Pets: NavigatorScreenParams<PetsStackParamList> | undefined;
   Records: NavigatorScreenParams<RecordsStackParamList> | undefined;
-  Card: undefined;
-  Shop: NavigatorScreenParams<ShopStackParamList> | undefined;
-  Sitter: NavigatorScreenParams<SitterStackParamList> | undefined;
+  More: NavigatorScreenParams<MoreStackParamList> | undefined;
 };
 
 export type RootStackParamList = {
   Main: undefined;
   PetForm: { petId?: string } | undefined;
+  QuickAdd: undefined;
 };
 
 /**
- * Tab-root screens navigate to sibling tabs *and* to the root stack's pet-form
- * modal; at runtime react-navigation bubbles a route the current navigator
- * doesn't own up to the parent. Typing the hook against both param lists keeps
- * that honest without casts.
+ * Tab-root screens navigate to sibling tabs *and* to the root stack's modals;
+ * at runtime react-navigation bubbles a route the current navigator doesn't own
+ * up to the parent. Typing the hook against both param lists keeps that honest
+ * without casts.
  */
 export type TabRootNavigation = NativeStackNavigationProp<
   MainTabParamList & RootStackParamList
@@ -103,47 +108,30 @@ export function useTabRootNavigation(): TabRootNavigation {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createWebSafeStackNavigator<RootStackParamList>();
 
-/** Tab labels, in the design's wording. */
-const TAB_LABELS: Record<keyof MainTabParamList, string> = {
-  Today: 'Today',
-  Pets: 'Pets',
-  Records: 'Records',
-  Card: 'Card',
-  Shop: 'Shop',
-  Sitter: 'Sitter',
-};
-
 /**
- * The bottom tab bar, restyled to the design: text-only items on paper, one
- * hairline on top, muted labels with the active one in deep teal.
+ * The five-slot shell: the four tab screens plus the custom bar that draws
+ * Home | Pets | + | Records | More. The "+" opens the Quick Add modal on the
+ * root stack (this component is a root-stack screen, so it can navigate there).
  */
 function MainTabs(): React.JSX.Element {
+  const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const openQuickAdd = useCallback(
+    () => rootNavigation.navigate('QuickAdd'),
+    [rootNavigation],
+  );
+
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      tabBar={(props) => <CCTabBar {...props} onQuickAdd={openQuickAdd} />}
+      screenOptions={{
         headerShown: false,
-        // Text-only tabs — the design has no icon row.
-        tabBarIcon: () => null,
-        tabBarLabel: ({ focused }) => (
-          <Text style={focused ? BS.tabTextActive : BS.tabText}>
-            {TAB_LABELS[route.name as keyof MainTabParamList]}
-          </Text>
-        ),
-        tabBarStyle: {
-          backgroundColor: COLOR.bg,
-          borderTopWidth: 1,
-          borderTopColor: COLOR.divider,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: { fontSize: 11, marginBottom: 4 },
-      })}
+        tabBarStyle: { backgroundColor: COLOR.surface },
+      }}
     >
-      <Tab.Screen name="Today" component={TodayScreen} />
+      <Tab.Screen name="Home" component={TodayScreen} />
       <Tab.Screen name="Pets" component={PetsNavigator} />
       <Tab.Screen name="Records" component={RecordsNavigator} />
-      <Tab.Screen name="Card" component={EmergencyCardScreen} />
-      <Tab.Screen name="Shop" component={ShopNavigator} />
-      <Tab.Screen name="Sitter" component={SitterNavigator} />
+      <Tab.Screen name="More" component={MoreNavigator} />
     </Tab.Navigator>
   );
 }
@@ -154,7 +142,7 @@ const navTheme = {
     ...DefaultTheme.colors,
     primary: COLOR.accent,
     background: COLOR.bg,
-    card: COLOR.bg,
+    card: COLOR.surface,
     text: COLOR.text,
     border: COLOR.divider,
   },
@@ -164,7 +152,7 @@ const navTheme = {
 export default function RootNavigator(): React.JSX.Element {
   /**
    * First-run onboarding gate: `null` while the on-device flag is being read
-   * (paper-coloured blank instead of a flash of the wrong screen), `false`
+   * (ivory-coloured blank instead of a flash of the wrong screen), `false`
    * until it has been finished or skipped once, `true` afterwards.
    */
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
@@ -221,6 +209,17 @@ export default function RootNavigator(): React.JSX.Element {
                                   // a `‹ Pets` / `‹ Pet page` link), so the native
                                   // header is hidden — the modal is dismissed by that
                                   // in-page link (and Android's back gesture/button).
+                                  presentation: 'modal',
+                                  headerShown: false,
+                                }}
+                              />
+                              <Stack.Screen
+                                name="QuickAdd"
+                                component={QuickAddSheetScreen}
+                                options={{
+                                  // The raised "+" opens this sheet; it draws its own
+                                  // grabber, title and close affordances, and dismisses
+                                  // by its scrim, its Close button or Android's back.
                                   presentation: 'modal',
                                   headerShown: false,
                                 }}

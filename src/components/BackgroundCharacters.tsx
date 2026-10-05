@@ -1,33 +1,22 @@
 /**
- * BackgroundCharacters — the vibrant pet-character backdrop.
+ * BackgroundCharacters — the calm decorative backdrop of the Command Center.
  *
  * The same friendly animal emoji as always (dog, cat, bunny, bird, fish,
- * hamster, plus paw prints and a bone) hugging the screen edges — but no
- * longer a whisper. Owner request: "keep the existing background, just make
- * the background images darker and more vibrant." So this layer is now a
- * present, colourful backdrop that gives the paper some life instead of a 5%
- * ghost of one.
+ * hamster, plus paw prints and a bone) hugging the screen edges, but a step
+ * quieter than the earlier "vibrant" pass. Owner direction 2026-09-19: under
+ * the new white cards the characters are *decorative atmosphere inside the
+ * layout*, not stickers floating over empty space — so this layer drops to
+ * roughly 8–16% opacity, keeps every glyph on an edge or a corner, and leans
+ * on the new palette (Aqua, Lavender, Sunshine, Coral, Leaf) for its glow.
  *
- * What changed (and why):
- *  - Opacity is roughly 4–5x higher: each glyph sits at 0.22–0.36 instead of
- *    0.05–0.07, tuned per glyph so the tray reads as a saturated backdrop and
- *    still never fights the ink.
- *  - The accent glow is much stronger: `textShadowRadius` 18–22 (was 12) and
- *    the glow now uses the vivid accent / accent2 tokens plus their deep
- *    700 variants for depth, so the saturated glyphs carry more weight and
- *    read darker against the paper.
- *  - Everything structural is untouched: same emoji set, same per-glyph
- *    positions, sizes and rotations, same mount order.
+ * The coloured halo is now a soft, wide, low-saturation wash rather than a
+ * saturated sticker outline: `textShadowRadius` 14–18 at a gentle tint, so a
+ * glyph never competes with a card, a heading or body copy painted above it.
+ * The glyph set, per-glyph positions and rotations are unchanged from the
+ * previous phase — only weight and colour moved.
  *
- * The earlier "Phase 1 Broadsheet" rule (a whisper-quiet 5–7% opacity paper
- * texture) is superseded by the owner request above; the comments here
- * describe the current intent, not that retired rule.
- *
- * Readability still governs: every glyph hugs an edge or a corner, cards,
- * headings and body text stay free to paint above the layer, and the mix
- * leans on the darker 700 accents where text density is highest. If a glyph
- * ever competes with copy, lower that glyph's opacity — do not raise the
- * others.
+ * Readability governs: if a glyph ever competes with copy, lower that glyph's
+ * opacity — do not raise the others.
  *
  * Fully offline: pure RN Views/Text only. Emoji glyphs are rendered
  * client-side by the OS — no image assets, no network calls, no new
@@ -36,9 +25,9 @@
  * Mount as the FIRST child of a screen's root container. The layer is
  * absolutely positioned and never intercepts touches
  * (`pointerEvents="none"`). Because it is the first sibling, later content
- * (scrollables, cards, buttons) naturally paints above it on both native
- * and web — no zIndex tricks needed. All color tokens come from `COLOR` — no
- * literal hex values in this file.
+ * (scrollables, cards, buttons) paints above it on both native and web — no
+ * zIndex tricks needed. All colour tokens come from `COLOR` — no literal hex
+ * values in this file.
  */
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -58,40 +47,39 @@ interface BackgroundCharacter {
   right?: DimensionValue;
   /** Tilt in degrees, e.g. -12. */
   rotation: number;
-  /** Backdrop weight — present, but still under the ink. */
+  /** Backdrop weight — decorative atmosphere, well under the ink. */
   opacity: number;
-  /** Vivid accent glow behind the glyph (a COLOR token). */
+  /** Soft palette halo behind the glyph (a COLOR token). */
   glow: string;
-  /** Glow spread in points; larger = more saturated halo. */
+  /** Halo spread in points; larger = wider, softer wash. */
   glowRadius: number;
 }
 
 /**
- * Distinct species hugging the edges/corners — never center-screen under
- * content. Two small paw prints fill the gaps between the larger animals.
- * Opacities sit in the 0.22–0.36 band: a real backdrop, not paper texture.
- * The darker `accent700` / `accent2_700` glows are used where a glyph sits
- * closest to line after line of copy, so the vibrancy never costs legibility.
+ * Species hugging the edges/corners — never center-screen under content, and
+ * clustered toward the top and the lower thirds, where the hero and section
+ * areas of the new layout give them room. Opacities sit in the 0.08–0.16 band:
+ * present as atmosphere, never as a sticker.
  */
 const CHARACTERS: BackgroundCharacter[] = [
-  { glyph: '🐶', size: 64, top: '7%', left: '5%', rotation: -12,
-    opacity: 0.34, glow: COLOR.accent700, glowRadius: 22 },
-  { glyph: '🐱', size: 58, top: '5%', right: '6%', rotation: 10,
-    opacity: 0.32, glow: COLOR.accent2, glowRadius: 22 },
-  { glyph: '🐾', size: 30, top: '17%', right: '24%', rotation: 24,
-    opacity: 0.24, glow: COLOR.accent, glowRadius: 18 },
-  { glyph: '🐰', size: 52, top: '30%', left: '3%', rotation: -8,
-    opacity: 0.28, glow: COLOR.accent700, glowRadius: 20 },
-  { glyph: '🐦', size: 50, top: '32%', right: '4%', rotation: 8,
-    opacity: 0.30, glow: COLOR.accent2_700, glowRadius: 20 },
-  { glyph: '🦴', size: 44, top: '53%', left: '7%', rotation: -24,
-    opacity: 0.22, glow: COLOR.textMuted, glowRadius: 18 },
-  { glyph: '🐟', size: 54, top: '68%', left: '5%', rotation: 12,
-    opacity: 0.30, glow: COLOR.accent, glowRadius: 20 },
-  { glyph: '🐹', size: 56, top: '66%', right: '6%', rotation: -10,
-    opacity: 0.34, glow: COLOR.accent2, glowRadius: 22 },
-  { glyph: '🐾', size: 34, bottom: '10%', left: '38%', rotation: -18,
-    opacity: 0.22, glow: COLOR.accent2_700, glowRadius: 18 },
+  { glyph: '🐶', size: 62, top: '6%', left: '4%', rotation: -12,
+    opacity: 0.14, glow: COLOR.blue, glowRadius: 18 },
+  { glyph: '🐱', size: 56, top: '4%', right: '5%', rotation: 10,
+    opacity: 0.13, glow: COLOR.lavender, glowRadius: 18 },
+  { glyph: '🐾', size: 28, top: '16%', right: '26%', rotation: 24,
+    opacity: 0.10, glow: COLOR.aqua, glowRadius: 14 },
+  { glyph: '🐰', size: 50, top: '29%', left: '3%', rotation: -8,
+    opacity: 0.11, glow: COLOR.lavender, glowRadius: 16 },
+  { glyph: '🐦', size: 48, top: '31%', right: '3%', rotation: 8,
+    opacity: 0.12, glow: COLOR.sunshine, glowRadius: 16 },
+  { glyph: '🦴', size: 42, top: '52%', left: '6%', rotation: -24,
+    opacity: 0.09, glow: COLOR.tangerine, glowRadius: 14 },
+  { glyph: '🐟', size: 52, top: '67%', left: '4%', rotation: 12,
+    opacity: 0.12, glow: COLOR.aqua, glowRadius: 16 },
+  { glyph: '🐹', size: 54, top: '65%', right: '5%', rotation: -10,
+    opacity: 0.14, glow: COLOR.coral, glowRadius: 18 },
+  { glyph: '🐾', size: 32, bottom: '9%', left: '38%', rotation: -18,
+    opacity: 0.09, glow: COLOR.leaf, glowRadius: 14 },
 ];
 
 export default function BackgroundCharacters(): React.JSX.Element {
@@ -133,7 +121,7 @@ const styles = StyleSheet.create({
   character: {
     position: 'absolute',
     textShadowOffset: { width: 0, height: 0 },
-    // Baseline glow spread; each glyph overrides this (18–22).
-    textShadowRadius: 20,
+    // Baseline halo spread; each glyph overrides this (14–18).
+    textShadowRadius: 16,
   },
 });

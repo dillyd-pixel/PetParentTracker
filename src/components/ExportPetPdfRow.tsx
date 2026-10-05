@@ -62,7 +62,7 @@ export function ExportPetPdfRow(): React.JSX.Element | null {
 
   const goToPremium = (): void => {
     try {
-      navigation.navigate('Shop', { screen: 'Premium' });
+      navigation.navigate('More', { screen: 'Shop', params: { screen: 'Premium' } });
     } catch {
       // Navigation must never crash a screen — the lock note stays visible.
     }

@@ -55,7 +55,15 @@ export default function EmergencyCardScreen(): React.JSX.Element {
       <View style={BS.screen}>
         <BackgroundCharacters />
         <ScrollView contentContainerStyle={BS.pad}>
-          <Text style={BS.h1}>Emergency card</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Back to More">
+            <Text style={BS.link}>‹ More</Text>
+          </TouchableOpacity>
+          <Text style={[BS.eyebrow, { marginTop: SPACE.s3 }]}>Your circle</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Back to More">
+          <Text style={BS.link}>‹ More</Text>
+        </TouchableOpacity>
+        <Text style={[BS.eyebrow, { marginTop: SPACE.s3 }]}>Your circle</Text>
+        <Text style={BS.h1}>Emergency card</Text>
           <Text style={BS.italic}>
             Add a pet first — the card is built from that pet’s own records.
           </Text>
