@@ -870,8 +870,3 @@ export function buildBlueprint(pet: Pet, data: HomeData): BlueprintProgress {
 export function recentMemories(entries: JournalEntry[], max = 3): JournalEntry[] {
   return entries.slice(0, max);
 }
-
-/** The feeding/medication schedule lines a task's detail leans on. */
-export function feedingTaskDetail(schedule: FeedingSchedule): string {
-  return feedingScheduleLabel(schedule);
-}

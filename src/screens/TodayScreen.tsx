@@ -21,18 +21,38 @@
  *    writing a real, persisted check-in event (types/checkIn, storage/checkIns,
  *    context/CheckInsContext). A checkoff pops a paw print and earns one of a
  *    rotating set of playful lines; an unticked tile is simply neutral.
+ *  - **Today's Tasks.** The same pet's meals and medication doses for today, from
+ *    the real feeding/medication schedules, tickable: a tick writes the matching
+ *    care check-in, so this list and the ring can never disagree, and a second
+ *    tap undoes it (design Phase B2).
+ *  - **Needs Attention.** Everything worth a look across the household — a
+ *    past-due or soon-due vaccine, a course running out, a stale (or missing)
+ *    weigh-in, a visit coming up, a health record still empty — each with a
+ *    "Fix Now →" that opens the right screen for it.
+ *  - **Upcoming.** The household's next dates on a rail: vet visits, vaccine due
+ *    dates, medication courses ending, birthdays and adoption days. A pet with no
+ *    stored dates contributes nothing.
+ *  - **Health Snapshot.** The selected pet's records as they stand: latest weight
+ *    and the day it was taken, vaccination status, medication on board, last vet
+ *    visit, newest journaled observation.
+ *  - **Pet Spending.** The month's spending for the selected pet from the real
+ *    expense store, with a small category breakdown and the rest of the crew's
+ *    month beside it.
+ *  - **Their Story.** The last few journal entries for the selected pet, photos
+ *    and moods included.
+ *  - **Blueprint Completion.** A gentle per-pet progress strip: profile, photo,
+ *    records and care instructions. No rewards, no grades, no shaming.
  *  - **Empty state.** With no pets at all: the illustrated "Who runs your
  *    house?" prompt with one strong "+ Add My Pet" action.
  *
- * Deliberately NOT here (Phase B2): Today's Tasks, Needs Attention, the Upcoming
- * timeline, the Health Snapshot and Spending cards, Memories and the Blueprint
- * Completion meter. The premium card and the module lists that used to live on
- * this screen are still reachable — Shop → Premium from the More tab, and every
- * pet's modules from their page in Pets.
+ * Every section below the ring is derived from the app's own stores by
+ * `utils/homeSections` and rendered by the Command Center component kit. Nothing
+ * is seeded, estimated or demoed, and no section scolds: an absent record is
+ * "not on file yet" and an unticked task is "not yet".
  *
  * 100% offline: every value read here comes from an AsyncStorage-backed context;
- * nothing is fetched, nothing is inferred from a schedule, and no demo data is
- * ever seeded (a fresh install shows the empty state).
+ * nothing is fetched, nothing is inferred beyond the records themselves, and no
+ * demo data is ever seeded (a fresh install shows the empty state).
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -52,13 +72,40 @@ import { useCheckIns } from '../context/CheckInsContext';
 import { useFeeding } from '../context/FeedingContext';
 import { useMedications } from '../context/MedicationsContext';
 import { useVaccines } from '../context/VaccinesContext';
+import { useVetRecords } from '../context/VetContext';
+import { useExpenses } from '../context/ExpensesContext';
+import { useJournal } from '../context/JournalContext';
+import { useCareInstructions } from '../context/CareInstructionsContext';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import { CCCard, CCEmptyState, CCSectionTitle } from '../components/CC';
 import PetCrewCarousel from '../components/PetCrewCarousel';
 import type { PetCrewEntry } from '../components/PetCrewCarousel';
 import DailyCareRing from '../components/DailyCareRing';
+import {
+  HomeTasksCard,
+  NeedsAttentionCard,
+  UpcomingTimelineCard,
+} from '../components/HomeTodaySections';
+import {
+  BlueprintCompletionCard,
+  HealthSnapshotCard,
+  MemoriesCard,
+  PetSpendingCard,
+} from '../components/HomeCrewSections';
+import {
+  buildAttention,
+  buildBlueprint,
+  buildHealthSnapshot,
+  buildSpend,
+  buildTodayTasks,
+  buildUpcoming,
+  monthKeyOf,
+  recentMemories,
+  weekdayFromISO,
+} from '../utils/homeSections';
+import type { FixAction, HomeData, PetModuleScreen } from '../utils/homeSections';
 import { DEFAULT_HOME_TITLE, loadHomeTitle, saveHomeTitle } from '../storage/homeTitle';
-import { petAgeLabel, petSpeciesLabel } from '../utils/petDisplay';
+import { monthName, petAgeLabel, petSpeciesLabel } from '../utils/petDisplay';
 import { DEFAULT_ACCENT, hexWithAlpha, petAccent } from '../utils/petAccent';
 import { CARE_CHECK_IN_TYPES, CARE_ENCOURAGEMENTS, isEveryDay } from '../types';
 import type { CareCheckInType, Medication, Pet, Vaccine } from '../types';
@@ -81,6 +128,10 @@ export default function TodayScreen(): React.JSX.Element {
   const { vaccines } = useVaccines();
   const { medications } = useMedications();
   const { feedingSchedules } = useFeeding();
+  const { vetRecords } = useVetRecords();
+  const { expenses } = useExpenses();
+  const { journalEntries, journalForPet } = useJournal();
+  const { careInstructions } = useCareInstructions();
 
   const [homeTitle, setHomeTitle] = useState(DEFAULT_HOME_TITLE);
   const [titleDraft, setTitleDraft] = useState(DEFAULT_HOME_TITLE);
@@ -271,6 +322,147 @@ export default function TodayScreen(): React.JSX.Element {
     [doneTypes, selectedPet, todayKey, timeZone, toggleCheckIn],
   );
 
+  /* ----------- design Phase B2: everything below the Care Ring ----------- */
+
+  /**
+   * Today's weekday as the display zone sees it — which meals and which
+   * interval-based medications actually fall due today.
+   */
+  const weekday = weekdayFromISO(todayKey) ?? now.getDay();
+
+  /**
+   * One plain-data view of the app's stores for the bottom half to derive from.
+   * Rebuilt whenever any store changes, so a record saved anywhere lands on Home
+   * immediately.
+   */
+  const homeData = useMemo<HomeData>(
+    () => ({
+      pets,
+      vaccines,
+      medications,
+      feeding: feedingSchedules,
+      vetRecords,
+      expenses,
+      journal: journalEntries,
+      careInstructionPetIds: careInstructions.map((record) => record.petId),
+      doneTypesFor: (petId: string) => doneTypesFor(petId, todayKey, timeZone),
+      todayISO: todayKey,
+      weekday,
+    }),
+    [
+      pets,
+      vaccines,
+      medications,
+      feedingSchedules,
+      vetRecords,
+      expenses,
+      journalEntries,
+      careInstructions,
+      doneTypesFor,
+      todayKey,
+      timeZone,
+      weekday,
+    ],
+  );
+
+  /** The ring's pet: today's meals and medication doses, with their ticked state. */
+  const tasks = useMemo(() => buildTodayTasks(selectedPet, homeData), [selectedPet, homeData]);
+  /** Household-wide: what needs a look, what's coming up, how each profile stands. */
+  const attention = useMemo(() => buildAttention(homeData), [homeData]);
+  const upcoming = useMemo(() => buildUpcoming(homeData), [homeData]);
+  const blueprints = useMemo(
+    () => pets.map((pet) => buildBlueprint(pet, homeData)),
+    [pets, homeData],
+  );
+  /** Per-pet: the health picture, the month's money and the newest memories. */
+  const health = useMemo(() => buildHealthSnapshot(selectedPet, homeData), [selectedPet, homeData]);
+  const monthKey = monthKeyOf(todayKey);
+  const spend = useMemo(
+    () => buildSpend(expenses, selectedPet?.id ?? null, monthKey),
+    [expenses, selectedPet, monthKey],
+  );
+  const monthTotal = useMemo(
+    () => buildSpend(expenses, null, monthKey).total,
+    [expenses, monthKey],
+  );
+  const crewSpend = useMemo(
+    () =>
+      pets.map((pet) => ({
+        petId: pet.id,
+        name: pet.name,
+        total: buildSpend(expenses, pet.id, monthKey).total,
+        accent: petAccent(pet.id).fill,
+      })),
+    [pets, expenses, monthKey],
+  );
+  const memories = useMemo(
+    () => (selectedPet ? recentMemories(journalForPet(selectedPet.id), 3) : []),
+    [selectedPet, journalForPet],
+  );
+
+  /**
+   * Open one of a pet's module screens with that pet active, so the screen the
+   * owner lands on is about the pet the card was about. (Deep-linking to the
+   * individual record is Phase C; the screen itself is today's destination.)
+   */
+  const openPetModule = useCallback(
+    async (petId: string, module: PetModuleScreen) => {
+      if (activePet?.id !== petId) {
+        try {
+          await selectPet(petId);
+        } catch {
+          // Best effort — the module still opens on whatever pet is active.
+        }
+      }
+      switch (module) {
+        case 'Vaccines':
+          navigation.navigate('Pets', { screen: 'Vaccines' });
+          return;
+        case 'Meds':
+          navigation.navigate('Pets', { screen: 'Meds' });
+          return;
+        case 'Feeding':
+          navigation.navigate('Pets', { screen: 'Feeding' });
+          return;
+        case 'VetRecords':
+          navigation.navigate('Pets', { screen: 'VetRecords' });
+          return;
+        case 'Expenses':
+          navigation.navigate('Pets', { screen: 'Expenses' });
+          return;
+        case 'Journal':
+          navigation.navigate('Pets', { screen: 'Journal' });
+          return;
+        case 'CareInstructionsEditor':
+          navigation.navigate('Pets', {
+            screen: 'CareInstructionsEditor',
+            params: { petId },
+          });
+          return;
+      }
+    },
+    [activePet, navigation, selectPet],
+  );
+
+  /** Every "Fix Now →" on Home comes through here, so none of them is a dead tap. */
+  const handleFix = useCallback(
+    (fix: FixAction) => {
+      switch (fix.to) {
+        case 'petForm':
+          if (activePet?.id !== fix.petId) selectPet(fix.petId).catch(() => undefined);
+          navigation.navigate('PetForm', { petId: fix.petId });
+          return;
+        case 'petModule':
+          openPetModule(fix.petId, fix.module);
+          return;
+        case 'addRecord':
+          navigation.navigate('Records', { screen: 'AddRecord' });
+          return;
+      }
+    },
+    [activePet, navigation, openPetModule, selectPet],
+  );
+
   return (
     <View style={BS.screen}>
       <ScrollView contentContainerStyle={BS.pad}>
@@ -432,6 +624,107 @@ export default function TodayScreen(): React.JSX.Element {
                   {pets.length > 1
                     ? 'Each pet keeps their own day — swipe the crew to switch whose ring this is.'
                     : 'Every tick is saved on this device and resets when tomorrow starts.'}
+                </Text>
+
+                {/* ---- 1. Today's Tasks: meals + med doses, tickable ---- */}
+                <CCSectionTitle
+                  eyebrow="Your day"
+                  title="Today’s Tasks"
+                  emoji="✅"
+                  accent={COLOR.sunshine}
+                />
+                <HomeTasksCard
+                  tasks={tasks}
+                  petName={selectedPet.name}
+                  /* A task tick is a care check-in: the very same write the ring
+                     makes, so the two views stay consistent in both directions. */
+                  onToggle={(task) => handleToggle(task.checkIn)}
+                  onAddFeeding={() =>
+                    handleFix({ to: 'petModule', petId: selectedPet.id, module: 'Feeding' })
+                  }
+                  onAddMedication={() =>
+                    handleFix({ to: 'petModule', petId: selectedPet.id, module: 'Meds' })
+                  }
+                />
+
+                {/* ---- 2. Needs Attention: across the household, each fixable ---- */}
+                <CCSectionTitle
+                  eyebrow="Heads up"
+                  title="Needs Attention"
+                  emoji="🩺"
+                  accent={COLOR.coral}
+                />
+                <NeedsAttentionCard items={attention} onFix={handleFix} />
+
+                {/* ---- 3. Upcoming: the household's next real dates ---- */}
+                <CCSectionTitle
+                  eyebrow="Coming up"
+                  title="Upcoming"
+                  emoji="📅"
+                  accent={COLOR.lavender}
+                />
+                <UpcomingTimelineCard
+                  items={upcoming}
+                  onOpen={handleFix}
+                  onAddRecord={() => handleFix({ to: 'addRecord' })}
+                />
+
+                {/* ---- 4. Health Snapshot: the selected pet's records ---- */}
+                <CCSectionTitle
+                  eyebrow="Health"
+                  title="Health Snapshot"
+                  emoji="💚"
+                  accent={COLOR.aqua}
+                />
+                <HealthSnapshotCard pet={selectedPet} snapshot={health} onFix={handleFix} />
+
+                {/* ---- 5. Pet Spending: this month, from the expense store ---- */}
+                <CCSectionTitle
+                  eyebrow="Spending"
+                  title="Pet Spending"
+                  emoji="💸"
+                  accent={COLOR.tangerine}
+                />
+                <PetSpendingCard
+                  pet={selectedPet}
+                  monthLabel={monthName(now)}
+                  spend={spend}
+                  crew={crewSpend}
+                  monthTotal={monthTotal}
+                  onFix={handleFix}
+                />
+
+                {/* ---- 6. Their Story: the newest journal entries ---- */}
+                <CCSectionTitle
+                  eyebrow="Their story"
+                  title="Memories"
+                  emoji="📖"
+                  accent={COLOR.coral}
+                />
+                <MemoriesCard
+                  pet={selectedPet}
+                  entries={memories}
+                  timeZone={timeZone}
+                  onAdd={() =>
+                    handleFix({ to: 'petModule', petId: selectedPet.id, module: 'Journal' })
+                  }
+                  onSeeAll={() =>
+                    handleFix({ to: 'petModule', petId: selectedPet.id, module: 'Journal' })
+                  }
+                />
+
+                {/* ---- 7. Blueprint Completion: gentle per-pet progress ---- */}
+                <CCSectionTitle
+                  eyebrow="Progress"
+                  title="Blueprint Completion"
+                  emoji="🧭"
+                  accent={COLOR.sunshine}
+                />
+                <BlueprintCompletionCard progress={blueprints} onFix={handleFix} />
+                <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
+                  {pets.length > 1
+                    ? 'Progress is per pet — swipe the crew above to see each blueprint.'
+                    : 'Progress is a map of what’s in place, never a score.'}
                 </Text>
               </>
             ) : null}
