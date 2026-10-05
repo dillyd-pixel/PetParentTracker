@@ -40,8 +40,25 @@ export interface Pet extends BaseEntity {
   customSpecies?: string;
   breed?: string;
   birthdate?: string; // ISO date (YYYY-MM-DD)
+  /**
+   * The day this pet came home — the adoption anniversary (ISO date
+   * YYYY-MM-DD). Optional; used by the Command Center home timeline as a
+   * recurring milestone, exactly like `birthdate`. Absent means the pet simply
+   * contributes no adoption anniversary, never a guessed one.
+   */
+  adoptionDate?: string;
   weight?: number;
   weightUnit?: WeightUnit;
+  /**
+   * The calendar day (ISO YYYY-MM-DD) `weight` was last recorded, taken from
+   * the device's own clock when the owner saves the pet form with a weight.
+   *
+   * The weight field itself is the app's only weigh-in record — this is the
+   * date that makes it a real one, so the Health Snapshot can honestly say
+   * "last weigh-in" and Home can gently mention when it has been a while.
+   * Absent on pets saved before this field existed, and never invented.
+   */
+  weightUpdatedAt?: string;
   photoUri?: string; // local file URI copied into the app's own storage
 }
 

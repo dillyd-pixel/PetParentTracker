@@ -35,7 +35,7 @@ import { usePets } from '../context/PetContext';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { SPECIES_OPTIONS, WEIGHT_UNIT_OPTIONS } from '../types';
 import type { PetInput, Species, WeightUnit } from '../types';
-import { petEmojiFor } from '../utils/petDisplay';
+import { petEmojiFor, todayISO } from '../utils/petDisplay';
 import { BS, COLOR, SPACE } from '../theme';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -50,6 +50,7 @@ const emptyForm = (): PetInput => ({
   customSpecies: '',
   breed: '',
   birthdate: '',
+  adoptionDate: '',
   weight: undefined,
   weightUnit: 'kg',
   photoUri: undefined,
@@ -84,6 +85,7 @@ export default function PetFormScreen({ navigation, route }: Props) {
         customSpecies: editingPet.customSpecies ?? '',
         breed: editingPet.breed ?? '',
         birthdate: editingPet.birthdate ?? '',
+        adoptionDate: editingPet.adoptionDate ?? '',
         weight: editingPet.weight,
         weightUnit: editingPet.weightUnit ?? 'kg',
         photoUri: editingPet.photoUri,
@@ -135,10 +137,27 @@ export default function PetFormScreen({ navigation, route }: Props) {
       Alert.alert('Name required', 'Please give your pet a name.');
       return;
     }
+    const weight =
+      typeof form.weight === 'number' && form.weight > 0 ? form.weight : undefined;
+    /*
+      The weigh-in date is real data, not decoration: it is the day the current
+      weight was recorded. A changed (or newly entered) weight stamps today; an
+      untouched weight keeps the date it already had, so the Health Snapshot
+      never claims a fresher weigh-in than the owner actually did.
+    */
+    const weightChanged = weight !== editingPet?.weight;
+    const weightUpdatedAt =
+      weight === undefined
+        ? undefined
+        : weightChanged || !editingPet?.weightUpdatedAt
+          ? todayISO()
+          : editingPet.weightUpdatedAt;
     const input: PetInput = {
       ...form,
       name: form.name.trim(),
-      weight: typeof form.weight === 'number' && form.weight > 0 ? form.weight : undefined,
+      weight,
+      weightUpdatedAt,
+      adoptionDate: form.adoptionDate?.trim() || undefined,
       // Only an 'Other' pet carries a custom species; anything typed while
       // another species is selected is dropped rather than stored as dead data.
       customSpecies: form.species === 'Other' ? tidyCustomSpecies(form.customSpecies) : undefined,
@@ -292,6 +311,27 @@ export default function PetFormScreen({ navigation, route }: Props) {
             placeholderTextColor={COLOR.textFaint}
             keyboardType="numbers-and-punctuation"
           />
+        </View>
+
+        {/*
+          The adoption anniversary. Optional, and only ever a date the owner
+          typed — Home's timeline celebrates it once a year and says nothing at
+          all when it is blank.
+        */}
+        <View style={BS.field}>
+          <Text style={BS.fieldLabel}>Adoption day (optional, YYYY-MM-DD)</Text>
+          <TextInput
+            style={BS.input}
+            value={form.adoptionDate ?? ''}
+            onChangeText={(v) => set('adoptionDate', v)}
+            placeholder="e.g. 2023-06-01"
+            placeholderTextColor={COLOR.textFaint}
+            keyboardType="numbers-and-punctuation"
+            accessibilityLabel="Adoption day"
+          />
+          <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
+            The day they came home — Home remembers it every year.
+          </Text>
         </View>
 
         <Text style={[BS.fieldLabel, { marginBottom: SPACE.s2 }]}>Weight (optional)</Text>
