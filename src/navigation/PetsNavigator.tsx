@@ -8,6 +8,9 @@
  *   Vaccines, Meds, Feeding, VetRecords, Expenses, Journal — the existing
  *                module screens, restyled to the design, all reachable from the
  *                pet page (each reads the active pet from PetContext).
+ *   CareInstructions / CareInstructionsEditor — Sitter Mode stage 2: the pet's
+ *                permanent care notes, read view then editor. Reached from the
+ *                pet page and from Sitter Mode home (which passes a `petId`).
  *
  * Every screen in this stack draws the design's own in-page header — an `h1`
  * plus a `‹ back` link — so the navigator header stays hidden throughout:
@@ -21,6 +24,8 @@ import React from 'react';
 import { createWebSafeStackNavigator } from './WebSafeStack';
 import PetListScreen from '../screens/PetListScreen';
 import PetProfileScreen from '../screens/PetProfileScreen';
+import CareInstructionsScreen from '../screens/CareInstructionsScreen';
+import CareInstructionsEditorScreen from '../screens/CareInstructionsEditorScreen';
 import {
   VaccinesScreen,
   MedsScreen,
@@ -39,6 +44,10 @@ export type PetsStackParamList = {
   VetRecords: undefined;
   Expenses: undefined;
   Journal: undefined;
+  /** One pet's care instructions (read view); defaults to the active pet. */
+  CareInstructions: { petId?: string } | undefined;
+  /** The same pet's care instructions editor. */
+  CareInstructionsEditor: { petId?: string } | undefined;
 };
 
 const Stack = createWebSafeStackNavigator<PetsStackParamList>();
@@ -54,6 +63,8 @@ export function PetsNavigator(): React.JSX.Element {
       <Stack.Screen name="VetRecords" component={VetRecordsScreen} />
       <Stack.Screen name="Expenses" component={ExpensesScreen} />
       <Stack.Screen name="Journal" component={JournalScreen} />
+      <Stack.Screen name="CareInstructions" component={CareInstructionsScreen} />
+      <Stack.Screen name="CareInstructionsEditor" component={CareInstructionsEditorScreen} />
     </Stack.Navigator>
   );
 }

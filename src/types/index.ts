@@ -6,11 +6,13 @@
  * expenses, journal, upsell products) extend `BaseEntity` and add their own
  * `CollectionStore<T>`.
  *
- * Sitter Mode's model lives in its own file (`./carePass`) and is re-exported
+ * Sitter Mode's models live in their own files (`./carePass` for the pass
+ * itself, `./careInstructions` for the per-pet care notes) and are re-exported
  * below, so screens and the storage layer keep importing everything from
  * `../types` — one import path, whatever the module.
  */
 export * from './carePass';
+export * from './careInstructions';
 
 /** Common fields for every persisted entity. */
 export interface BaseEntity {
