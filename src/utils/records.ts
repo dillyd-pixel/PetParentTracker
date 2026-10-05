@@ -1,16 +1,24 @@
 /**
  * Records helpers shared by the Records tab.
  *
- * A record's "kind" (Invoice / Lab / Imaging / Vaccine / Receipt) is one of the
- * design's capture-time tags. The app's `VetRecord` entity keeps its free-form
- * `notes`, so the tag is stored as a leading `Category: <tag>` line: lossless,
- * readable on the pet's own Vet records screen, and no schema change in
- * Phase 1 (a first-class field can come with the Phase 2 data pass).
+ * A record's "kind" (Invoice / Lab / Imaging / Vaccine / Receipt / Document) is
+ * one of the design's capture-time tags. The app's `VetRecord` entity keeps its
+ * free-form `notes`, so the tag is stored as a leading `Category: <tag>` line:
+ * lossless, readable on the pet's own Vet records screen, and no schema change
+ * in Phase 1 (the `kind` field added in Phase C says whether a record is a
+ * visit, an appointment or a filed document; the tag says what the paperwork is).
  */
 import type { VetRecordInput } from '../types';
 
 /** The design's capture-time categories. */
-export const RECORD_CATEGORIES = ['Invoice', 'Lab', 'Imaging', 'Vaccine', 'Receipt'] as const;
+export const RECORD_CATEGORIES = [
+  'Invoice',
+  'Lab',
+  'Imaging',
+  'Vaccine',
+  'Receipt',
+  'Document',
+] as const;
 
 export type RecordCategory = (typeof RECORD_CATEGORIES)[number];
 
