@@ -63,6 +63,7 @@ import { CareInstructionsProvider } from '../context/CareInstructionsContext';
 import { VaccinesProvider } from '../context/VaccinesContext';
 import { MedicationsProvider } from '../context/MedicationsContext';
 import { FeedingProvider } from '../context/FeedingContext';
+import { CheckInsProvider } from '../context/CheckInsContext';
 import { VetProvider } from '../context/VetContext';
 import { ExpensesProvider } from '../context/ExpensesContext';
 import { JournalProvider } from '../context/JournalContext';
@@ -190,9 +191,10 @@ export default function RootNavigator(): React.JSX.Element {
               <VaccinesProvider>
                 <MedicationsProvider>
                   <FeedingProvider>
-                    <VetProvider>
-                      <ExpensesProvider>
-                        <JournalProvider>
+                    <CheckInsProvider>
+                      <VetProvider>
+                        <ExpensesProvider>
+                          <JournalProvider>
                           <NavigationContainer theme={navTheme}>
                             <StatusBar style="auto" />
                             <Stack.Navigator>
@@ -229,6 +231,7 @@ export default function RootNavigator(): React.JSX.Element {
                         </JournalProvider>
                       </ExpensesProvider>
                     </VetProvider>
+                    </CheckInsProvider>
                   </FeedingProvider>
                 </MedicationsProvider>
               </VaccinesProvider>

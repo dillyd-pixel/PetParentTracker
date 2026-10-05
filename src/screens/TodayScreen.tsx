@@ -1,95 +1,101 @@
 /**
- * Today — the first tab of the design's IA.
+ * Home — the Pet Parent Command Center dashboard (design Phase B1: the top half).
  *
- * The Blueprint at a glance, on paper:
- *  - The home title: the household's own name for the blueprint, editable in
- *    place (tap it to rename — stored on-device, see storage/homeTitle).
- *  - A gear in the header's top-right corner that opens Settings — the same
- *    screen the Shop tab's "Settings" row opens, so the way in is visible from
- *    the first screen instead of buried in a tab.
- *  - The live date and a clock that ticks every minute, rendered in the display
- *    time zone chosen in Settings (Shop → Settings → Date & time) — the device's
- *    own zone by default. Pure `Date()` + `Intl`, offline.
- *  - Today: every pet's active medications and daily meals, tickable (the tick
- *    is kept on-device for today only — see storage/todayCheckoff).
- *  - Upcoming: dated one-off events — vaccines due, vet appointments, and
- *    medication courses starting or ending — grouped by relative date
- *    (see utils/upcoming).
- *  - Pets: the pets list, each row opening that pet's page in the Pets tab and
- *    showing the pet's photo (or its species emoji when there is none).
- *  - The current month's spend snapshot across every pet, by category.
- *  - The Blueprint Premium card for anyone not yet premium.
+ * What this screen is responsible for, and nothing more:
  *
- * 100% offline: reads the existing contexts (which read AsyncStorage) and
- * navigates; no network, no analytics.
+ *  - **Header.** The household's own name for the blueprint (still editable in
+ *    place — tap to rename, saved on-device), the Search link and the Settings
+ *    gear, exactly as before, on the Warm Ivory canvas of the new visual system.
+ *  - **Greeting.** Time-of-day aware ("Good morning 👋"), the "here's what's
+ *    happening with your crew today" line, and the live date + clock that tick
+ *    every 30 seconds in the display time zone chosen in Settings.
+ *  - **The accent band.** The greeting sits on a card whose gradient tints
+ *    toward the selected pet's own colour; swiping the crew below crossfades it
+ *    (two stacked gradients + one animated opacity — no jarring colour jump).
+ *  - **Pet Crew.** The carousel of pets (photo or species emoji, name, age,
+ *    status) with a trailing "Add my pet" tile. Tapping a card opens that pet's
+ *    page through the same Pets → PetProfile route the app has always used;
+ *    swiping settles on a pet and makes it the active one, so the care ring and
+ *    the rest of the app agree on who "this pet" is.
+ *  - **Daily Care Ring.** Five one-tap checkoffs for the selected pet, each
+ *    writing a real, persisted check-in event (types/checkIn, storage/checkIns,
+ *    context/CheckInsContext). A checkoff pops a paw print and earns one of a
+ *    rotating set of playful lines; an unticked tile is simply neutral.
+ *  - **Empty state.** With no pets at all: the illustrated "Who runs your
+ *    house?" prompt with one strong "+ Add My Pet" action.
+ *
+ * Deliberately NOT here (Phase B2): Today's Tasks, Needs Attention, the Upcoming
+ * timeline, the Health Snapshot and Spending cards, Memories and the Blueprint
+ * Completion meter. The premium card and the module lists that used to live on
+ * this screen are still reachable — Shop → Premium from the More tab, and every
+ * pet's modules from their page in Pets.
+ *
+ * 100% offline: every value read here comes from an AsyncStorage-backed context;
+ * nothing is fetched, nothing is inferred from a schedule, and no demo data is
+ * ever seeded (a fresh install shows the empty state).
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Animated,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { usePets } from '../context/PetContext';
 import { useAccount } from '../context/AccountContext';
-import { usePremium } from '../context/PremiumContext';
-import { useMedications } from '../context/MedicationsContext';
+import { useCheckIns } from '../context/CheckInsContext';
 import { useFeeding } from '../context/FeedingContext';
-import { useExpenses } from '../context/ExpensesContext';
+import { useMedications } from '../context/MedicationsContext';
 import { useVaccines } from '../context/VaccinesContext';
-import { useVetRecords } from '../context/VetContext';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
-import { loadTodayDone, toggleTodayDone } from '../storage/todayCheckoff';
+import { CCCard, CCEmptyState, CCSectionTitle } from '../components/CC';
+import PetCrewCarousel from '../components/PetCrewCarousel';
+import type { PetCrewEntry } from '../components/PetCrewCarousel';
+import DailyCareRing from '../components/DailyCareRing';
 import { DEFAULT_HOME_TITLE, loadHomeTitle, saveHomeTitle } from '../storage/homeTitle';
-import { petEmojiFor, petMetaLine } from '../utils/petDisplay';
-import { buildUpcoming } from '../utils/upcoming';
-import type { UpcomingItem } from '../utils/upcoming';
+import { petAgeLabel, petSpeciesLabel } from '../utils/petDisplay';
+import { DEFAULT_ACCENT, hexWithAlpha, petAccent } from '../utils/petAccent';
+import { CARE_CHECK_IN_TYPES, CARE_ENCOURAGEMENTS, isEveryDay } from '../types';
+import type { CareCheckInType, Medication, Pet, Vaccine } from '../types';
 import {
   AUTO_TIME_ZONE,
   formatClock,
+  formatInTimeZone,
   formatWeekdayDate,
   timeZoneLabel,
   todayISOInTimeZone,
 } from '../utils/datetime';
-import { BS, COLOR, SPACE } from '../theme';
-
-/** One tickable line in the Today list. */
-interface TodayTask {
-  id: string;
-  name: string;
-  meta: string;
-  time: string;
-}
+import { BS, COLOR, RADIUS, SPACE } from '../theme';
 
 export default function TodayScreen(): React.JSX.Element {
   const navigation = useTabRootNavigation();
   const { pets, activePet, selectPet } = usePets();
   /** The owner's chosen display time zone (Settings → Date & time). */
   const { timeZone } = useAccount();
-  const premium = usePremium();
+  const { doneTypesFor, toggleCheckIn } = useCheckIns();
+  const { vaccines } = useVaccines();
   const { medications } = useMedications();
   const { feedingSchedules } = useFeeding();
-  const { expenses } = useExpenses();
-  const { vaccines } = useVaccines();
-  const { vetRecords } = useVetRecords();
 
-  const [done, setDone] = useState<string[]>([]);
   const [homeTitle, setHomeTitle] = useState(DEFAULT_HOME_TITLE);
   const [titleDraft, setTitleDraft] = useState(DEFAULT_HOME_TITLE);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleSaved, setTitleSaved] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /**
-   * The live "now" behind the header's date + clock. Ticked every 30 seconds
-   * (so the minute never lags by more than half a minute) — a couple of state
-   * updates a minute on an otherwise cheap screen. Pure `Date()`, no network.
-   */
+  /** The live "now" behind the greeting, date and clock (ticked below). */
   const [now, setNow] = useState<Date>(() => new Date());
+  /** The playful line the last checkoff earned; rotates one per checkoff. */
+  const [message, setMessage] = useState<string | null>(null);
+  const messageIndex = useRef(0);
 
+  // The home title + the check-in log live on the device; load them once.
   useEffect(() => {
     let cancelled = false;
-    loadTodayDone()
-      .then((ids) => {
-        if (!cancelled) setDone(ids);
-      })
-      .catch(() => undefined);
     loadHomeTitle()
       .then((title) => {
         if (cancelled) return;
@@ -110,8 +116,9 @@ export default function TodayScreen(): React.JSX.Element {
     [],
   );
 
-  // Keep the header's date + clock current: re-render every 30 seconds, and
-  // stop the interval when the screen unmounts (or on Fast Refresh).
+  // Keep the greeting, date and clock current: re-render every 30 seconds, and
+  // stop the interval when the screen unmounts (or on Fast Refresh). The check
+  // points move over midnight with it, so "today's care" resets by itself.
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(tick);
@@ -139,94 +146,135 @@ export default function TodayScreen(): React.JSX.Element {
     savedTimer.current = setTimeout(() => setTitleSaved(false), 2500);
   };
 
-  const petName = useCallback(
-    (petId: string) => pets.find((pet) => pet.id === petId)?.name ?? 'Pet',
-    [pets],
+  /** The pet the ring is about: the active one, or the first pet on file. */
+  const selectedPet = activePet ?? pets[0] ?? null;
+  const crewAccent = selectedPet ? petAccent(selectedPet.id) : DEFAULT_ACCENT;
+  const accentFill = crewAccent.fill;
+  /** Today as the chosen display zone sees it — the ring's "done" key. */
+  const todayKey = todayISOInTimeZone(now, timeZone);
+
+  const doneTypes = useMemo(
+    () => (selectedPet ? doneTypesFor(selectedPet.id, todayKey, timeZone) : []),
+    [selectedPet, doneTypesFor, todayKey, timeZone],
   );
 
-  /** Meds and meals for every pet — the day's list, earliest first. */
-  const tasks = useMemo<TodayTask[]>(() => {
-    const rows: TodayTask[] = [];
-    medications
-      .filter((medication) => medication.active)
-      .forEach((medication) => {
-        rows.push({
-          id: `med:${medication.id}`,
-          name: medication.name,
-          meta: `${petName(medication.petId)} · ${medication.dosage}`,
-          time: medication.times[0] ?? '—',
-        });
-      });
-    feedingSchedules.forEach((schedule) => {
-      rows.push({
-        id: `feed:${schedule.id}`,
-        name: schedule.mealType,
-        meta: `${petName(schedule.petId)} · ${portionLabel(schedule)}`,
-        time: schedule.time,
-      });
-    });
-    return rows.sort((a, b) => a.time.localeCompare(b.time));
-  }, [medications, feedingSchedules, petName]);
+  /*
+    The gentle accent shift. Two gradient layers: the base keeps the colour we
+    are moving away from, the top one holds the new pet's colour and fades in
+    over ~380ms. Nothing is re-laid-out and no colour is interpolated by hand,
+    so the band never flashes or jumps.
+  */
+  const accentRef = useRef(accentFill);
+  const [bandBase, setBandBase] = useState(accentFill);
+  const bandFade = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (accentRef.current === accentFill) return;
+    setBandBase(accentRef.current);
+    accentRef.current = accentFill;
+    bandFade.setValue(0);
+    Animated.timing(bandFade, {
+      toValue: 1,
+      duration: 380,
+      useNativeDriver: true,
+    }).start();
+  }, [accentFill, bandFade]);
+
+  // A cheer belongs to the pet it was earned for — drop it when the pet changes.
+  useEffect(() => {
+    setMessage(null);
+  }, [selectedPet?.id]);
+
+  /** Swiping the crew settles on a pet: it becomes the active pet everywhere. */
+  const handleSelectPet = useCallback(
+    (petId: string) => {
+      selectPet(petId).catch(() => undefined);
+    },
+    [selectPet],
+  );
+
+  /** Open a pet's page — the same route the Pets tab uses. */
+  const openPet = useCallback(
+    async (petId: string) => {
+      if (activePet?.id !== petId) {
+        try {
+          await selectPet(petId);
+        } catch {
+          // Best effort — the page still opens on whatever pet is active.
+        }
+      }
+      navigation.navigate('Pets', { screen: 'PetProfile', params: { petId } });
+    },
+    [activePet, navigation, selectPet],
+  );
 
   /**
-   * Dated one-off events from every module, grouped by relative date. Rebuilt
-   * when a record changes and whenever `now` ticks, so "in 3 days" stays true
-   * across midnight. "Today" is the day the chosen display zone is on, so the
-   * group labels agree with the clock above them. Small lists, so this stays
-   * cheap.
+   * The crew cards. The status line is always a fact the app actually holds —
+   * today's check-ins, then a vaccine's due date, then an active medication, and
+   * failing all of those the pet's own breed or species. It never guesses at a
+   * health verdict and never scolds.
    */
-  const upcoming = useMemo(
+  const crew = useMemo<PetCrewEntry[]>(
     () =>
-      buildUpcoming({
-        vaccines,
-        vetRecords,
-        medications,
-        petName,
-        today: todayISOInTimeZone(now, timeZone),
-      }),
-    [vaccines, vetRecords, medications, petName, now, timeZone],
+      pets.map((pet) => ({
+        pet,
+        accent: petAccent(pet.id),
+        age: petAgeLabel(pet),
+        status: petStatus(pet, {
+          doneToday: doneTypesFor(pet.id, todayKey, timeZone),
+          vaccines,
+          medications,
+          todayKey,
+        }),
+      })),
+    [pets, doneTypesFor, todayKey, timeZone, vaccines, medications],
   );
 
-  const totalSpend = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const spendByCategory = useMemo(() => {
-    const totals = new Map<string, number>();
-    expenses.forEach((expense) => {
-      totals.set(expense.category, (totals.get(expense.category) ?? 0) + expense.amount);
-    });
-    return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
-  }, [expenses]);
+  /**
+   * Schedule notes for the ring's tiles: information only. A tile completes when
+   * a check-in says it happened — never because a schedule says it should have.
+   */
+  const hints = useMemo<Partial<Record<CareCheckInType, string>> | undefined>(() => {
+    if (!selectedPet) return undefined;
+    const out: Partial<Record<CareCheckInType, string>> = {};
+    const weekday = now.getDay();
+    const feedTimes = feedingSchedules
+      .filter(
+        (schedule) =>
+          schedule.petId === selectedPet.id &&
+          (isEveryDay(schedule.daysOfWeek) || schedule.daysOfWeek.includes(weekday)),
+      )
+      .map((schedule) => schedule.time)
+      .sort();
+    if (feedTimes.length > 0) out.food = `due ${feedTimes[0]}`;
+    const medTimes = medications
+      .filter((medication) => medication.petId === selectedPet.id && medication.active)
+      .flatMap((medication) => medication.times)
+      .sort();
+    if (medTimes.length > 0) out.medication = `due ${medTimes[0]}`;
+    return out;
+  }, [selectedPet, feedingSchedules, medications, now]);
 
-  const toggle = async (id: string) => {
-    setDone(await toggleTodayDone(id));
-  };
-
-  const openPet = async (petId: string) => {
-    if (activePet?.id !== petId) {
-      try {
-        await selectPet(petId);
-      } catch {
-        // Best effort — the page still opens on whatever pet is active.
+  /** One tap: record (or undo) today's check-in, then cheer on a fresh tick. */
+  const handleToggle = useCallback(
+    async (type: CareCheckInType) => {
+      if (!selectedPet) return;
+      const wasDone = doneTypes.includes(type);
+      const result = await toggleCheckIn(selectedPet.id, type, todayKey, timeZone);
+      if (result === 'removed' || wasDone) {
+        setMessage(null);
+        return;
       }
-    }
-    navigation.navigate('Pets', { screen: 'PetProfile', params: { petId } });
-  };
-
-  /** Open the module screen an Upcoming row belongs to, on that pet. */
-  const openUpcoming = async (item: UpcomingItem) => {
-    if (activePet?.id !== item.petId) {
-      try {
-        await selectPet(item.petId);
-      } catch {
-        // Best effort — the module screen still opens on the active pet.
-      }
-    }
-    navigation.navigate('Pets', { screen: item.screen });
-  };
+      const line = CARE_ENCOURAGEMENTS[messageIndex.current % CARE_ENCOURAGEMENTS.length];
+      messageIndex.current += 1;
+      setMessage(line);
+    },
+    [doneTypes, selectedPet, todayKey, timeZone, toggleCheckIn],
+  );
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
+        {/* ---- header: the household's name for its blueprint ---- */}
         <Text style={BS.eyebrow}>Pet parent command center</Text>
         <View style={BS.rowBetween}>
           {editingTitle ? (
@@ -254,20 +302,19 @@ export default function TodayScreen(): React.JSX.Element {
               <Text style={BS.homeTitlePencil}>✎</Text>
             </TouchableOpacity>
           )}
-          {/*
-            Right-hand group: the Search link, then the Settings gear at the
-            far right. Both are quiet Broadsheet text glyphs — no icon library,
-            no new dependency, nothing to load offline.
-          */}
           <View style={styles.headerRight}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('More', { screen: 'Shop', params: { screen: 'Search' } })}
+              onPress={() =>
+                navigation.navigate('More', { screen: 'Shop', params: { screen: 'Search' } })
+              }
               accessibilityLabel="Search every record"
             >
               <Text style={BS.link}>Search ›</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => navigation.navigate('More', { screen: 'Shop', params: { screen: 'Settings' } })}
+              onPress={() =>
+                navigation.navigate('More', { screen: 'Shop', params: { screen: 'Settings' } })
+              }
               accessibilityRole="button"
               accessibilityLabel="Settings"
               testID="today-settings-gear"
@@ -282,202 +329,180 @@ export default function TodayScreen(): React.JSX.Element {
             {DEFAULT_HOME_TITLE}”.
           </Text>
         ) : (
-          titleSaved && (
-            <Text style={[BS.caption, { marginTop: -SPACE.s1 }]}>Saved</Text>
-          )
+          titleSaved && <Text style={[BS.caption, { marginTop: -SPACE.s1 }]}>Saved</Text>
         )}
 
-        {/*
-          Live date + clock — rendered in the display zone chosen in Settings
-          (the device's own by default), refreshed every 30 seconds. Pure
-          `Date()` + Intl, offline.
-        */}
-        <View style={styles.liveRow}>
-          <Text style={BS.kicker}>{formatWeekdayDate(now, timeZone)}</Text>
-          <Text style={[BS.kicker, styles.clock]}>{formatClock(now, timeZone)}</Text>
-        </View>
-        <Text style={[BS.caption, styles.liveNote]}>
-          {timeZone === AUTO_TIME_ZONE
-            ? 'Your time, on this device — updates every minute.'
-            : `Shown in ${timeZoneLabel(timeZone)} — updates every minute. Change this in Shop → Settings.`}
-        </Text>
+        {/* ---- greeting band, tinted by the selected pet's accent ---- */}
+        <CCCard
+          glowTint={accentFill}
+          radius={RADIUS.cardLg}
+          padding={0}
+          style={styles.band}
+          testID="home-greeting"
+        >
+          <View style={styles.bandLayer}>
+            <LinearGradient
+              colors={bandColors(bandBase)}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.7, y: 1 }}
+              style={styles.fill}
+            />
+          </View>
+          <Animated.View style={[styles.bandLayer, { opacity: bandFade }]}>
+            <LinearGradient
+              colors={bandColors(accentFill)}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.7, y: 1 }}
+              style={styles.fill}
+            />
+          </Animated.View>
+          <View style={styles.bandContent}>
+            <Text style={styles.greeting}>{greetingFor(now, timeZone)}</Text>
+            <Text style={styles.greetingSub}>
+              Here’s what’s happening with your crew today.
+            </Text>
+            {/*
+              Live date + clock, rendered in the display zone chosen in Settings
+              (the device's own by default) and refreshed every 30 seconds.
+              Pure `Date()` + Intl, offline.
+            */}
+            <View style={styles.liveRow}>
+              <Text style={BS.kicker}>{formatWeekdayDate(now, timeZone)}</Text>
+              <Text style={[BS.kicker, styles.clock]}>{formatClock(now, timeZone)}</Text>
+            </View>
+            <Text style={[BS.caption, styles.liveNote]}>
+              {timeZone === AUTO_TIME_ZONE
+                ? 'Your time, on this device — updates every minute.'
+                : `Shown in ${timeZoneLabel(timeZone)} — updates every minute. Change this in Shop → Settings.`}
+            </Text>
+          </View>
+        </CCCard>
 
-        <Text style={[BS.fieldLabel, { marginTop: SPACE.s2 }]}>Today</Text>
-        {tasks.length === 0 ? (
-          <Text style={BS.italic}>Nothing scheduled yet.</Text>
-        ) : (
-          tasks.map((task) => {
-            const checked = done.includes(task.id);
-            return (
-              <TouchableOpacity
-                key={task.id}
-                style={BS.divRowBetween}
-                onPress={() => toggle(task.id)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={[BS.rowLabel, checked && BS.strike]}>{task.name}</Text>
-                  <Text style={BS.caption}>{task.meta}</Text>
-                </View>
-                <Text style={BS.caption}>{task.time}</Text>
-              </TouchableOpacity>
-            );
-          })
-        )}
-        <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
-          Tap a line to tick it off — the list resets tomorrow.
-        </Text>
-
-        <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Upcoming</Text>
-        {upcoming.groups.length === 0 ? (
-          <Text style={BS.italic}>
-            Nothing upcoming — vaccine due dates, vet visits and medication
-            courses that end show up here.
-          </Text>
+        {pets.length === 0 ? (
+          /* ---- no pets yet: the illustrated first-run prompt ---- */
+          <CCEmptyState
+            emoji="🐾"
+            title="Who runs your house?"
+            message="Add your first pet and their whole care life lands here — meals, meds, vet days, and the little things worth remembering."
+            actionLabel="+ Add My Pet"
+            onAction={() => navigation.navigate('PetForm')}
+            style={{ marginTop: SPACE.s4 }}
+            testID="home-empty-crew"
+          />
         ) : (
           <>
-            {upcoming.groups.map((group) => (
-              <View key={group.date}>
-                <Text style={[BS.kicker, styles.upcomingDate]}>{group.label}</Text>
-                {group.items.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={BS.divRowBetween}
-                    onPress={() => openUpcoming(item)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${item.petName} — ${item.descriptor}, ${group.label}`}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={BS.rowLabel}>{item.petName}</Text>
-                      <Text style={BS.caption}>{item.descriptor}</Text>
-                    </View>
-                    <Text style={BS.link}>›</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ))}
-            {upcoming.hiddenCount > 0 && (
-              <Text style={[BS.caption, { marginTop: SPACE.s1 }]}>
-                … and {upcoming.hiddenCount} more
-              </Text>
-            )}
-            <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
-              Tap a dated line to open that record.
-            </Text>
-          </>
-        )}
+            <CCSectionTitle
+              eyebrow="Your crew"
+              title="Pet Crew"
+              emoji="🐾"
+              right={
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Pets')}
+                  accessibilityLabel="See every pet"
+                >
+                  <Text style={BS.link}>All pets ›</Text>
+                </TouchableOpacity>
+              }
+            />
+            <PetCrewCarousel
+              entries={crew}
+              selectedPetId={selectedPet?.id ?? null}
+              onSelectPet={handleSelectPet}
+              onOpenPet={openPet}
+              onAddPet={() => navigation.navigate('PetForm')}
+            />
 
-        <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Pets</Text>
-        {pets.length === 0 ? (
-          <Text style={BS.italic}>No pets yet — add the first one below.</Text>
-        ) : (
-          pets.map((pet) => (
-            <TouchableOpacity key={pet.id} style={BS.divRowBetween} onPress={() => openPet(pet.id)}>
-              {pet.photoUri ? (
-                <Image
-                  source={{ uri: pet.photoUri }}
-                  style={[BS.avatar, { marginRight: SPACE.s2 }]}
-                  resizeMode="cover"
-                  accessibilityLabel={`${pet.name}'s photo`}
+            {selectedPet ? (
+              <>
+                <CCSectionTitle
+                  eyebrow="Care ring"
+                  title="Today’s care"
+                  emoji="🩺"
+                  accent={accentFill}
                 />
-              ) : (
-                <Text style={[BS.avatarEmoji, { marginRight: SPACE.s2 }]}>
-                  {petEmojiFor(pet)}
+                <DailyCareRing
+                  pet={selectedPet}
+                  accent={crewAccent}
+                  doneTypes={doneTypes}
+                  onToggle={handleToggle}
+                  hints={hints}
+                  message={message}
+                />
+                <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
+                  {pets.length > 1
+                    ? 'Each pet keeps their own day — swipe the crew to switch whose ring this is.'
+                    : 'Every tick is saved on this device and resets when tomorrow starts.'}
                 </Text>
-              )}
-              <View style={{ flex: 1 }}>
-                <Text style={BS.rowLabel}>
-                  {pet.name}
-                  {activePet?.id === pet.id ? '  ·  active' : ''}
-                </Text>
-                <Text style={BS.caption}>{petMetaLine(pet)}</Text>
-              </View>
-              <Text style={BS.link}>›</Text>
-            </TouchableOpacity>
-          ))
-        )}
-        <TouchableOpacity
-          style={[BS.btnSecondary, { marginTop: SPACE.s3 }]}
-          onPress={() => navigation.navigate('PetForm')}
-        >
-          <Text style={BS.btnSecondaryText}>＋ Add a pet</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[BS.divRowBetween, { marginTop: SPACE.s4 }]}
-          onPress={() => navigation.navigate('Pets', { screen: 'Expenses' })}
-        >
-          <View>
-            <Text style={BS.fieldLabel}>{monthName()} spend</Text>
-            <Text style={BS.h1}>{formatMoney(totalSpend)}</Text>
-          </View>
-          <Text style={BS.link}>Expenses ›</Text>
-        </TouchableOpacity>
-        {spendByCategory.length > 0 && (
-          <Text style={BS.caption}>
-            {spendByCategory
-              .map(([category, amount]) => `${category} ${formatMoney(amount)}`)
-              .join(' · ')}
-          </Text>
-        )}
-
-        {!premium.isPremium() && (
-          <View style={BS.card}>
-            <Text style={BS.cardKicker}>Blueprint Premium</Text>
-            <Text style={BS.cardTitleLg}>
-              Reminders that actually go off, a shared file, and history that never expires.
-            </Text>
-            <Text style={BS.caption}>
-              One-time unlock with a 14-day free trial. Tracking stays free forever.
-            </Text>
-            <TouchableOpacity
-              style={BS.btnPrimary}
-              onPress={() => navigation.navigate('More', { screen: 'Shop', params: { screen: 'Premium' } })}
-            >
-              <Text style={BS.btnPrimaryText}>See what’s included</Text>
-            </TouchableOpacity>
-          </View>
+              </>
+            ) : null}
+          </>
         )}
       </ScrollView>
     </View>
   );
 }
 
-/** The portion part of a feeding row, e.g. "1 cups · no toppers". */
-function portionLabel(schedule: {
-  portionAmount: number;
-  portionUnit: string;
-  notes?: string;
-}): string {
-  const notes = schedule.notes ? ` · ${schedule.notes}` : '';
-  return `${schedule.portionAmount} ${schedule.portionUnit}${notes}`;
+/* ------------------------------------------------------------- helpers -- */
+
+/**
+ * The greeting for the current time in the owner's display zone: morning before
+ * noon, afternoon before 18:00, evening after. Falls back to the device's own
+ * clock if the runtime cannot render the hour.
+ */
+function greetingFor(date: Date, zone?: string): string {
+  let hour = date.getHours();
+  const rendered = formatInTimeZone(date, zone, { hour: 'numeric', hourCycle: 'h23' });
+  const parsed = Number.parseInt(rendered.replace(/\D/g, ''), 10);
+  if (Number.isFinite(parsed)) hour = parsed;
+  if (hour < 12) return 'Good morning 👋';
+  if (hour < 18) return 'Good afternoon 👋';
+  return 'Good evening 👋';
 }
 
-/** The current month, e.g. "September". */
-function monthName(): string {
-  return new Date().toLocaleDateString(undefined, { month: 'long' });
+/** The greeting band's gradient: the accent tint fading out over the white card. */
+function bandColors(fill: string): [string, string] {
+  return [hexWithAlpha(fill, 0.34), hexWithAlpha(fill, 0.05)];
 }
 
-/** Plain amount — the app never assumes a currency. */
-function formatMoney(amount: number): string {
-  return Number.isFinite(amount) ? amount.toFixed(2) : '0';
+/**
+ * One pet's crew status line — a label derived only from records that exist:
+ * today's check-ins, an overdue vaccine, an active medication, a vaccine still
+ * in date; otherwise the pet's own breed (or species), which is what a brand-new
+ * pet honestly has to show.
+ */
+function petStatus(
+  pet: Pet,
+  input: {
+    doneToday: CareCheckInType[];
+    vaccines: Vaccine[];
+    medications: Medication[];
+    todayKey: string;
+  },
+): { label: string } {
+  if (input.doneToday.length >= CARE_CHECK_IN_TYPES.length) {
+    return { label: 'All care done today' };
+  }
+  const own = input.vaccines.filter((vaccine) => vaccine.petId === pet.id);
+  if (own.some((vaccine) => vaccine.dueDate && vaccine.dueDate < input.todayKey)) {
+    return { label: 'Vaccine due' };
+  }
+  if (input.medications.some((medication) => medication.petId === pet.id && medication.active)) {
+    return { label: 'On medication' };
+  }
+  if (own.some((vaccine) => vaccine.dueDate && vaccine.dueDate >= input.todayKey)) {
+    return { label: 'Vaccines up to date' };
+  }
+  const breed = pet.breed?.trim();
+  return { label: breed && breed.length > 0 ? breed : petSpeciesLabel(pet) };
 }
 
 const styles = StyleSheet.create({
-  /**
-   * The Today header's right-hand group — the Search link and the Settings
-   * gear. Sits on the same text baseline as the home title, like the Search
-   * link did on its own before the gear was added.
-   */
+  /** The header's right-hand group: the Search link and the Settings gear. */
   headerRight: { flexDirection: 'row', alignItems: 'baseline', gap: SPACE.s2 },
   /**
-   * The Settings gear (Today → top right → Shop → Settings). A Broadsheet text
-   * glyph in the link colour, not an icon font: nothing extra to bundle and it
-   * stays offline. `minWidth`/`minHeight` give it a comfortable ~40px tap
-   * target — the glyph on its own would be far too small to hit reliably. The
-   * padding (none on top, some below) keeps the glyph itself sitting on the
-   * header's text baseline, next to "Search ›".
+   * The Settings gear. A text glyph in the link colour, not an icon font:
+   * nothing extra to bundle and it stays offline. `minWidth`/`minHeight` give it
+   * a comfortable ~40px tap target — the glyph alone would be far too small.
    */
   gear: {
     fontSize: 20,
@@ -489,17 +514,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s1,
     paddingBottom: SPACE.s2,
   },
-  /** The live date/clock line: hairline-ruled, like the rest of the sheet. */
+  /** The greeting card: the gradient layers fill it, the content sits on top. */
+  band: { overflow: 'hidden', marginTop: SPACE.s3, padding: 0 },
+  bandLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  fill: { flex: 1 },
+  bandContent: { padding: SPACE.s4, gap: 2 },
+  greeting: {
+    fontFamily: BS.h1.fontFamily,
+    fontSize: 26,
+    fontWeight: '700',
+    color: COLOR.text,
+    letterSpacing: -0.3,
+  },
+  greetingSub: {
+    fontFamily: BS.caption.fontFamily,
+    fontSize: 13.5,
+    color: COLOR.textMuted,
+    marginBottom: SPACE.s2,
+  },
   liveRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
     marginTop: SPACE.s1,
-    paddingBottom: SPACE.s1,
   },
-  /** The clock itself — the kicker scale with tabular-looking spacing. */
+  /** The clock itself — the kicker scale, in ink rather than muted. */
   clock: { color: COLOR.text, fontWeight: '600' },
-  liveNote: { marginTop: 0, marginBottom: SPACE.s1 },
-  /** Date heading above each group of Upcoming rows. */
-  upcomingDate: { marginTop: SPACE.s2, marginBottom: SPACE.s1 },
+  liveNote: { marginTop: 2 },
 });
