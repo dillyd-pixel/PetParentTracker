@@ -69,6 +69,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { usePets } from '../context/PetContext';
 import { useAccount } from '../context/AccountContext';
 import { useCheckIns } from '../context/CheckInsContext';
+import { useAwards } from '../context/AwardsContext';
+import { useSitter } from '../context/SitterContext';
 import { useFeeding } from '../context/FeedingContext';
 import { useMedications } from '../context/MedicationsContext';
 import { useVaccines } from '../context/VaccinesContext';
@@ -92,6 +94,19 @@ import {
   MemoriesCard,
   PetSpendingCard,
 } from '../components/HomeCrewSections';
+import { AwardsCard, CelebrationsCard } from '../components/HomeCelebrationSections';
+import type { CelebrationEntry, ShelfItem } from '../components/HomeCelebrationSections';
+import {
+  BADGES,
+  MILESTONES,
+  awardById,
+  awardEarnedOn,
+  careStreakDays,
+  celebrationsToday,
+  checkInDays,
+  derivedAwards,
+} from '../utils/gamification';
+import type { AwardFacts, AwardDef } from '../utils/gamification';
 import {
   buildAttention,
   buildBlueprint,
@@ -105,7 +120,7 @@ import {
 } from '../utils/homeSections';
 import type { FixAction, HomeData, PetModuleScreen } from '../utils/homeSections';
 import { DEFAULT_HOME_TITLE, loadHomeTitle, saveHomeTitle } from '../storage/homeTitle';
-import { monthName, petAgeLabel, petSpeciesLabel } from '../utils/petDisplay';
+import { monthName, petAgeLabel, petEmojiFor, petSpeciesLabel } from '../utils/petDisplay';
 import { DEFAULT_ACCENT, hexWithAlpha, petAccent } from '../utils/petAccent';
 import { CARE_CHECK_IN_TYPES, CARE_ENCOURAGEMENTS, isEveryDay } from '../types';
 import type { CareCheckInType, Medication, Pet, Vaccine } from '../types';
@@ -124,7 +139,9 @@ export default function TodayScreen(): React.JSX.Element {
   const { pets, activePet, selectPet } = usePets();
   /** The owner's chosen display time zone (Settings → Date & time). */
   const { timeZone } = useAccount();
-  const { doneTypesFor, toggleCheckIn } = useCheckIns();
+  const { checkIns, doneTypesFor, toggleCheckIn } = useCheckIns();
+  const { awardsFor, syncAwards } = useAwards();
+  const { carePasses } = useSitter();
   const { vaccines } = useVaccines();
   const { medications } = useMedications();
   const { feedingSchedules } = useFeeding();
@@ -258,6 +275,22 @@ export default function TodayScreen(): React.JSX.Element {
     [activePet, navigation, selectPet],
   );
 
+  /* ------- design Phase C: the care streak, per pet ------- */
+
+  /** Consecutive days with a check-in, per pet — computed from the real log. */
+  const streaks = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const pet of pets) map[pet.id] = careStreakDays(checkIns, pet.id, todayKey, timeZone);
+    return map;
+  }, [pets, checkIns, todayKey, timeZone]);
+
+  /** Which pets already have something recorded *today* (streak copy honesty). */
+  const streaksLive = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    for (const pet of pets) map[pet.id] = checkInDays(checkIns, pet.id, timeZone).has(todayKey);
+    return map;
+  }, [pets, checkIns, timeZone, todayKey]);
+
   /**
    * The crew cards. The status line is always a fact the app actually holds —
    * today's check-ins, then a vaccine's due date, then an active medication, and
@@ -276,8 +309,9 @@ export default function TodayScreen(): React.JSX.Element {
           medications,
           todayKey,
         }),
+        streak: streaks[pet.id] ?? 0,
       })),
-    [pets, doneTypesFor, todayKey, timeZone, vaccines, medications],
+    [pets, streaks, doneTypesFor, todayKey, timeZone, vaccines, medications],
   );
 
   /**
@@ -399,6 +433,114 @@ export default function TodayScreen(): React.JSX.Element {
     () => (selectedPet ? recentMemories(journalForPet(selectedPet.id), 3) : []),
     [selectedPet, journalForPet],
   );
+
+  /* ------- design Phase C: badges, milestones and celebrations ------- */
+
+  /**
+   * The records each award condition reads, gathered per pet. Everything here
+   * is an existing store — no seeded data, nothing invented.
+   */
+  const awardContexts = useMemo<AwardFacts[]>(
+    () =>
+      pets.map((pet) => ({
+        pet,
+        checkIns,
+        journal: journalForPet(pet.id),
+        vaccines: vaccines.filter((vaccine) => vaccine.petId === pet.id),
+        vetRecords: vetRecords.filter((record) => record.petId === pet.id),
+        // The pet's care circle: every pass that covers them, co-parent or sitter.
+        careCircleCount: carePasses.filter((pass) => pass.selectedPetIds.includes(pet.id)).length,
+        todayISO: todayKey,
+        zone: timeZone,
+      })),
+    [pets, checkIns, journalForPet, vaccines, vetRecords, carePasses, todayKey, timeZone],
+  );
+
+  /** Everything the pets' real records satisfy right now (the wanted shelf). */
+  const wantedAwards = useMemo(
+    () =>
+      awardContexts.flatMap((context) =>
+        derivedAwards(context).map((award) => ({
+          petId: context.pet.id,
+          awardId: award.id,
+          kind: award.kind,
+        })),
+      ),
+    [awardContexts],
+  );
+
+  /**
+   * Write any newly-satisfied award to the device. `wantedAwards` is derived
+   * from the stores (never from the award shelf), so this settles after one
+   * pass and cannot loop. `syncAwards` itself only ever writes what is missing.
+   */
+  useEffect(() => {
+    if (wantedAwards.length === 0) return;
+    syncAwards(wantedAwards).catch(() => undefined);
+  }, [wantedAwards, syncAwards]);
+
+  /** Today's birthdays and gotcha days, straight from the pets' own dates. */
+  const celebrations = useMemo(() => celebrationsToday(pets, todayKey), [pets, todayKey]);
+
+  /**
+   * The "worth celebrating" rows: today's birthdays and gotcha days, plus every
+   * badge or milestone whose earned date is today — so a badge freshly earned
+   * gets its moment, and still has it if the app is reopened later today.
+   */
+  const celebrationEntries = useMemo<CelebrationEntry[]>(() => {
+    const entries: CelebrationEntry[] = celebrations.map((moment) => {
+      const pet = pets.find((item) => item.id === moment.petId) ?? null;
+      return {
+        id: moment.id,
+        petId: moment.petId,
+        petName: moment.petName,
+        title: `${moment.emoji} ${moment.title}`,
+        message: moment.message,
+        tag: moment.kind === 'birthday' ? 'Birthday today' : 'Gotcha day today',
+        photoUri: pet?.photoUri,
+        glyph: pet ? petEmojiFor(pet) : '🐾',
+        accent: petAccent(moment.petId),
+      };
+    });
+    for (const pet of pets) {
+      for (const earned of awardsFor(pet.id)) {
+        if (!awardEarnedOn(earned.earnedAt, todayKey, timeZone)) continue;
+        const definition = awardById(earned.awardId);
+        if (!definition) continue;
+        entries.push({
+          id: `award-${pet.id}-${earned.id}`,
+          petId: pet.id,
+          petName: pet.name,
+          title: `${definition.emoji} ${definition.title}`,
+          message: definition.blurb,
+          tag: definition.kind === 'badge' ? 'New badge earned' : 'New milestone',
+          photoUri: pet.photoUri,
+          glyph: petEmojiFor(pet),
+          accent: petAccent(pet.id),
+        });
+      }
+    }
+    return entries;
+  }, [celebrations, pets, awardsFor, todayKey, timeZone]);
+
+  /** The selected pet's shelf: the awards its own records earned, newest first. */
+  const shelf = useMemo(() => {
+    const earnedAt = new Map(
+      (selectedPet ? awardsFor(selectedPet.id) : []).map((award) => [award.awardId, award.earnedAt]),
+    );
+    const pick = (definitions: AwardDef[]): ShelfItem[] =>
+      definitions
+        .filter((definition) => earnedAt.has(definition.id))
+        .map((definition) => ({
+          id: definition.id,
+          emoji: definition.emoji,
+          title: definition.title,
+          blurb: definition.blurb,
+          earnedAt: earnedAt.get(definition.id),
+        }))
+        .sort((a, b) => (b.earnedAt ?? '').localeCompare(a.earnedAt ?? ''));
+    return { badges: pick(BADGES), milestones: pick(MILESTONES) };
+  }, [selectedPet, awardsFor]);
 
   /**
    * Open one of a pet's module screens with that pet active, so the screen the
@@ -604,6 +746,19 @@ export default function TodayScreen(): React.JSX.Element {
               onAddPet={() => navigation.navigate('PetForm')}
             />
 
+            {/* ---- worth celebrating: birthdays, gotcha days, awards earned today ---- */}
+            {celebrationEntries.length > 0 ? (
+              <View testID="home-celebrations">
+                <CCSectionTitle
+                  eyebrow="Worth celebrating"
+                  title="Today’s Moments"
+                  emoji="🎉"
+                  accent={COLOR.coral}
+                />
+                <CelebrationsCard entries={celebrationEntries} onOpenPet={openPet} />
+              </View>
+            ) : null}
+
             {selectedPet ? (
               <>
                 <CCSectionTitle
@@ -619,6 +774,8 @@ export default function TodayScreen(): React.JSX.Element {
                   onToggle={handleToggle}
                   hints={hints}
                   message={message}
+                  streak={streaks[selectedPet.id] ?? 0}
+                  streakLive={streaksLive[selectedPet.id] ?? false}
                 />
                 <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
                   {pets.length > 1
@@ -721,6 +878,23 @@ export default function TodayScreen(): React.JSX.Element {
                   accent={COLOR.sunshine}
                 />
                 <BlueprintCompletionCard progress={blueprints} onFix={handleFix} />
+
+                {/* ---- the pet's shelf: badges and milestones its records earned ---- */}
+                <CCSectionTitle
+                  eyebrow="Earned along the way"
+                  title="Badges & Milestones"
+                  emoji="🏅"
+                  accent={COLOR.lavender}
+                />
+                <AwardsCard
+                  petName={selectedPet.name}
+                  photoUri={selectedPet.photoUri}
+                  glyph={petEmojiFor(selectedPet)}
+                  accent={crewAccent}
+                  badges={shelf.badges}
+                  milestones={shelf.milestones}
+                  catalogueSize={BADGES.length + MILESTONES.length}
+                />
                 <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
                   {pets.length > 1
                     ? 'Progress is per pet — swipe the crew above to see each blueprint.'

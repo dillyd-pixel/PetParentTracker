@@ -44,7 +44,7 @@ import {
   VET_RECORD_KIND_LABEL,
 } from '../types';
 import type { VetRecord, VetRecordInput, VetRecordKind } from '../types';
-import { shortDate } from '../utils/petDisplay';
+import { shortDate, todayISO } from '../utils/petDisplay';
 import { AUTO_TIME_ZONE, timeZoneLabel } from '../utils/datetime';
 import { recordKind } from '../utils/records';
 

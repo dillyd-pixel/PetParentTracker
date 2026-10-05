@@ -144,23 +144,26 @@ export default function QuickAddSheetScreen({ navigation }: Props): React.JSX.El
         | { to: 'petForm' },
     ) => {
       if (pet) await pickPet(pet.id);
+      // A fresh nonce per tap: the editor screen is already on its stack, so
+      // the changing number is what re-opens its form.
+      const openNew = Date.now();
       switch (target.to) {
         case 'pets':
           navigation.navigate('Main', {
             screen: 'Pets',
-            params: { screen: target.screen, params: { openNew: true } },
+            params: { screen: target.screen, params: { openNew } },
           });
           return;
         case 'vet':
           navigation.navigate('Main', {
             screen: 'Pets',
-            params: { screen: 'VetRecords', params: { openNew: true, kind: target.kind } },
+            params: { screen: 'VetRecords', params: { openNew, kind: target.kind } },
           });
           return;
         case 'journal':
           navigation.navigate('Main', {
             screen: 'Pets',
-            params: { screen: 'Journal', params: { openNew: true, focus: target.focus } },
+            params: { screen: 'Journal', params: { openNew, focus: target.focus } },
           });
           return;
         case 'petForm':

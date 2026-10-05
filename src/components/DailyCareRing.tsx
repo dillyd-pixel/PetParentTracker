@@ -47,6 +47,13 @@ export interface DailyCareRingProps {
   hints?: Partial<Record<CareCheckInType, string>>;
   /** The playful line the last checkoff earned; null when there is none yet. */
   message?: string | null;
+  /**
+   * Consecutive days this pet has a check-in on (design Phase C's care streak).
+   * Shown only from two days up — one day is just today, not a streak.
+   */
+  streak?: number;
+  /** Has anything been recorded for this pet *today*? (Streak copy honesty.) */
+  streakLive?: boolean;
 }
 
 /** How long the paw print stays on a tile after a checkoff. */
@@ -156,9 +163,13 @@ export default function DailyCareRing({
   onToggle,
   hints,
   message,
+  streak = 0,
+  streakLive = false,
 }: DailyCareRingProps): React.JSX.Element {
   const doneCount = CARE_CHECK_IN_TYPES.filter((type) => doneTypes.includes(type)).length;
   const allDone = doneCount === CARE_CHECK_IN_TYPES.length;
+  /** One day is just today; a streak reads as a streak from the second day on. */
+  const realStreak = streak >= 2 || (streak === 1 && streakLive && doneCount > 0);
 
   return (
     <CCCard glowTint={accent.fill}>
@@ -199,6 +210,17 @@ export default function DailyCareRing({
           />
         ))}
       </View>
+
+      {/* ---- the care streak: consecutive days with a check-in, no penalties -- */}
+      {realStreak ? (
+        <View style={[styles.streak, { backgroundColor: accent.soft }]} testID="home-care-streak">
+          <Text style={[styles.streakText, { color: accent.ink }]}>
+            🔥 {streak}-day streak — {pet.name}’s been cared for {streak}{' '}
+            {streak === 1 ? 'day' : 'days'} running
+            {streakLive ? '' : ' (today is still open)'}
+          </Text>
+        </View>
+      ) : null}
 
       {message ? (
         <View style={[styles.message, { backgroundColor: accent.soft }]}>
@@ -272,6 +294,13 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s1,
   },
   messageText: { fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: '600' },
+  streak: {
+    borderRadius: RADIUS.button,
+    paddingVertical: SPACE.s2,
+    paddingHorizontal: SPACE.s3,
+    marginTop: SPACE.s2,
+  },
+  streakText: { fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: '700' },
   prompt: {
     fontFamily: FONT_BODY,
     fontSize: 12.5,
