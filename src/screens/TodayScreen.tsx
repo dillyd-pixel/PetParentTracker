@@ -227,6 +227,7 @@ export default function TodayScreen(): React.JSX.Element {
     <View style={BS.screen}>
       <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
+        <Text style={BS.eyebrow}>Pet parent command center</Text>
         <View style={BS.rowBetween}>
           {editingTitle ? (
             <TextInput
@@ -260,13 +261,13 @@ export default function TodayScreen(): React.JSX.Element {
           */}
           <View style={styles.headerRight}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Shop', { screen: 'Search' })}
+              onPress={() => navigation.navigate('More', { screen: 'Shop', params: { screen: 'Search' } })}
               accessibilityLabel="Search every record"
             >
               <Text style={BS.link}>Search ›</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Shop', { screen: 'Settings' })}
+              onPress={() => navigation.navigate('More', { screen: 'Shop', params: { screen: 'Settings' } })}
               accessibilityRole="button"
               accessibilityLabel="Settings"
               testID="today-settings-gear"
@@ -432,7 +433,7 @@ export default function TodayScreen(): React.JSX.Element {
             </Text>
             <TouchableOpacity
               style={BS.btnPrimary}
-              onPress={() => navigation.navigate('Shop', { screen: 'Premium' })}
+              onPress={() => navigation.navigate('More', { screen: 'Shop', params: { screen: 'Premium' } })}
             >
               <Text style={BS.btnPrimaryText}>See what’s included</Text>
             </TouchableOpacity>

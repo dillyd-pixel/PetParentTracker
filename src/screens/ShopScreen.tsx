@@ -21,7 +21,8 @@ import { usePremium } from '../context/PremiumContext';
 import BackgroundCharacters from '../components/BackgroundCharacters';
 import { CoParentShareRows } from '../components/CoParentShareRows';
 import { ExportPetPdfRow } from '../components/ExportPetPdfRow';
-import { useTabRootNavigation } from '../navigation/RootNavigator';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ShopStackParamList } from '../navigation/ShopNavigator';
 import { BS, SPACE } from '../theme';
 
@@ -58,7 +59,7 @@ const PREMIUM_FEATURES = [
 ];
 
 export default function ShopScreen(): React.JSX.Element {
-  const navigation = useTabRootNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<ShopStackParamList>>();
   const { activePet } = usePets();
   const premium = usePremium();
 
@@ -69,6 +70,10 @@ export default function ShopScreen(): React.JSX.Element {
     <View style={BS.screen}>
       <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
+        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Back to More">
+          <Text style={BS.link}>‹ More</Text>
+        </TouchableOpacity>
+        <Text style={[BS.eyebrow, { marginTop: SPACE.s3 }]}>Extras</Text>
         <Text style={BS.h1}>Premium & keepsakes</Text>
 
         {/* ---- Blueprint Premium (one-time unlock + 14-day trial) ---- */}
@@ -89,14 +94,14 @@ export default function ShopScreen(): React.JSX.Element {
           ) : (
             <TouchableOpacity
               style={BS.btnPrimary}
-              onPress={() => navigation.navigate('Shop', { screen: 'Premium' })}
+              onPress={() => navigation.navigate('Premium')}
             >
               <Text style={BS.btnPrimaryText}>Start free for 14 days</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
             style={BS.btnSecondary}
-            onPress={() => navigation.navigate('Shop', { screen: 'Premium' })}
+            onPress={() => navigation.navigate('Premium')}
           >
             <Text style={BS.btnSecondaryText}>
               {unlocked ? 'Manage Blueprint Premium' : 'Unlock Blueprint Premium'}
@@ -110,7 +115,7 @@ export default function ShopScreen(): React.JSX.Element {
         {/* ---- Search (premium) ---- */}
         <TouchableOpacity
           style={[BS.divRowBetween, { marginTop: SPACE.s4 }]}
-          onPress={() => navigation.navigate('Shop', { screen: 'Search' })}
+          onPress={() => navigation.navigate('Search')}
         >
           <View style={{ flex: 1 }}>
             <Text style={BS.rowLabel}>Search every record</Text>
@@ -144,7 +149,7 @@ export default function ShopScreen(): React.JSX.Element {
           <TouchableOpacity
             key={product.name}
             style={BS.divRowBetween}
-            onPress={() => navigation.navigate('Shop', { screen: product.name } as never)}
+            onPress={() => navigation.navigate(product.name)}
           >
             <View style={{ flex: 1 }}>
               <Text style={BS.rowLabel}>{product.title}</Text>
@@ -162,7 +167,7 @@ export default function ShopScreen(): React.JSX.Element {
         <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>App</Text>
         <TouchableOpacity
           style={BS.divRowBetween}
-          onPress={() => navigation.navigate('Shop', { screen: 'Settings' })}
+          onPress={() => navigation.navigate('Settings')}
           accessibilityLabel="Settings"
         >
           <View style={{ flex: 1 }}>

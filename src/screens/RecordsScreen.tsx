@@ -50,7 +50,7 @@ export default function RecordsScreen({ navigation }: Props): React.JSX.Element 
       <ScrollView contentContainerStyle={BS.pad}>
         <View style={BS.rowBetween}>
           <Text style={BS.h1}>Records</Text>
-          <TouchableOpacity onPress={() => rootNavigation.navigate('Shop', { screen: 'Search' })}>
+          <TouchableOpacity onPress={() => rootNavigation.navigate('More', { screen: 'Shop', params: { screen: 'Search' } })}>
             <Text style={BS.link}>Search ›</Text>
           </TouchableOpacity>
         </View>
@@ -96,7 +96,7 @@ export default function RecordsScreen({ navigation }: Props): React.JSX.Element 
             </Text>
             <TouchableOpacity
               style={BS.btnPrimary}
-              onPress={() => rootNavigation.navigate('Shop', { screen: 'Premium' })}
+              onPress={() => rootNavigation.navigate('More', { screen: 'Shop', params: { screen: 'Premium' } })}
             >
               <Text style={BS.btnPrimaryText}>Unlock full history</Text>
             </TouchableOpacity>

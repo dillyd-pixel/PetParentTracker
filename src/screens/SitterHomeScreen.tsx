@@ -60,6 +60,10 @@ export default function SitterHomeScreen({ navigation }: Props): React.JSX.Eleme
     <View style={BS.screen}>
       <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
+        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Back to More">
+          <Text style={BS.link}>‹ More</Text>
+        </TouchableOpacity>
+        <Text style={[BS.eyebrow, { marginTop: SPACE.s3 }]}>Care & handoff</Text>
         <Text style={BS.h1}>Sitter Mode</Text>
         <Text style={BS.body}>
           Hand a trusted caregiver a care pass so they can look after your pets while you’re

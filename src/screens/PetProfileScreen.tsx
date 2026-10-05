@@ -396,7 +396,7 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
         <TouchableOpacity
           style={BS.divRowBetween}
           disabled={processing}
-          onPress={() => rootNavigation.navigate('Shop', { screen: 'Premium' })}
+          onPress={() => rootNavigation.navigate('More', { screen: 'Shop', params: { screen: 'Premium' } })}
         >
           <Text style={BS.rowLabel}>Share or export {pet.name}’s file</Text>
           <Text style={BS.link}>Shop ›</Text>

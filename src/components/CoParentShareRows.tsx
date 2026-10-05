@@ -63,7 +63,7 @@ function useGoToPremium(): () => void {
   const navigation = useNavigation<any>();
   return () => {
     try {
-      navigation.navigate('Shop', { screen: 'Premium' });
+      navigation.navigate('More', { screen: 'Shop', params: { screen: 'Premium' } });
     } catch {
       // Navigation must never crash a screen — the lock note stays visible.
     }
