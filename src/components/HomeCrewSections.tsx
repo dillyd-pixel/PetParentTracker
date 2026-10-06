@@ -123,6 +123,19 @@ export function HealthSnapshotCard({
         style={styles.healthHead}
       >
         <View style={styles.healthHeadRow}>
+          {/* Their photo threads through here too — the same picture as the crew card. */}
+          <View style={styles.healthAvatar}>
+            {pet.photoUri ? (
+              <Image
+                source={{ uri: pet.photoUri }}
+                style={styles.healthAvatarPhoto}
+                resizeMode="cover"
+                accessibilityLabel={`${pet.name}'s photo`}
+              />
+            ) : (
+              <Text style={styles.healthAvatarGlyph}>{petEmojiFor(pet)}</Text>
+            )}
+          </View>
           <View style={styles.flex}>
             <Text style={ccOnGradient.eyebrow}>Health snapshot</Text>
             <Text style={ccOnGradient.title}>{pet.name}</Text>
@@ -348,6 +361,11 @@ export function MemoriesCard({
                 resizeMode="cover"
                 accessibilityLabel="Memory photo"
               />
+            ) : entry.photoEmoji ? (
+              /* A picture with no file behind it (no camera roll, or a glyph picked on purpose). */
+              <View style={[styles.memoryPhoto, styles.memoryPlate]}>
+                <Text style={styles.memoryGlyph}>{entry.photoEmoji}</Text>
+              </View>
             ) : (
               <View style={[styles.memoryPhoto, styles.memoryPlate]}>
                 <Text style={styles.memoryPlateGlyph}>{petEmojiFor(pet)}</Text>
@@ -510,6 +528,19 @@ const styles = StyleSheet.create({
   /* health snapshot */
   healthHead: { padding: SPACE.s4, gap: SPACE.s1 },
   healthHeadRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 },
+  healthAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: RADIUS.pill,
+    borderWidth: 2,
+    borderColor: COLOR.white,
+    backgroundColor: COLOR.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  healthAvatarPhoto: { width: '100%', height: '100%' },
+  healthAvatarGlyph: { fontSize: 22, lineHeight: 28 },
   healthPill: {
     backgroundColor: 'rgba(255,255,255,0.24)',
     borderRadius: RADIUS.pill,
@@ -580,6 +611,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   memoryPlateGlyph: { fontSize: 26 },
+  memoryGlyph: { fontSize: 34 },
   memoryTitle: { fontFamily: FONT_HEAD, fontSize: 15, fontWeight: '700', color: COLOR.text },
   memoryBody: { fontFamily: FONT_BODY, fontSize: 13, lineHeight: 18, color: COLOR.textMuted },
   memoryMeta: { fontFamily: FONT_BODY, fontSize: 11.5, color: COLOR.textFaint, marginTop: 2 },

@@ -34,6 +34,7 @@ import type {
   VetRecord,
 } from '../types';
 import { isEveryDay, VACCINE_DUE_SOON_DAYS } from '../types';
+import { isVetVisitLike } from '../types';
 import { journalMoodEmoji } from '../types';
 import { feedingScheduleLabel, medicationScheduleLabel } from '../types';
 import type { ToneName } from '../theme';
@@ -273,7 +274,12 @@ export function buildAttention(data: HomeData): AttentionItem[] {
 
   for (const pet of data.pets) {
     const own = data.vaccines.filter((vaccine) => vaccine.petId === pet.id);
-    const visits = data.vetRecords.filter((record) => record.petId === pet.id);
+    // Only clinic visits and booked appointments count as "visits" here — a
+    // filed document (an invoice, a lab printout) is not a trip to the vet and
+    // must never read as one.
+    const visits = data.vetRecords.filter(
+      (record) => record.petId === pet.id && isVetVisitLike(record),
+    );
     const meds = data.medications.filter(
       (medication) => medication.petId === pet.id && medication.active,
     );
@@ -465,7 +471,9 @@ export function buildUpcoming(data: HomeData): TimelineItem[] {
   };
 
   for (const pet of data.pets) {
-    for (const record of data.vetRecords.filter((r) => r.petId === pet.id)) {
+    for (const record of data.vetRecords.filter(
+      (r) => r.petId === pet.id && isVetVisitLike(r),
+    )) {
       const days = daysFromToday(record.visitDate, data.todayISO);
       if (days === null) continue;
       push({
@@ -599,7 +607,7 @@ export function buildHealthSnapshot(pet: Pet | null, data: HomeData): HealthSnap
     .filter((vaccine) => vaccine.petId === pet.id)
     .sort((a, b) => (b.dueDate ?? b.dateGiven).localeCompare(a.dueDate ?? a.dateGiven));
   const visits = data.vetRecords
-    .filter((record) => record.petId === pet.id)
+    .filter((record) => record.petId === pet.id && isVetVisitLike(record))
     .sort((a, b) => b.visitDate.localeCompare(a.visitDate));
   const meds = data.medications.filter(
     (medication) => medication.petId === pet.id && medication.active,
@@ -839,7 +847,9 @@ export function buildBlueprint(pet: Pet, data: HomeData): BlueprintProgress {
     {
       id: 'visit',
       label: 'Their first vet visit',
-      done: data.vetRecords.some((record) => record.petId === pet.id),
+      done: data.vetRecords.some(
+        (record) => record.petId === pet.id && isVetVisitLike(record),
+      ),
       fix: { to: 'addRecord' },
     },
     {

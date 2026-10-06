@@ -22,6 +22,7 @@
 import React from 'react';
 
 import { createWebSafeStackNavigator } from './WebSafeStack';
+import type { VetRecordKind } from '../types';
 import PetListScreen from '../screens/PetListScreen';
 import PetProfileScreen from '../screens/PetProfileScreen';
 import CareInstructionsScreen from '../screens/CareInstructionsScreen';
@@ -39,16 +40,26 @@ export type PetsStackParamList = {
   PetList: undefined;
   PetProfile: { petId?: string } | undefined;
   Vaccines: undefined;
-  Meds: undefined;
-  Feeding: undefined;
-  VetRecords: undefined;
-  Expenses: undefined;
-  Journal: undefined;
+  /** `openNew` is a nonce: a newer value re-opens the screen's add form. */
+  Meds: { openNew?: number } | undefined;
+  Feeding: { openNew?: number } | undefined;
+  /**
+   * `kind` says what is being filed: a clinic visit, a booked appointment or a
+   * filed document — Quick Add sends the last two so the editor opens with the
+   * right words on it (and the record lands in the right place on Home).
+   */
+  VetRecords: { openNew?: number; kind?: VetRecordKind } | undefined;
+  Expenses: { openNew?: number } | undefined;
+  /** `focus` opens a new entry and points at the note or the photo field. */
+  Journal: { openNew?: number; focus?: JournalQuickFocus } | undefined;
   /** One pet's care instructions (read view); defaults to the active pet. */
   CareInstructions: { petId?: string } | undefined;
   /** The same pet's care instructions editor. */
   CareInstructionsEditor: { petId?: string } | undefined;
 };
+
+/** What a Quick Add "Note"/"Photo" tap wants the journal form to look at. */
+export type JournalQuickFocus = 'note' | 'photo';
 
 const Stack = createWebSafeStackNavigator<PetsStackParamList>();
 

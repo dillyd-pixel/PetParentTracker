@@ -47,6 +47,11 @@ export interface PetCrewEntry {
   age: string;
   /** The status pill: a fact from the pet's records, or their own vibe. */
   status: { label: string };
+  /**
+   * Consecutive days this pet has a recorded check-in (design Phase C). Shown
+   * only from two days up, so a card never brags about a single day.
+   */
+  streak?: number;
 }
 
 export interface PetCrewCarouselProps {
@@ -73,7 +78,7 @@ function PetCard({
   width: number;
   onOpen: () => void;
 }): React.JSX.Element {
-  const { pet, accent, age, status } = entry;
+  const { pet, accent, age, status, streak = 0 } = entry;
   const meta = [age, petSpeciesLabel(pet)].filter(Boolean).join(' · ');
 
   return (
@@ -123,6 +128,11 @@ function PetCard({
           style={{ backgroundColor: accent.soft }}
           textStyle={{ color: accent.ink }}
         />
+        {streak >= 2 ? (
+          <Text style={[styles.streak, { color: accent.ink }]}>
+            🔥 {streak}-day care streak
+          </Text>
+        ) : null}
       </View>
     </CCCard>
   );
@@ -214,6 +224,7 @@ const styles = StyleSheet.create({
   body: { padding: SPACE.s3, gap: 5 },
   name: { fontFamily: FONT_HEAD, fontSize: 19, fontWeight: '700', color: COLOR.text },
   meta: { fontFamily: FONT_BODY, fontSize: 12.5, color: COLOR.textMuted },
+  streak: { fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: '700', marginTop: 2 },
   addCard: {
     minHeight: 196,
     borderWidth: 1.5,

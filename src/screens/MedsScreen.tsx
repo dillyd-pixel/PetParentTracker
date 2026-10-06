@@ -28,6 +28,8 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useMedications } from '../context/MedicationsContext';
@@ -428,6 +430,7 @@ function MedicationFormModal({
 }
 
 export default function MedsScreen({ navigation }: Props): React.JSX.Element {
+  const route = useRoute<RouteProp<PetsStackParamList, 'Meds'>>();
   const { activePet } = usePets();
   const {
     medicationsForPet,
@@ -443,6 +446,19 @@ export default function MedsScreen({ navigation }: Props): React.JSX.Element {
   const [saving, setSaving] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [reminderNotes, setReminderNotes] = useState<Record<string, string>>({});
+
+  /**
+   * Quick Add's "Medication" tap arrives with a fresh `openNew` nonce: the
+   * screen is already mounted (it is the same route), so the nonce is what
+   * re-opens the add form — a newer number means a newer tap. Declared before
+   * the no-pet guard below so every hook runs unconditionally.
+   */
+  const openNew = route.params?.openNew;
+  useEffect(() => {
+    if (!openNew) return;
+    setEditingMedication(null);
+    setFormVisible(true);
+  }, [openNew]);
 
   // No active pet: prompt the user to pick/add one on Home.
   if (!activePet) {

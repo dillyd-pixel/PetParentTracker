@@ -252,8 +252,43 @@ export function feedingScheduleLabel(f: FeedingSchedule): string {
 }
 
 /**
+ * What a `VetRecord` actually is. The record entity already held everything a
+ * veterinary *visit* needs (title, date, time, clinic, vet, cost, notes,
+ * photo), and the app's own records file is the right home for the three things
+ * a pet parent files there:
+ *
+ *  - `visit`       — a visit that happened (the original meaning; the default).
+ *  - `appointment` — a booked future date: same fields, but it is what the Home
+ *                    Upcoming rail and the visit reminders are about.
+ *  - `document`    — a paper record (an invoice, a lab printout, a vaccination
+ *                    card): dated when it landed, never a trip to the clinic.
+ *
+ * Absent means `visit`, so every record saved before this field existed keeps
+ * its original meaning and nothing has to be migrated.
+ */
+export type VetRecordKind = 'visit' | 'appointment' | 'document';
+
+/** Display label for one `VetRecordKind`. */
+export const VET_RECORD_KIND_LABEL: Record<VetRecordKind, string> = {
+  visit: 'Visit',
+  appointment: 'Appointment',
+  document: 'Document',
+};
+
+/** The kind a record actually is — `visit` for everything saved before this. */
+export function vetRecordKind(record: Pick<VetRecord, 'kind'>): VetRecordKind {
+  return record.kind ?? 'visit';
+}
+
+/** Is this record a clinic visit or a booked appointment (not a document)? */
+export function isVetVisitLike(record: Pick<VetRecord, 'kind'>): boolean {
+  return vetRecordKind(record) !== 'document';
+}
+
+/**
  * The VetRecord entity — stored on-device via AsyncStorage. One record per
- * veterinary visit, bound to a pet via `petId`.
+ * veterinary visit (or appointment, or filed document), bound to a pet via
+ * `petId`.
  */
 export interface VetRecord extends BaseEntity {
   petId: string;
@@ -261,6 +296,8 @@ export interface VetRecord extends BaseEntity {
   visitTitle: string;
   /** Date of the visit (ISO date YYYY-MM-DD). */
   visitDate: string;
+  /** Visit / appointment / document — absent means `visit`. */
+  kind?: VetRecordKind;
   /**
    * Appointment time as "HH:mm" (24h). Optional — leave blank for a visit
    * with no time. When set alongside a future `visitDate`, the premium
@@ -376,6 +413,16 @@ export interface JournalEntry extends BaseEntity {
   mood?: JournalMood;
   /** Local file URI of an optional photo (picked on-device, stored directly). */
   photoUri?: string;
+  /**
+   * A built-in animal glyph standing in for a photo, e.g. "🐶".
+   *
+   * Some platforms have no camera roll to pick from (the browser preview), and
+   * some moments simply have no picture yet. Rather than force a file, a memory
+   * can carry one of the app's own glyphs as its picture — chosen by the owner,
+   * stored on the device, rendered exactly where a photo would be. Optional, and
+   * never invented: absent means this entry has no picture at all.
+   */
+  photoEmoji?: string;
 }
 
 /** Input type for creating/updating a journal entry (id/createdAt auto-assigned). */

@@ -36,9 +36,15 @@ import BackgroundCharacters from '../components/BackgroundCharacters';
 import { PremiumReminderRow } from '../components/PremiumReminderRow';
 import { hasNotificationPermission } from '../storage/notifications';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
-import { isValidISODate, isValidTime, vetCostLabel } from '../types';
-import type { VetRecord, VetRecordInput } from '../types';
-import { shortDate } from '../utils/petDisplay';
+import {
+  isValidISODate,
+  isValidTime,
+  vetCostLabel,
+  vetRecordKind,
+  VET_RECORD_KIND_LABEL,
+} from '../types';
+import type { VetRecord, VetRecordInput, VetRecordKind } from '../types';
+import { shortDate, todayISO } from '../utils/petDisplay';
 import { AUTO_TIME_ZONE, timeZoneLabel } from '../utils/datetime';
 import { recordKind } from '../utils/records';
 
@@ -79,7 +85,10 @@ interface FormState {
 
 const emptyForm = (): FormState => ({
   visitTitle: '',
-  visitDate: '',
+  // Dated today by default: an appointment or a document is filed on the day
+  // it is entered, and a past visit can be re-dated in the field. Never a guess
+  // about the past — just today, which the device actually knows.
+  visitDate: todayISO(),
   visitTime: '',
   clinicName: '',
   veterinarian: '',
@@ -108,6 +117,8 @@ interface FormModalProps {
   editing: VetRecord | null;
   saving: boolean;
   notificationPermissionDenied: boolean;
+  /** What a new record is — the editor's words and the saved record's kind. */
+  kind: VetRecordKind;
   onCancel: () => void;
   onSave: (form: FormState) => void;
 }
@@ -118,6 +129,7 @@ function VetFormModal({
   editing,
   saving,
   notificationPermissionDenied,
+  kind,
   onCancel,
   onSave,
 }: FormModalProps) {
@@ -162,21 +174,33 @@ function VetFormModal({
       >
         <View style={styles.modalCard}>
           <Text style={styles.modalTitle}>
-            {editing ? 'Edit visit' : 'New visit'}
+            {editing
+              ? `Edit ${VET_RECORD_KIND_LABEL[kind].toLowerCase()}`
+              : `New ${VET_RECORD_KIND_LABEL[kind].toLowerCase()}`}
           </Text>
 
           <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
 
-          <Text style={[BS.fieldLabel, styles.label]}>Visit title *</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>
+            {kind === 'appointment' ? 'Appointment for *' : 'Visit title *'}
+          </Text>
           <TextInput
             style={BS.input}
             value={form.visitTitle}
             onChangeText={(v) => set('visitTitle', v)}
-            placeholder="e.g. Annual checkup"
+            placeholder={
+              kind === 'appointment'
+                ? 'e.g. Annual checkup'
+                : kind === 'document'
+                  ? 'e.g. Vaccination card'
+                  : 'e.g. Annual checkup'
+            }
             placeholderTextColor={COLOR.textFaint}
           />
 
-          <Text style={[BS.fieldLabel, styles.label]}>Visit date * (YYYY-MM-DD)</Text>
+          <Text style={[BS.fieldLabel, styles.label]}>
+            {kind === 'document' ? 'Date on the document *' : 'Visit date *'} (YYYY-MM-DD)
+          </Text>
           <TextInput
             style={BS.input}
             value={form.visitDate}
@@ -301,7 +325,11 @@ function VetFormModal({
               disabled={saving}
             >
               <Text style={BS.btnPrimaryText}>
-                {saving ? 'Saving…' : editing ? 'Save changes' : 'Add visit'}
+                {saving
+                  ? 'Saving…'
+                  : editing
+                    ? 'Save changes'
+                    : `Add ${VET_RECORD_KIND_LABEL[kind].toLowerCase()}`}
               </Text>
             </TouchableOpacity>
           </View>
@@ -312,7 +340,7 @@ function VetFormModal({
   );
 }
 
-export default function VetRecordsScreen({ navigation }: Props): React.JSX.Element {
+export default function VetRecordsScreen({ navigation, route }: Props): React.JSX.Element {
   const { activePet } = usePets();
   const {
     vetRecordsForPet,
@@ -327,9 +355,26 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
 
   const [formVisible, setFormVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<VetRecord | null>(null);
+  /** What a *new* record is: a visit, a booked appointment or a filed document. */
+  const [newKind, setNewKind] = useState<VetRecordKind>('visit');
   const [saving, setSaving] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [reminderNotes, setReminderNotes] = useState<Record<string, string>>({});
+
+  /**
+   * Quick Add lands here with a fresh `openNew` nonce (a newer number means a
+   * newer tap) and the `kind` it wants filed, so one tap on "Appointment" or
+   * "Document" opens the right editor. Declared before the no-pet guard so
+   * every hook runs unconditionally.
+   */
+  const openNew = route.params?.openNew;
+  const quickKind = route.params?.kind;
+  useEffect(() => {
+    if (!openNew) return;
+    setEditingRecord(null);
+    setNewKind(quickKind ?? 'visit');
+    setFormVisible(true);
+  }, [openNew, quickKind]);
 
   // No active pet: prompt the user to pick/add one on Home.
   if (!activePet) {
@@ -345,6 +390,7 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
 
   const openAdd = () => {
     setEditingRecord(null);
+    setNewKind('visit');
     setFormVisible(true);
   };
 
@@ -442,6 +488,7 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
       petId,
       visitTitle,
       visitDate,
+      kind: editingRecord ? vetRecordKind(editingRecord) : newKind,
       visitTime: visitTime ? visitTime : undefined,
       clinicName: form.clinicName.trim() ? form.clinicName.trim() : undefined,
       veterinarian: form.veterinarian.trim()
@@ -487,7 +534,7 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
             <Text style={BS.kicker}>
               {records.length === 0
                 ? 'Nothing filed yet'
-                : `${records.length} visit${records.length === 1 ? '' : 's'} on file`}
+                : `${records.length} record${records.length === 1 ? '' : 's'} on file`}
             </Text>
             {/*
               Visit dates are calendar dates and appointment times are the
@@ -536,7 +583,11 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
                 </View>
                 <View style={styles.rowEnd}>
                   <Text style={BS.rowLabel}>{cost ?? '—'}</Text>
-                  <Text style={BS.caption}>{recordKind(item.notes)}</Text>
+                  <Text style={BS.caption}>
+                    {vetRecordKind(item) === 'visit'
+                      ? recordKind(item.notes)
+                      : VET_RECORD_KIND_LABEL[vetRecordKind(item)]}
+                  </Text>
                 </View>
               </View>
               <View style={styles.reminderBlock}>
@@ -564,6 +615,7 @@ export default function VetRecordsScreen({ navigation }: Props): React.JSX.Eleme
         editing={editingRecord}
         saving={saving}
         notificationPermissionDenied={permissionDenied}
+        kind={editingRecord ? vetRecordKind(editingRecord) : newKind}
         onCancel={() => setFormVisible(false)}
         onSave={submitForm}
       />
