@@ -1,6 +1,6 @@
 /**
  * Shop — Blueprint Premium, the offline co-parent share, PDF export and the
- * keepsake products (on hold).
+ * keepsake products (two live, two on hold).
  *
  * The design's shop page, restyled to our real product decisions:
  *  - Premium is a ONE-TIME UNLOCK with a 14-day trial (no subscription, no
@@ -8,10 +8,11 @@
  *    trial/unlock flow and its stored state live.
  *  - Co-parent sharing stays our offline export/import implementation: premium
  *    travels with the share file, import is open to everyone.
- *  - The keepsake products are rows with NO prices and NO purchase flow. The
- *    printable pet planner is the first of them to be finished: it opens its own
- *    on-device screen (preview free, PDFs with Blueprint Premium), while the
- *    other three stay on hold for the owner.
+ *  - The keepsake products are rows with NO prices and NO purchase flow. Two are
+ *    finished and open their own on-device screens (preview free, PDFs with
+ *    Blueprint Premium): the printable pet planner and the memorial book. The
+ *    other two — custom pet artwork and the emergency card pack — stay on hold
+ *    for the owner.
  *
  * 100% offline: every entry point here is local state + on-device file export.
  */
@@ -31,7 +32,7 @@ import { BS, COLOR, SPACE } from '../theme';
 /** The keepsake product routes this screen links to (all take no params). */
 type KeepsakeRoute = 'PetPlanner' | 'MemorialBook' | 'Artwork' | 'EmergencyCard';
 
-/** The keepsake products. The planner is live; the other three stay on hold. */
+/** The keepsake products. The planner and the memorial book are live. */
 const PRODUCTS: Array<{ name: KeepsakeRoute; title: string; desc: string }> = [
   {
     name: 'PetPlanner',
@@ -41,7 +42,7 @@ const PRODUCTS: Array<{ name: KeepsakeRoute; title: string; desc: string }> = [
   {
     name: 'MemorialBook',
     title: 'Memorial book',
-    desc: 'A keepsake book generated from your data.',
+    desc: 'A keepsake book of one pet’s memories, milestones and life story — made on-device from your own records, Letter or A4.',
   },
   {
     name: 'Artwork',
@@ -54,6 +55,9 @@ const PRODUCTS: Array<{ name: KeepsakeRoute; title: string; desc: string }> = [
     desc: 'Printable emergency info cards.',
   },
 ];
+
+/** The keepsake rows that open a finished, live product screen. */
+const LIVE_PRODUCTS: KeepsakeRoute[] = ['PetPlanner', 'MemorialBook'];
 
 /** The four premium features, in the owner's wording. */
 const PREMIUM_FEATURES = [
@@ -159,7 +163,7 @@ export default function ShopScreen(): React.JSX.Element {
             <View style={{ flex: 1 }}>
               <Text style={BS.rowLabel}>{product.title}</Text>
               <Text style={BS.caption}>{product.desc}</Text>
-              {product.name === 'PetPlanner' && (
+              {LIVE_PRODUCTS.includes(product.name) && (
                 <Text style={[BS.caption, { color: COLOR.accent700 }]}>
                   {unlocked ? 'Ready to print' : 'Preview free · PDFs with Blueprint Premium'}
                 </Text>
@@ -169,9 +173,10 @@ export default function ShopScreen(): React.JSX.Element {
           </TouchableOpacity>
         ))}
         <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
-          The printable pet planner is ready to use — preview it free, and generate, download, print
-          or share the PDF with Blueprint Premium. The other keepsakes are still being designed: no
-          prices, no purchase flow.
+          The printable pet planner and the memorial book are ready to use — preview either one
+          free, and generate, download, print or share the PDF with Blueprint Premium. Custom pet
+          artwork and the emergency card pack are still being designed: no prices, no purchase
+          flow, and no files leave your phone.
         </Text>
 
         {/* ---- Settings (quiet row — account, display zone, premium, wipe) ---- */}
