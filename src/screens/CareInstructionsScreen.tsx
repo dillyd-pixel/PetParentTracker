@@ -20,7 +20,6 @@ import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useCareInstructions } from '../context/CareInstructionsContext';
 import { usePets } from '../context/PetContext';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
@@ -48,7 +47,6 @@ export default function CareInstructionsScreen({
   if (!pet) {
     return (
       <View style={BS.screen}>
-        <BackgroundCharacters />
         <ScrollView contentContainerStyle={BS.pad}>
           <Text style={BS.h1}>No pet selected</Text>
           <Text style={BS.italic}>Pick or add a pet on the Pets tab.</Text>
@@ -69,7 +67,6 @@ export default function CareInstructionsScreen({
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}

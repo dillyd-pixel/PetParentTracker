@@ -19,7 +19,6 @@ import { usePets } from '../context/PetContext';
 import { useMedications } from '../context/MedicationsContext';
 import { useVaccines } from '../context/VaccinesContext';
 import { useVetRecords } from '../context/VetContext';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { ExportPetPdfRow } from '../components/ExportPetPdfRow';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import { medicationScheduleLabel } from '../types';
@@ -53,7 +52,6 @@ export default function EmergencyCardScreen(): React.JSX.Element {
   if (!pet) {
     return (
       <View style={BS.screen}>
-        <BackgroundCharacters />
         <ScrollView contentContainerStyle={BS.pad}>
           <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Back to More">
             <Text style={BS.link}>‹ More</Text>
@@ -80,7 +78,6 @@ export default function EmergencyCardScreen(): React.JSX.Element {
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <Text style={BS.h1}>Emergency card</Text>
         <Text style={BS.italic}>

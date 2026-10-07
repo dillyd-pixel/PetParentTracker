@@ -24,7 +24,6 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import {
   CCCard,
   CCGradientCard,
@@ -85,7 +84,6 @@ export default function MoreScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <Text style={BS.eyebrow}>Pet parent command center</Text>
         <Text style={BS.h1}>More</Text>

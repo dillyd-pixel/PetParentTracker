@@ -21,7 +21,6 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 import { usePets } from '../context/PetContext';
 import { usePremium } from '../context/PremiumContext';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { CoParentShareRows } from '../components/CoParentShareRows';
 import { ExportPetPdfRow } from '../components/ExportPetPdfRow';
 import { useNavigation } from '@react-navigation/native';
@@ -77,7 +76,6 @@ export default function ShopScreen(): React.JSX.Element {
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Back to More">
           <Text style={BS.link}>‹ More</Text>

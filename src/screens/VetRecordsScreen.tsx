@@ -32,7 +32,6 @@ import { usePets } from '../context/PetContext';
 import { useAccount } from '../context/AccountContext';
 import { usePremium } from '../context/PremiumContext';
 import { BS, COLOR, FONT_HEAD, SPACE } from '../theme';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { PremiumReminderRow } from '../components/PremiumReminderRow';
 import { hasNotificationPermission } from '../storage/notifications';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
@@ -380,7 +379,6 @@ export default function VetRecordsScreen({ navigation, route }: Props): React.JS
   if (!activePet) {
     return (
       <View style={styles.container}>
-        <BackgroundCharacters />
         <NoPetState />
       </View>
     );
@@ -520,7 +518,6 @@ export default function VetRecordsScreen({ navigation, route }: Props): React.JS
 
   return (
     <View style={styles.container}>
-      <BackgroundCharacters />
       <FlatList
         data={records}
         keyExtractor={(item) => item.id}
@@ -624,7 +621,7 @@ export default function VetRecordsScreen({ navigation, route }: Props): React.JS
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   list: { padding: SPACE.s4, paddingBottom: 120 },
   headerBlock: { marginBottom: SPACE.s3 },
 

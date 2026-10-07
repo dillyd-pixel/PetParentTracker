@@ -33,7 +33,6 @@ import { useVetRecords } from '../context/VetContext';
 import { useExpenses } from '../context/ExpensesContext';
 import { useJournal } from '../context/JournalContext';
 import { AppColors, cardShadow } from '../theme';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { petEmojiFor, petSpeciesLabel } from '../utils/petDisplay';
 import {
   expenseAmountLabel,
@@ -236,7 +235,6 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
   if (!premium.isPremium()) {
     return (
       <View style={styles.container}>
-        <BackgroundCharacters />
         <View style={styles.lockWrap}>
           <Text style={styles.lockEmoji}>🔒</Text>
           <Text style={styles.lockTitle}>Search — Blueprint Premium</Text>
@@ -258,7 +256,6 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
 
   return (
     <View style={styles.container}>
-      <BackgroundCharacters />
       <View style={styles.searchRow}>
         <TextInput
           style={styles.input}
@@ -319,7 +316,7 @@ export default function SearchScreen({ navigation }: { navigation: any }): React
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: AppColors.background },
+  container: { flex: 1, backgroundColor: 'transparent' },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

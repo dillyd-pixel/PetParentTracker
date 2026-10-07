@@ -33,6 +33,14 @@
  *    the modal `QuickAdd` sheet.
  *  - Each tab that needs depth owns a web-safe nested stack, so the browser
  *    preview keeps working exactly as on device.
+ *
+ * Wallpaper: the app's wallpaper (`BackgroundCharacters`) is mounted once at the
+ * root, in App.tsx, *behind* this navigator — so every screen and every modal
+ * carries it without mounting anything itself. For that to be visible the
+ * navigator must not paint a background of its own: `navTheme.colors.background`
+ * is `transparent` (both the native and the web stack fill their scene with the
+ * theme background when it is set), and screens paint no opaque fill either.
+ * The ivory canvas itself comes from the root view in App.tsx.
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -144,7 +152,10 @@ const navTheme = {
   colors: {
     ...DefaultTheme.colors,
     primary: COLOR.accent,
-    background: COLOR.bg,
+    // Transparent on purpose: the app root's wallpaper must show through every
+    // scene (see the "Wallpaper" note above). The ivory canvas is painted once,
+    // behind the wallpaper, by App.tsx.
+    background: 'transparent',
     card: COLOR.surface,
     text: COLOR.text,
     border: COLOR.divider,

@@ -33,7 +33,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useJournal } from '../context/JournalContext';
 import { usePets } from '../context/PetContext';
 import { BS, COLOR, FONT_HEAD, SPACE } from '../theme';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { petEmojiFor, todayISO } from '../utils/petDisplay';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import {
@@ -357,7 +356,6 @@ export default function JournalScreen() {
   if (!activePet) {
     return (
       <View style={styles.container}>
-        <BackgroundCharacters />
         <NoPetState />
       </View>
     );
@@ -439,7 +437,6 @@ export default function JournalScreen() {
 
   return (
     <View style={styles.container}>
-      <BackgroundCharacters />
       <FlatList
         data={entries}
         keyExtractor={(item) => item.id}
@@ -525,7 +522,7 @@ export default function JournalScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   list: { padding: SPACE.s4, paddingBottom: 120 },
   headerBlock: { marginBottom: SPACE.s3 },
   heading: {

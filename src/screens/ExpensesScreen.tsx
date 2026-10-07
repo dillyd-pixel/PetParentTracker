@@ -30,7 +30,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useExpenses } from '../context/ExpensesContext';
 import { usePets } from '../context/PetContext';
 import { BS, COLOR, FONT_HEAD, SPACE } from '../theme';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import {
   EXPENSE_CATEGORY_OPTIONS,
@@ -329,7 +328,6 @@ export default function ExpensesScreen() {
   if (!activePet) {
     return (
       <View style={styles.container}>
-        <BackgroundCharacters />
         <NoPetState />
       </View>
     );
@@ -413,7 +411,6 @@ export default function ExpensesScreen() {
 
   return (
     <View style={styles.container}>
-      <BackgroundCharacters />
       <FlatList
         data={expenses}
         keyExtractor={(item) => item.id}
@@ -505,7 +502,7 @@ export default function ExpensesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   list: { padding: SPACE.s4, paddingBottom: 120 },
   headerBlock: { marginBottom: SPACE.s3 },
   heading: {

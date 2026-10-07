@@ -32,7 +32,6 @@ import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { usePets } from '../context/PetContext';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { SPECIES_OPTIONS, WEIGHT_UNIT_OPTIONS } from '../types';
 import type { PetInput, Species, WeightUnit } from '../types';
 import { petEmojiFor, todayISO } from '../utils/petDisplay';
@@ -179,7 +178,6 @@ export default function PetFormScreen({ navigation, route }: Props) {
   return (
     <View style={BS.screen}>
       {/* Animal characters painted behind the form; the form itself is transparent. */}
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={BS.link}>‹ {editingId ? 'Pet page' : 'Pets'}</Text>

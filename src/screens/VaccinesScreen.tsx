@@ -32,7 +32,6 @@ import { useVaccines } from '../context/VaccinesContext';
 import { usePremium } from '../context/PremiumContext';
 import { hasNotificationPermission } from '../storage/notifications';
 import { BS, COLOR, FONT_HEAD, SPACE } from '../theme';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { PremiumReminderRow } from '../components/PremiumReminderRow';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import { VACCINE_DUE_SOON_DAYS } from '../types';
@@ -348,7 +347,6 @@ export default function VaccinesScreen({ navigation }: Props): React.JSX.Element
   if (!activePet) {
     return (
       <View style={styles.container}>
-        <BackgroundCharacters />
         <NoPetState />
       </View>
     );
@@ -459,7 +457,6 @@ export default function VaccinesScreen({ navigation }: Props): React.JSX.Element
 
   return (
     <View style={styles.container}>
-      <BackgroundCharacters />
       <FlatList
         data={records}
         keyExtractor={(item) => item.id}
@@ -547,7 +544,7 @@ export default function VaccinesScreen({ navigation }: Props): React.JSX.Element
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLOR.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   list: { padding: SPACE.s4, paddingBottom: 120 },
   headerBlock: { marginBottom: SPACE.s3 },
 

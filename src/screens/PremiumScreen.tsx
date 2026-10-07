@@ -19,7 +19,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { usePremium } from '../context/PremiumContext';
 import { AppColors, BS, cardShadow, SPACE } from '../theme';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import type { ShopStackParamList } from '../navigation/ShopNavigator';
 import { PREMIUM_TRIAL_DAYS } from '../storage/premium';
 
@@ -110,7 +109,6 @@ export default function PremiumScreen() {
 
   return (
     <View style={styles.container}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* The design's in-page back link — this screen's own header. */}
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -219,7 +217,7 @@ export default function PremiumScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: AppColors.background },
+  container: { flex: 1, backgroundColor: 'transparent' },
   scroll: { padding: 16, paddingBottom: 40 },
   heroCard: {
     backgroundColor: AppColors.card,

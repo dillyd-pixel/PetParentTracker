@@ -30,7 +30,6 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import CarePassStatusBadge from '../components/CarePassStatusBadge';
 import { usePets } from '../context/PetContext';
 import { useSitter } from '../context/SitterContext';
@@ -69,7 +68,6 @@ export default function CarePassDetailScreen({ navigation, route }: Props): Reac
   if (!pass) {
     return (
       <View style={BS.screen}>
-        <BackgroundCharacters />
         <ScrollView contentContainerStyle={BS.pad}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={BS.link}>‹ Sitter Mode</Text>
@@ -150,7 +148,6 @@ export default function CarePassDetailScreen({ navigation, route }: Props): Reac
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={BS.link}>‹ Sitter Mode</Text>

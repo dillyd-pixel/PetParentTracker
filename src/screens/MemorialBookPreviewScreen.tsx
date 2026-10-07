@@ -26,7 +26,7 @@ import { MemorialWebFrame } from '../components/MemorialWebFrame';
 import { useMemorialBuilders } from '../pdf/memorial/useMemorialDocument';
 import { paperSizeDef } from '../pdf/planner/sections';
 import type { ShopStackParamList } from '../navigation/ShopNavigator';
-import { BS, SPACE } from '../theme';
+import { BS, COLOR, SPACE } from '../theme';
 
 /** The book preview for the choices made on the Keep screen. */
 export default function MemorialBookPreviewScreen(): React.JSX.Element {
@@ -106,6 +106,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACE.s4,
     paddingVertical: SPACE.s3,
-    backgroundColor: BS.screen.backgroundColor,
+    backgroundColor: COLOR.bg,
   },
 });

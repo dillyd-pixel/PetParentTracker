@@ -15,7 +15,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { usePets } from '../context/PetContext';
 import { AppColors, BS, SPACE } from '../theme';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import type { ShopStackParamList } from '../navigation/ShopNavigator';
 
 interface Props {
@@ -30,7 +29,6 @@ export default function PlaceholderScreen({ title, noun = 'records' }: Props) {
   const { activePet } = usePets();
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={BS.link}>‹ Shop</Text>

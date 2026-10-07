@@ -11,7 +11,6 @@ import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { CCEmptyState } from '../components/CC';
 import type { MoreStackParamList } from '../navigation/MoreNavigator';
 import { BS, COLOR, SPACE } from '../theme';
@@ -22,7 +21,6 @@ export default function ComingSoonScreen({ navigation, route }: Props): React.JS
   const { title, emoji, message, accent } = route.params;
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Back to More">
           <Text style={BS.link}>‹ More</Text>
