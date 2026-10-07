@@ -66,7 +66,7 @@
  *   wallpaper-landscape.png  3111x1296   art + 949px cream left/right (460 fade)
  *
  * Each pad begins on the art's own edge pixels and eases into the app canvas
- * (#F7F1E7 = `COLOR.bg`) over its fade, so the join is invisible and the far end
+ * (#FFFDF8 = `COLOR.bg`) over its fade, so the join is invisible and the far end
  * of the pad is exactly the canvas colour — the wallpaper melts into the app
  * background at the screen edge instead of ending on a hard line. `cover` still
  * does the fitting; the master is now chosen so that the direction cover crops

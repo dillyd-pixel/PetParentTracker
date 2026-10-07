@@ -45,7 +45,8 @@ import type { TextStyle, ViewStyle } from 'react-native';
  *  - `accent`     teal #0088b0 → Blueprint Blue #246BFD (primary actions, links)
  *  - `accent700`  deep teal    → deep Blueprint Blue (text-weight blue)
  *  - `accent2`    magenta      → Coral #FF6B78 (attention, reminders, premium)
- *  - `bg`         newsprint    → Warm Cream #F7F1E7 (the app canvas)
+ *  - `bg`         newsprint    → Warm Ivory #FFFDF8 (the app canvas — the exact
+ *                  colour the wallpaper's pads end on)
  *  - `surface`    darker paper → white (cards) — `surfaceSoft` keeps the tinted
  *                  fill that tags, inputs and photo blanks used to get
  *  - `text`       near-black   → Deep Ink #202126
@@ -54,8 +55,11 @@ import type { TextStyle, ViewStyle } from 'react-native';
  */
 export const COLOR = {
   /* ---- canvas & surfaces ---- */
-  /** Warm Ivory — the app background, behind every screen and card. */
-  bg: '#F7F1E7',
+  /**
+   * Warm Ivory #FFFDF8 — the app canvas, behind every screen and card, and the
+   * exact colour the wallpaper masters' pads fade to (background-ref/make-bg-v2.py).
+   */
+  bg: '#FFFDF8',
   /** White — the card surface (white cards on warm ivory). */
   surface: '#FFFFFF',
   /** Soft warm tint — tags, inputs, photo blanks, dashed empty boxes. */
@@ -102,8 +106,8 @@ export const COLOR = {
   leaf: '#55C98D',
   /** Tangerine #FF9548 — food, nutrition, expenses, play. */
   tangerine: '#FF9548',
-  /** Warm Cream #F7F1E7 (alias of `bg`, for named-token call sites). */
-  ivory: '#F7F1E7',
+  /** Warm Ivory #FFFDF8 (alias of `bg`, for named-token call sites). */
+  ivory: '#FFFDF8',
   /** Deep Ink #202126 (alias of `text`). */
   ink: '#202126',
 
