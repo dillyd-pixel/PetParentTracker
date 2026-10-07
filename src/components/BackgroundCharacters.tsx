@@ -32,12 +32,12 @@
  * /home/team/shared/background-ref/make-wallpaper.py, which produced it).
  *
  * Layer 2 — the animals, drawn above the wallpaper and still under content.
- * Glyphs hug the top corners (bleeding a few points off the top edge so they
- * read as peeking in rather than sitting under the header), the left and right
- * margins, and the strip just above the bottom tab bar. Sizes run 26–44 points
- * with a slight tilt each, and each carries a soft palette halo from `COLOR`
- * (`textShadowRadius` at 14–18, centred so it is a wash, never a sticker
- * outline). Opacity sits in the 0.32–0.40 band: the earlier 0.08–0.16 pass was,
+ * Glyphs hug the top corners (bleeding off the top edge so they read as peeking
+ * in above the header rather than sitting under the header copy), the left and
+ * right margins, and the strip just above the bottom tab bar. Sizes run 26–42
+ * points with a slight tilt each, and each carries a soft palette halo from
+ * `COLOR` (`textShadowRadius` at 14–18, centred so it is a wash, never a sticker
+ * outline). Opacity sits in the 0.30–0.36 band: the earlier 0.08–0.16 pass was,
  * in the owner's words, invisible — these must be seen. Readability still
  * governs: if a glyph collides with a card edge or copy, move that glyph (the
  * centre column is off limits) rather than hiding the set again.
@@ -96,10 +96,10 @@ interface BackgroundCharacter {
  * `left: '10%'` and `right: '10%'` — that is the content column.
  */
 const CHARACTERS: BackgroundCharacter[] = [
-  { glyph: '🐶', size: 40, top: -6, left: -6, rotation: -12,
-    opacity: 0.40, glow: COLOR.blue, glowRadius: 18 },
-  { glyph: '🐱', size: 34, top: -4, right: -6, rotation: 10,
-    opacity: 0.38, glow: COLOR.lavender, glowRadius: 18 },
+  { glyph: '🐶', size: 40, top: -14, left: -8, rotation: -12,
+    opacity: 0.32, glow: COLOR.blue, glowRadius: 18 },
+  { glyph: '🐱', size: 34, top: -12, right: -8, rotation: 10,
+    opacity: 0.30, glow: COLOR.lavender, glowRadius: 18 },
   { glyph: '🐰', size: 42, top: '29%', left: -10, rotation: -8,
     opacity: 0.34, glow: COLOR.lavender, glowRadius: 16 },
   { glyph: '🐦', size: 38, top: '32%', right: -8, rotation: 8,
