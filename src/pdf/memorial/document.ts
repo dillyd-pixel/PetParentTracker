@@ -341,9 +341,9 @@ function memoryBlocks(rec: PetMemories, timeZone?: string): MemorialBlock[] {
   const printed = withPictures.slice(0, MEMORY_PRINT_LIMIT);
   const blocks: MemorialBlock[] = [
     line(
-      `${count(withPictures.length, 'memory', 'memories')} with a picture on file — the ${
-        printed.length === 1 ? 'one' : `${printed.length} most recent`
-      } print below.`,
+      `${count(withPictures.length, 'memory', 'memories')} with a picture on file — ${
+        printed.length === 1 ? 'here it is.' : `the most recent ${printed.length} print below.`
+      }`,
     ),
     {
       kind: 'list',
@@ -465,6 +465,25 @@ function milestoneBlocks(rec: PetMemories, today: Date, timeZone?: string): Memo
   return blocks;
 }
 
+/**
+ * Award ids whose moment the pet's own records already put on the timeline —
+ * the first care act, the first walk, the first clinic visit and the first
+ * vaccination. The timeline skips those shelved entries so a "first" is not
+ * printed twice on one page; they still print in full on the milestones page,
+ * where the shelf itself is the subject.
+ */
+const RECORD_DERIVED_AWARDS = new Set([
+  'first-check-in',
+  'first-walk',
+  'first-vet-visit',
+  'vaccine-hero',
+]);
+
+/** Is this award's moment already on the timeline, straight from the records? */
+function recordDerivedAward(awardId: string): boolean {
+  return RECORD_DERIVED_AWARDS.has(awardId);
+}
+
 /** 🕰️ Lifetime timeline — every dated record, oldest first. */
 function timelineBlocks(rec: PetMemories, today: Date, timeZone?: string): MemorialBlock[] {
   const { pet } = rec;
@@ -564,6 +583,11 @@ function timelineBlocks(rec: PetMemories, today: Date, timeZone?: string): Memor
 
   /* ---- the shelf: the milestones the app noticed ---- */
   for (const award of rec.awards) {
+    // A "first" that the records above already put on the timeline would only
+    // repeat itself here — the shelf entry is skipped for those, and kept for
+    // every milestone that exists nowhere else (streaks, the 100th check-in,
+    // a co-parent joining, and any award this version no longer ships).
+    if (recordDerivedAward(award.awardId)) continue;
     const def = awardById(award.awardId);
     const day = dayOf(award.earnedAt);
     if (!day) continue;
@@ -572,7 +596,7 @@ function timelineBlocks(rec: PetMemories, today: Date, timeZone?: string): Memor
       dateLabel: shortDate(day, timeZone),
       emoji: def?.emoji ?? '🏅',
       title: def?.title ?? award.awardId,
-      meta: 'kept on the shelf since this day',
+      meta: `${award.kind} noted on the shelf`,
       note: def?.blurb,
     });
   }
