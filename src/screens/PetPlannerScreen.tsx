@@ -207,8 +207,8 @@ export default function PetPlannerScreen(): React.JSX.Element {
       Alert.alert(
         'Saved 🎉',
         Platform.OS === 'android'
-          ? `${fileName} is in the folder you chose (your Downloads folder, by default).`
-          : `${fileName} was saved on this device:\n${savedTo}`,
+          ? `${fileName} (${formatBytes(bytes)}) is in the folder you chose (your Downloads folder, by default).`
+          : `${fileName} (${formatBytes(bytes)}) was saved on this device:\n${savedTo}`,
       );
     } catch (e) {
       Alert.alert(
@@ -240,11 +240,11 @@ export default function PetPlannerScreen(): React.JSX.Element {
     if (busy) return;
     setBusy('share');
     try {
-      const { uri } = await ensurePdf();
+      const { uri, bytes } = await ensurePdf();
       const title = plannerFileName(selectedPets.map((pet) => pet.name));
       const shared = await sharePlannerPdf(uri, title);
       if (!shared) {
-        Alert.alert('Sharing isn’t available here', `The planner is saved on this device:\n${uri}`);
+        Alert.alert('Sharing isn’t available here', `The planner (${formatBytes(bytes)}) is saved on this device:\n${uri}`);
       }
     } catch (e) {
       Alert.alert(
