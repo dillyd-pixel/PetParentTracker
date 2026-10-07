@@ -229,6 +229,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    // Explicit percentages too: without them react-native-web sizes the image
+    // element from the asset's intrinsic pixels instead of the window, which
+    // would anchor the wallpaper at the window's top-left corner.
+    width: '100%',
+    height: '100%',
   },
   wallpaper: {
     position: 'absolute',
@@ -236,6 +241,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    width: '100%',
+    height: '100%',
   },
   character: {
     position: 'absolute',
