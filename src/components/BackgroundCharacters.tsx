@@ -52,21 +52,90 @@
  * `background` is transparent, and the shared screen root style (`BS.screen`) is
  * transparent too.
  *
- * `resizeMode="cover"` means a tall phone viewport crops the near-square art
- * left/right (it keeps the cream centre, the pets and the bottom landscape)
- * while a wide desktop viewport crops it top/bottom (it keeps the cream centre
- * and the edge clusters).
+ * Crop-proof fit (owner feedback 2026-10-07: "Adjust the background itself to
+ * comply, fit perfectly and be compatible with each view so the image is not cut
+ * off in any way"). One near-square master cannot cover both a 0.46 phone and a
+ * 1.7 desktop without slicing the illustration: cover fits the image to the
+ * viewport's *longest* side, so it cuts whichever side has canvas to spare. The
+ * wallpaper is therefore three aspect-adaptive masters of the SAME illustration
+ * — the art is copied in pixel for pixel, and only cream is added around it (see
+ * /home/team/shared/background-ref/make-wallpaper-masters.py):
  *
- * Fully offline: one bundled asset resolved with `require` plus OS-rendered
- * emoji — no network, no new dependencies — and it works on Android and the web
- * preview alike. All colour tokens come from `COLOR` — no literal hex values in
+ *   wallpaper-portrait.png   1213x2760   art + 732px cream top/bottom (460 fade)
+ *   wallpaper.png            2013x1296   art + 400px cream left/right (380 fade)
+ *   wallpaper-landscape.png  3111x1296   art + 949px cream left/right (460 fade)
+ *
+ * Each pad begins on the art's own edge pixels and eases into the app canvas
+ * (#F7F1E7 = `COLOR.bg`) over its fade, so the join is invisible and the far end
+ * of the pad is exactly the canvas colour — the wallpaper melts into the app
+ * background at the screen edge instead of ending on a hard line. `cover` still
+ * does the fitting; the master is now chosen so that the direction cover crops
+ * holds only cream, which keeps the illustration whole on every screen:
+ *
+ *   aspect = width / height   band chosen              whole art visible for
+ *   <= 0.936                  portrait master          aspect 0.44 – 0.94
+ *   0.936 – 1.35              mid master               0.94 – 1.55
+ *   > 1.35                    landscape master         1.35 – 2.40
+ *
+ * (Each master's safe band is `1213 / masterHeight` to `masterWidth / 1296` —
+ * outside it the art itself is clipped, so the bands above stay inside them.)
+ * On a phone the art now fills the viewport width with cream fades above and
+ * below, keeping today's composition (pets over the top, wave landscape at the
+ * bottom, cream centre behind the cards) with nothing cut; on desktop the art
+ * fills the height and is flanked by the fades. `wallpaperSourceFor` does the
+ * choice from `useWindowDimensions`, so a rotation or a resized browser window
+ * re-picks the master on the spot.
+ *
+ * Fully offline: three bundled masters resolved with static `require`s plus
+ * OS-rendered emoji — no network, no new dependencies — and it works on Android
+ * and the web preview alike. All colour tokens come from `COLOR` — no literal hex values in
  * this file except the transparent-free glyph layer itself.
  */
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import type { DimensionValue } from 'react-native';
+import {
+  Image,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import type { DimensionValue, ImageSourcePropType } from 'react-native';
 
 import { COLOR } from '../theme';
+
+/**
+ * The three wallpaper masters, differing only in how much cream canvas they
+ * carry around the identical illustration. Static `require`s: no dynamic path
+ * building, so the bundler ships exactly these three assets.
+ */
+const WALLPAPER = {
+  /** 1213x2760 — art with 732px of cream above and below (tall/portrait). */
+  portrait: require('../../assets/wallpaper-portrait.png'),
+  /** 2013x1296 — art with 400px of cream either side (near-square). */
+  mid: require('../../assets/wallpaper.png'),
+  /** 3111x1296 — art with 949px of cream either side (wide/landscape). */
+  landscape: require('../../assets/wallpaper-landscape.png'),
+};
+
+/**
+ * Band edges for `aspect = width / height`. They sit on each master's safe
+ * limit (`1213 / masterHeight` for tall windows, `masterWidth / 1296` for wide
+ * ones), so the master in use always shows the whole illustration; within a
+ * band the art is as large as the viewport allows.
+ */
+const PORTRAIT_MAX_ASPECT = 0.936;   // portrait master fills the width to here
+const MID_MAX_ASPECT = 1.35;         // mid master fills the height past here
+
+/**
+ * Pick the master for a window aspect. Exported for the offline test harness:
+ * it is pure, so the bands can be checked without a device.
+ */
+export function wallpaperSourceFor(aspect: number): ImageSourcePropType {
+  if (!Number.isFinite(aspect) || aspect <= 0) return WALLPAPER.mid;
+  if (aspect <= PORTRAIT_MAX_ASPECT) return WALLPAPER.portrait;
+  if (aspect <= MID_MAX_ASPECT) return WALLPAPER.mid;
+  return WALLPAPER.landscape;
+}
 
 interface BackgroundCharacter {
   /** The emoji glyph — rendered by the OS, no asset needed. */
@@ -119,13 +188,15 @@ const CHARACTERS: BackgroundCharacter[] = [
 ];
 
 export default function BackgroundCharacters(): React.JSX.Element {
+  // The layer covers the whole window, so the window's own shape decides which
+  // master can be shown whole. Re-picking on every size change keeps rotation
+  // and browser resizes crop-free.
+  const { width, height } = useWindowDimensions();
+  const source = wallpaperSourceFor(height > 0 ? width / height : 1);
+
   return (
     <View style={styles.layer} pointerEvents="none">
-      <Image
-        source={require('../../assets/wallpaper.png')}
-        style={styles.wallpaper}
-        resizeMode="cover"
-      />
+      <Image source={source} style={styles.wallpaper} resizeMode="cover" />
       {CHARACTERS.map((character, index) => (
         <Text
           key={`${character.glyph}-${index}`}
@@ -158,6 +229,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    // Explicit percentages too: without them react-native-web sizes the image
+    // element from the asset's intrinsic pixels instead of the window, which
+    // would anchor the wallpaper at the window's top-left corner.
+    width: '100%',
+    height: '100%',
   },
   wallpaper: {
     position: 'absolute',
@@ -165,6 +241,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    width: '100%',
+    height: '100%',
   },
   character: {
     position: 'absolute',
