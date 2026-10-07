@@ -33,7 +33,6 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useSitter } from '../context/SitterContext';
 import type { SitterStackParamList } from '../navigation/SitterNavigator';
 import {
@@ -151,7 +150,6 @@ export default function OpenCarePassScreen({ navigation }: Props): React.JSX.Ele
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={BS.link}>‹ Sitter Mode</Text>

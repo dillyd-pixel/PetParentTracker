@@ -279,8 +279,16 @@ export const FONT_BODY = Platform.select({
   default: 'system-ui',
 });
 
-/** Shorthand for a full-bleed screen: fills its parent on the ivory canvas. */
-const SCREEN: ViewStyle = { flex: 1, backgroundColor: COLOR.bg };
+/**
+ * Shorthand for a full-bleed screen: fills its parent.
+ *
+ * Transparent on purpose — the app root (App.tsx) paints the Warm Cream canvas
+ * *behind* the wallpaper layer, so a screen root that filled itself with
+ * `COLOR.bg` would hide the wallpaper. Real surfaces (cards, sheets, the paper
+ * previews, modal scrims) still paint their own colour; only the full-screen
+ * roots and the navigator scenes are see-through.
+ */
+const SCREEN: ViewStyle = { flex: 1, backgroundColor: 'transparent' };
 
 /** The bottom tab bar's height, above the home indicator; screens pad for it. */
 const TAB_BAR_SPACE = 108;

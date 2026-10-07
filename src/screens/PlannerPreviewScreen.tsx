@@ -24,7 +24,7 @@ import { PlannerWebFrame } from '../components/PlannerWebFrame';
 import { usePlannerBuilders } from '../pdf/planner/usePlannerDocument';
 import { paperSizeDef } from '../pdf/planner/sections';
 import type { ShopStackParamList } from '../navigation/ShopNavigator';
-import { BS, SPACE } from '../theme';
+import { BS, COLOR, SPACE } from '../theme';
 
 /** The document preview for the choices made on the Customize screen. */
 export default function PlannerPreviewScreen(): React.JSX.Element {
@@ -90,6 +90,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACE.s4,
     paddingVertical: SPACE.s3,
-    backgroundColor: BS.screen.backgroundColor,
+    backgroundColor: COLOR.bg,
   },
 });

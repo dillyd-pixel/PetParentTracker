@@ -17,7 +17,6 @@ import { usePets } from '../context/PetContext';
 import { useVetRecords } from '../context/VetContext';
 import { useAccount } from '../context/AccountContext';
 import { usePremium } from '../context/PremiumContext';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import type { RecordsStackParamList } from '../navigation/RecordsNavigator';
 import { recordKind } from '../utils/records';
@@ -46,7 +45,6 @@ export default function RecordsScreen({ navigation }: Props): React.JSX.Element 
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <View style={BS.rowBetween}>
           <Text style={BS.h1}>Records</Text>

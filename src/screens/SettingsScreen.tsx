@@ -29,7 +29,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useAccount } from '../context/AccountContext';
 import { usePremium } from '../context/PremiumContext';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import type { ShopStackParamList } from '../navigation/ShopNavigator';
 import { DEFAULT_USERNAME } from '../storage/account';
 import { PREMIUM_TRIAL_DAYS } from '../storage/premium';
@@ -154,7 +153,6 @@ export default function SettingsScreen(): React.JSX.Element {
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         {/* The design's in-page header — this screen's own back link + title. */}
         <TouchableOpacity

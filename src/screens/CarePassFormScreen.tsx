@@ -21,7 +21,6 @@ import React, { useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { CarePassPremiumLock } from '../components/CarePassPremiumLock';
 import { useAccount } from '../context/AccountContext';
 import { usePets } from '../context/PetContext';
@@ -133,7 +132,6 @@ export default function CarePassFormScreen({ navigation }: Props): React.JSX.Ele
   if (!premium.isPremium()) {
     return (
       <View style={BS.screen}>
-        <BackgroundCharacters />
         <ScrollView contentContainerStyle={BS.pad}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={BS.link}>‹ Sitter Mode</Text>
@@ -147,7 +145,6 @@ export default function CarePassFormScreen({ navigation }: Props): React.JSX.Ele
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={BS.link}>‹ Sitter Mode</Text>

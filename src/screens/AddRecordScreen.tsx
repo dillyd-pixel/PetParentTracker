@@ -29,7 +29,6 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { usePets } from '../context/PetContext';
 import { useVetRecords } from '../context/VetContext';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import type { RecordsStackParamList } from '../navigation/RecordsNavigator';
 import { RECORD_CATEGORIES, categoryNotes } from '../utils/records';
 import { todayISO } from '../utils/petDisplay';
@@ -94,7 +93,6 @@ export default function AddRecordScreen({ navigation }: Props): React.JSX.Elemen
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={BS.link}>‹ Records</Text>

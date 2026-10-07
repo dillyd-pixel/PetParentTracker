@@ -22,7 +22,6 @@ import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import CarePassStatusBadge from '../components/CarePassStatusBadge';
 import { useGoToPremium } from '../components/CarePassPremiumLock';
 import { useCareInstructions } from '../context/CareInstructionsContext';
@@ -58,7 +57,6 @@ export default function SitterHomeScreen({ navigation }: Props): React.JSX.Eleme
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Back to More">
           <Text style={BS.link}>‹ More</Text>

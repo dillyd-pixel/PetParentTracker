@@ -43,7 +43,6 @@ import {
   cancelMedicationsForPet,
   cancelVaccinesForPet,
 } from '../storage/notifications';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import { medicationScheduleLabel, careInstructionsSummary } from '../types';
@@ -116,7 +115,6 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
   if (!pet) {
     return (
       <View style={BS.screen}>
-        <BackgroundCharacters />
         <ScrollView contentContainerStyle={BS.pad}>
           <Text style={BS.h1}>No pet selected</Text>
           <Text style={BS.italic}>Pick or add a pet on the Pets tab.</Text>
@@ -209,7 +207,6 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity onPress={() => navigation.navigate('PetList')}>
           <Text style={BS.link}>‹ Pets</Text>

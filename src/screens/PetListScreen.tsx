@@ -12,7 +12,6 @@ import React from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 import { usePets } from '../context/PetContext';
-import BackgroundCharacters from '../components/BackgroundCharacters';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import { petEmojiFor, petMetaLine } from '../utils/petDisplay';
 import { BS, SPACE } from '../theme';
@@ -47,7 +46,6 @@ export default function PetListScreen(): React.JSX.Element {
 
   return (
     <View style={BS.screen}>
-      <BackgroundCharacters />
       <ScrollView contentContainerStyle={BS.pad}>
         <View style={BS.rowBetween}>
           <Text style={BS.h1}>Pets</Text>
