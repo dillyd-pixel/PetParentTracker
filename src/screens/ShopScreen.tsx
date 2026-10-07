@@ -8,8 +8,10 @@
  *    trial/unlock flow and its stored state live.
  *  - Co-parent sharing stays our offline export/import implementation: premium
  *    travels with the share file, import is open to everyone.
- *  - The four keepsake products are rows with NO prices and NO purchase flow,
- *    because they are on hold while the owner reviews the app.
+ *  - The keepsake products are rows with NO prices and NO purchase flow. The
+ *    printable pet planner is the first of them to be finished: it opens its own
+ *    on-device screen (preview free, PDFs with Blueprint Premium), while the
+ *    other three stay on hold for the owner.
  *
  * 100% offline: every entry point here is local state + on-device file export.
  */
@@ -24,14 +26,17 @@ import { ExportPetPdfRow } from '../components/ExportPetPdfRow';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ShopStackParamList } from '../navigation/ShopNavigator';
-import { BS, SPACE } from '../theme';
+import { BS, COLOR, SPACE } from '../theme';
 
-/** The keepsake products — on hold, no prices, no purchase flow. */
-const PRODUCTS: Array<{ name: keyof ShopStackParamList; title: string; desc: string }> = [
+/** The keepsake product routes this screen links to (all take no params). */
+type KeepsakeRoute = 'PetPlanner' | 'MemorialBook' | 'Artwork' | 'EmergencyCard';
+
+/** The keepsake products. The planner is live; the other three stay on hold. */
+const PRODUCTS: Array<{ name: KeepsakeRoute; title: string; desc: string }> = [
   {
     name: 'PetPlanner',
     title: 'Printable pet planner',
-    desc: 'On-device PDF planner you can print.',
+    desc: 'On-device PDF planner you can print — 14 sections, Letter or A4.',
   },
   {
     name: 'MemorialBook',
@@ -143,8 +148,8 @@ export default function ShopScreen(): React.JSX.Element {
           </>
         )}
 
-        {/* ---- Keepsakes (on hold) ---- */}
-        <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Keepsakes (on hold)</Text>
+        {/* ---- Keepsakes ---- */}
+        <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Keepsakes</Text>
         {PRODUCTS.map((product) => (
           <TouchableOpacity
             key={product.name}
@@ -154,13 +159,19 @@ export default function ShopScreen(): React.JSX.Element {
             <View style={{ flex: 1 }}>
               <Text style={BS.rowLabel}>{product.title}</Text>
               <Text style={BS.caption}>{product.desc}</Text>
+              {product.name === 'PetPlanner' && (
+                <Text style={[BS.caption, { color: COLOR.accent700 }]}>
+                  {unlocked ? 'Ready to print' : 'Preview free · PDFs with Blueprint Premium'}
+                </Text>
+              )}
             </View>
             <Text style={BS.link}>›</Text>
           </TouchableOpacity>
         ))}
         <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
-          Keepsake products are on hold while the owner reviews the app — no prices, no purchase
-          flow yet.
+          The printable pet planner is ready to use — preview it free, and generate, download, print
+          or share the PDF with Blueprint Premium. The other keepsakes are still being designed: no
+          prices, no purchase flow.
         </Text>
 
         {/* ---- Settings (quiet row — account, display zone, premium, wipe) ---- */}

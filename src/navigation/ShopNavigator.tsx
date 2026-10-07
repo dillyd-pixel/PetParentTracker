@@ -12,11 +12,16 @@
  *                 zone dates/times are shown in, the live premium/billing
  *                 details, and the "delete account" wipe. Lives here rather
  *                 than in a sixth tab, so the five-tab IA stays as designed.
- *   PetPlanner, MemorialBook, Artwork, EmergencyCard — the upsell product
- *                 detail placeholders (on hold).
+ *   PetPlanner     — the Printable Pet Planner (upsell product 1/4): pick pets,
+ *                 toggle 14 sections, choose Letter or A4, preview for free and
+ *                 (premium) generate / download / print / share the on-device PDF.
+ *   PetPlannerPreview — the full-screen preview of the generated document.
+ *   MemorialBook, Artwork, EmergencyCard — the remaining upsell product
+ *                 placeholders (on hold).
  *
  * Premium is not an upsell product: it is the app's paid tier, presented on its
- * own screen. The upsell products stay untouched and ON HOLD for the owner.
+ * own screen. The kept products other than the planner stay untouched and ON
+ * HOLD for the owner.
  *
  * Every screen here except Search draws the design's own in-page header (an
  * `h1` plus a back link), so the navigator header is hidden on those — one
@@ -31,10 +36,13 @@ import React from 'react';
 import { createWebSafeStackNavigator } from './WebSafeStack';
 import { PAPER_HEADER } from './headerOptions';
 import ShopScreen from '../screens/ShopScreen';
+import PetPlannerScreen from '../screens/PetPlannerScreen';
+import PlannerPreviewScreen from '../screens/PlannerPreviewScreen';
 import PlaceholderScreen from '../screens/PlaceholderScreen';
 import PremiumScreen from '../screens/PremiumScreen';
 import SearchScreen from '../screens/SearchScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import type { PaperSize, PlannerSectionId } from '../pdf/planner/sections';
 
 export type ShopStackParamList = {
   ShopHome: undefined;
@@ -42,6 +50,14 @@ export type ShopStackParamList = {
   Search: undefined;
   Settings: undefined;
   PetPlanner: undefined;
+  /** The preview for one set of planner choices (all values are serializable). */
+  PetPlannerPreview: {
+    petIds: string[];
+    sectionIds: PlannerSectionId[];
+    paper: PaperSize;
+    /** Web only: open the browser print dialog as soon as it has rendered. */
+    autoPrint?: boolean;
+  };
   MemorialBook: undefined;
   Artwork: undefined;
   EmergencyCard: undefined;
@@ -65,14 +81,12 @@ export function ShopNavigator(): React.JSX.Element {
         component={SettingsScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="PetPlanner" options={{ headerShown: false }}>
-        {() => (
-          <PlaceholderScreen
-            title="Printable Pet Planner"
-            noun="PDF that prints at home — generated on-device, no server"
-          />
-        )}
-      </Stack.Screen>
+      <Stack.Screen name="PetPlanner" component={PetPlannerScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="PetPlannerPreview"
+        component={PlannerPreviewScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="MemorialBook" options={{ headerShown: false }}>
         {() => (
           <PlaceholderScreen
