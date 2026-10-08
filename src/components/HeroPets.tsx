@@ -12,7 +12,7 @@
  * How the peek works. The component renders nothing but an absolutely
  * positioned layer whose BOTTOM edge sits exactly on the top edge of the card it
  * is placed above (`bottom: '100%'` inside the card's wrapper), and the art's
- * own bottom edge is flush with that line. So:
+ * own bottom edge tucks `HERO_TUCK` below that line, into the card. So:
  *
  *   * the heroes are never *drawn over* the card — the card's own top edge cuts
  *     them, which is what "peeking over" looks like and needs no z-index work;
@@ -24,10 +24,13 @@
  *
  * Placement per breakpoint. The heroes fill the margin between the screen header
  * and the top card and nothing else, so they can never sit under a title, a
- * button or a link: the height below is the visible peek, tuned to that margin
- * (phone 54pt, tablet 62, desktop 70) and the right offset keeps them clear of
- * the header's own right-hand controls. Measured in the browser at 390x844,
- * 768x1024 and 1440x900 — see the probe numbers in the PR.
+ * button or a link. That margin is a *fixed* 70pt at every window size (the
+ * header is the same height and the card's top edge lands on y≈153 either way),
+ * so the peek is the same on every breakpoint — 58pt of art, 56pt of it visible —
+ * and only the right-hand inset changes, to keep the art inboard of the window
+ * edge on a wide screen. Verified in the browser at 390x844, 768x1024 and
+ * 1440x900: no hero rectangle intersects the header title, the Search link or the
+ * Settings gear at any of the three — see the probe numbers in the PR.
  *
  * Motion. One very gentle breath (a 2% scale, 2pt rise over ~5s) so the pair
  * feels alive. It animates transform only, on the native driver, and it is
@@ -43,13 +46,28 @@ const HERO = require('../../assets/hero-pets.png');
 /** The cut-out's own aspect ratio (379x172 at source), so the peek height sets the width. */
 const HERO_ASPECT = 379 / 172;
 
-/** How tall the visible peek is, and how far in from the window's right edge. */
+/** How tall the art is, and how far in from the content's right edge it sits. */
 type HeroLayout = { peek: number; right: number };
+/**
+ * The art's height in points. The band above the card is the same 70pt at every
+ * breakpoint (see the placement note above), so this is too: the art spans
+ * y 94–154 while the header's lowest control (the gear) ends at y 83, which
+ * leaves an 11pt clear gap *after* the breath animation's 1.02 scale. A taller
+ * art on a wide screen would only eat that clearance in exchange for nothing.
+ */
+const HERO_PEEK = 58;
+/**
+ * How far the art's bottom edge tucks below the card's top edge. The card paints
+ * after this layer, so the tuck is hidden and the art is cut exactly on the
+ * card's top edge — the look of a pet standing behind the card. 2pt of tuck
+ * absorbs sub-pixel rounding instead of leaving a hairline of canvas.
+ */
+const HERO_TUCK = 2;
 
 function layoutFor(width: number): HeroLayout {
-  if (width >= 1024) return { peek: 70, right: 120 };
-  if (width >= 700) return { peek: 62, right: 84 };
-  return { peek: 54, right: 20 };
+  if (width >= 1024) return { peek: HERO_PEEK, right: 120 };
+  if (width >= 700) return { peek: HERO_PEEK, right: 84 };
+  return { peek: HERO_PEEK, right: 20 };
 }
 
 export default function HeroPets(): React.JSX.Element {
@@ -121,7 +139,7 @@ const styles = StyleSheet.create({
   },
   hero: {
     position: 'absolute',
-    bottom: 0,
+    bottom: -HERO_TUCK,
     // Explicit size so react-native-web lays the art out from the style, not
     // from the asset's intrinsic pixels.
     aspectRatio: HERO_ASPECT,
