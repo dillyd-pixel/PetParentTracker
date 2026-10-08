@@ -21,12 +21,16 @@
  *                 optional note from the owner, preview free and (premium)
  *                 generate / download / print / share the on-device PDF.
  *   MemorialBookPreview — the full-screen preview of the generated book.
- *   Artwork, EmergencyCard — the remaining upsell product placeholders (on
- *                 hold).
+ *   Artwork        — Custom Pet Artwork (upsell product 3/4): one pet with a
+ *                 photo, five template looks with a live preview, an optional
+ *                 caption, Letter or A4, preview free and (premium) generate /
+ *                 download / print / share the on-device PDF.
+ *   ArtworkPreview — the full-screen preview of the generated sheet.
+ *   EmergencyCard  — the last upsell product placeholder (on hold).
  *
  * Premium is not an upsell product: it is the app's paid tier, presented on its
- * own screen. The keepsake products other than the planner and the memorial book
- * stay untouched and ON HOLD for the owner.
+ * own screen. The one keepsake product still unbuilt — the emergency card pack —
+ * stays untouched and ON HOLD for the owner.
  *
  * Every screen here except Search draws the design's own in-page header (an
  * `h1` plus a back link), so the navigator header is hidden on those — one
@@ -45,12 +49,15 @@ import PetPlannerScreen from '../screens/PetPlannerScreen';
 import PlannerPreviewScreen from '../screens/PlannerPreviewScreen';
 import MemorialBookScreen from '../screens/MemorialBookScreen';
 import MemorialBookPreviewScreen from '../screens/MemorialBookPreviewScreen';
+import ArtworkScreen from '../screens/ArtworkScreen';
+import ArtworkPreviewScreen from '../screens/ArtworkPreviewScreen';
 import PlaceholderScreen from '../screens/PlaceholderScreen';
 import PremiumScreen from '../screens/PremiumScreen';
 import SearchScreen from '../screens/SearchScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import type { PaperSize, PlannerSectionId } from '../pdf/planner/sections';
 import type { MemorialSectionId } from '../pdf/memorial/sections';
+import type { ArtworkTemplateId } from '../pdf/artwork/templates';
 
 export type ShopStackParamList = {
   ShopHome: undefined;
@@ -79,6 +86,18 @@ export type ShopStackParamList = {
     autoPrint?: boolean;
   };
   Artwork: undefined;
+  /** The preview for one set of artwork choices (all values are serializable). */
+  ArtworkPreview: {
+    /** The one pet the piece is about. */
+    petId: string | null;
+    /** The look being framed in (an unknown id falls back to the default). */
+    templateId: ArtworkTemplateId | string;
+    paper: PaperSize;
+    /** The owner's own words for the caption (still just text, not a file). */
+    caption?: string;
+    /** Web only: open the browser print dialog as soon as it has rendered. */
+    autoPrint?: boolean;
+  };
   EmergencyCard: undefined;
 };
 
@@ -116,14 +135,12 @@ export function ShopNavigator(): React.JSX.Element {
         component={MemorialBookPreviewScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="Artwork" options={{ headerShown: false }}>
-        {() => (
-          <PlaceholderScreen
-            title="Custom Pet Artwork"
-            noun="artwork generated on-device from your pet photo"
-          />
-        )}
-      </Stack.Screen>
+      <Stack.Screen name="Artwork" component={ArtworkScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="ArtworkPreview"
+        component={ArtworkPreviewScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="EmergencyCard" options={{ headerShown: false }}>
         {() => (
           <PlaceholderScreen

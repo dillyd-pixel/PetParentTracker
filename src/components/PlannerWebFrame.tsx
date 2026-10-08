@@ -26,6 +26,7 @@ export function PlannerWebFrame({
   autoPrint = false,
   title = 'Pet planner preview',
   printLabel = '🖨️ Print this planner',
+  showPrintBar = true,
 }: {
   html: string;
   /** Open the browser's print dialog as soon as the document is on screen. */
@@ -34,6 +35,12 @@ export function PlannerWebFrame({
   title?: string;
   /** The label on the frame's own print button. */
   printLabel?: string;
+  /**
+   * Whether the frame carries its own print button. Off for a frame that is one
+   * card on a screen the owner is still customising on (custom artwork's live
+   * preview), where printing is a deliberate, gated action of its own.
+   */
+  showPrintBar?: boolean;
 }): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const frameRef = useRef<any>(null);
@@ -78,11 +85,13 @@ export function PlannerWebFrame({
           backgroundColor: COLOR.bg,
         },
       })}
-      <View style={styles.printBar}>
-        <TouchableOpacity onPress={printDocument} accessibilityLabel={printLabel}>
-          <Text style={[BS.btnSecondaryText, styles.printText]}>{printLabel}</Text>
-        </TouchableOpacity>
-      </View>
+      {showPrintBar ? (
+        <View style={styles.printBar}>
+          <TouchableOpacity onPress={printDocument} accessibilityLabel={printLabel}>
+            <Text style={[BS.btnSecondaryText, styles.printText]}>{printLabel}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 }

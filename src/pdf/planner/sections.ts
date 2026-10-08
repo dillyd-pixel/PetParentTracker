@@ -96,6 +96,13 @@ export interface PaperSizeDef {
   widthPx: number;
   /** Page height in pixels at 72 PPI. */
   heightPx: number;
+  /**
+   * Page width in millimetres — used by the custom artwork sheet, which fills
+   * the page edge to edge and therefore sets its own size in real units.
+   */
+  widthMm: number;
+  /** Page height in millimetres. */
+  heightMm: number;
 }
 
 /** The two supported paper sizes, in the order the Customize screen shows them. */
@@ -107,6 +114,8 @@ export const PAPER_SIZES: readonly PaperSizeDef[] = [
     cssPageSize: 'letter portrait',
     widthPx: 612,
     heightPx: 792,
+    widthMm: 215.9,
+    heightMm: 279.4,
   },
   {
     id: 'a4',
@@ -115,6 +124,8 @@ export const PAPER_SIZES: readonly PaperSizeDef[] = [
     cssPageSize: 'A4 portrait',
     widthPx: 595,
     heightPx: 842,
+    widthMm: 210,
+    heightMm: 297,
   },
 ];
 
