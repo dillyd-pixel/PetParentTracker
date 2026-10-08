@@ -83,6 +83,7 @@ import { CCCard, CCEmptyState, CCSectionTitle } from '../components/CC';
 import PetCrewCarousel from '../components/PetCrewCarousel';
 import type { PetCrewEntry } from '../components/PetCrewCarousel';
 import DailyCareRing from '../components/DailyCareRing';
+import HeroPets from '../components/HeroPets';
 import {
   HomeTasksCard,
   NeedsAttentionCard,
@@ -666,7 +667,20 @@ export default function TodayScreen(): React.JSX.Element {
           titleSaved && <Text style={[BS.caption, { marginTop: -SPACE.s1 }]}>Saved</Text>
         )}
 
-        {/* ---- greeting band, tinted by the selected pet's accent ---- */}
+        {/*
+          ---- greeting band, tinted by the selected pet's accent ----
+
+          The band is the top card on Home, and the crew's heroes peek over its
+          top edge (design pass 2026-10-07): `bandWrap` carries the whole top
+          margin — including the inset the card itself used to carry — so the
+          wrapper's top edge is the card's top edge, and `HeroPets` is its first
+          child, tucked 2pt into the card so the card paints over the art and cuts
+          it exactly on that line. While the title is being renamed the header
+          grows an extra hint line, so the heroes step aside rather than sit under
+          it.
+        */}
+        <View style={styles.bandWrap}>
+          {!editingTitle && <HeroPets />}
         <CCCard
           glowTint={accentFill}
           radius={RADIUS.cardLg}
@@ -711,6 +725,7 @@ export default function TodayScreen(): React.JSX.Element {
             </Text>
           </View>
         </CCCard>
+        </View>
 
         {pets.length === 0 ? (
           /* ---- no pets yet: the illustrated first-run prompt ---- */
@@ -981,8 +996,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.s1,
     paddingBottom: SPACE.s2,
   },
+  /**
+   * The greeting card's wrapper. Its top edge IS the card's top edge: the card's
+   * own 15pt inset has moved up into this margin (`SPACE.s3`), so the wrapper's
+   * top edge is the exact line `HeroPets` sits its art on and tucks it into.
+   * The last `SPACE.s4` is the heroes' band — the room between the header's
+   * lowest control (the gear, ending at y 83) and the card (now starting at
+   * y≈153), which is what lets the 58pt art clear the header at every breakpoint.
+   */
+  bandWrap: { marginTop: SPACE.s4 + SPACE.s3 + SPACE.s4 },
   /** The greeting card: the gradient layers fill it, the content sits on top. */
-  band: { overflow: 'hidden', marginTop: SPACE.s3, padding: 0 },
+  band: { overflow: 'hidden', padding: 0 },
   bandLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   fill: { flex: 1 },
   bandContent: { padding: SPACE.s4, gap: 2 },
