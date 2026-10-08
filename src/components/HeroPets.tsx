@@ -4,10 +4,18 @@
  * Owner direction 2026-10-07: "use the dog/cat as hero characters peeking over
  * the top card/header, rather than faint background stickers." The previous pass
  * put the pets in the wallpaper and floated flat emoji over the edges, which
- * read as stickers. This is the replacement: the cat and the dog — the actual
+ * read as stickers. This is the replacement: the cat AND the dog — the two
  * characters from the owner's reference art, cut out of it and bundled as
  * `assets/hero-pets.png` (see /home/team/shared/background-ref/extract-pets.py)
- * — peek over the top card on Home.
+ * — peek over the top card on Home, side by side.
+ *
+ * Both characters, not one. The first cut framed the pair the way the reference
+ * art happens to crop it (the dog filling the frame, a sliver of the cat's ear
+ * at the left edge), which read as a dog hero with a stray ear. The art is now
+ * reframed on the two heads: the cat's whole head — both ears, muzzle, whiskers
+ * and paws — is in frame at the left, the dog's at the right, the cat in front
+ * exactly as the reference layers them. Nothing about the layer's geometry
+ * changed: same 58pt peek, same 2pt bottom tuck, same right insets.
  *
  * How the peek works. The component renders nothing but an absolutely
  * positioned layer whose BOTTOM edge sits exactly on the top edge of the card it
@@ -21,6 +29,10 @@
  *   * the layer is mounted inside the scrolled content, so the heroes travel with
  *     the card instead of floating in the window while the page scrolls;
  *   * it never intercepts touches and is hidden from screen readers.
+ *
+ * The art's bottom row is the line the card cuts the pets on — the cut-out is
+ * cropped there rather than at the baked drop shadow's edge, so scaling the art
+ * down cannot leave a gap between the pets and the card.
  *
  * Placement per breakpoint. The heroes fill the margin between the screen header
  * and the top card and nothing else, so they can never sit under a title, a
@@ -41,10 +53,10 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, useWindowDimensions, View } from 'react-native';
 
-/** The cut-out pair (cat + dog), as it peeks in the owner's reference art. */
+/** The cut-out pair (cat + dog), both characters fully in frame. */
 const HERO = require('../../assets/hero-pets.png');
-/** The cut-out's own aspect ratio (379x172 at source), so the peek height sets the width. */
-const HERO_ASPECT = 379 / 172;
+/** The cut-out's own aspect ratio (455x181 at source), so the peek height sets the width. */
+const HERO_ASPECT = 455 / 181;
 
 /** How tall the art is, and how far in from the content's right edge it sits. */
 type HeroLayout = { peek: number; right: number };
