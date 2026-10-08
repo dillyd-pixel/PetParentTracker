@@ -14,33 +14,33 @@
  *    mounts it itself.
  *  - "Where are the animal images?" The wallpaper's own pet faces sit in the
  *    middle vertical bands of the art — exactly where the white cards sit, so
- *    the owner could not see them. The friendly emoji from the pre-wallpaper
- *    pass (dog, cat, bunny, bird, fish, hamster, plus paws and a bone) are back
- *    as a clearly visible layer ON TOP of the wallpaper, anchored to the screen
- *    edges and corners, never in the centre column where the content lives.
+ *    the owner could not see them. A friendly emoji layer (bunny, bird, fish,
+ *    hamster, plus paws and a bone) sits ON TOP of the wallpaper, anchored to
+ *    the screen edges, never in the centre column where the content lives. The
+ *    dog and cat used to be part of that layer too, but the redesign (PR #22,
+ *    owner direction 2026-10-07) made them the illustrated HERO pair instead —
+ *    see HeroPets.tsx — so they were retired from the stickers to avoid the
+ *    same animal being both a hero and a faint sticker.
  *
  * Layer 1 — the wallpaper. The reference image (staged at
  * /home/team/shared/background-ref/reference.png, derived asset committed as
- * `assets/wallpaper.png`) is the atmosphere of every screen: warm cream canvas,
- * botanical clusters hugging the edges, the pets peeking over the top band, and
- * the soft wave / bone landscape along the bottom. The asset is the
- * illustration only: the staged reference is a screenshot of this app's own
- * Keepsakes screen, so its pixels also contained four white product cards, the
- * "KEEPSAKES (ON HOLD)" title and an info card; painting that raw would have put
- * ghost card copy behind the live UI. The wallpaper keeps the art untouched and
- * repaints those UI areas with the surrounding canvas (see
- * /home/team/shared/background-ref/make-wallpaper.py, which produced it).
+ * `assets/wallpaper.png`) is the atmosphere of every screen: warm ivory→peach
+ * base with soft blue/lavender/aqua/leaf/golden/coral washes (PR #22
+ * make-bg-v2.py), the wave / bone landscape along the bottom, and paw prints /
+ * hearts / leaves / glow dots / dashed trails held to the perimeter ring. Crop-
+ * proof: three aspect-adaptive masters ending on the canvas colour (#FFFDF8).
  *
  * Layer 2 — the animals, drawn above the wallpaper and still under content.
- * Glyphs hug the top corners (bleeding off the top edge so they read as peeking
- * in above the header rather than sitting under the header copy), the left and
- * right margins, and the strip just above the bottom tab bar. Sizes run 26–42
- * points with a slight tilt each, and each carries a soft palette halo from
- * `COLOR` (`textShadowRadius` at 14–18, centred so it is a wash, never a sticker
- * outline). Opacity sits in the 0.30–0.36 band: the earlier 0.08–0.16 pass was,
- * in the owner's words, invisible — these must be seen. Readability still
- * governs: if a glyph collides with a card edge or copy, move that glyph (the
- * centre column is off limits) rather than hiding the set again.
+ * Small details (bunny, bird, fish, hamster, bone, paws) sit in the left and
+ * right margins and the strip just above the bottom tab bar; the centre column
+ * is off limits. Sizes run 26–42 points with a slight tilt each, and each
+ * carries a soft palette halo from `COLOR` (`textShadowRadius` at 14–18,
+ * centred so it is a wash, never a sticker outline). Opacity sits in the
+ * 0.30–0.36 band: the earlier 0.08–0.16 pass was, in the owner's words,
+ * invisible — these must be seen. Readability still governs: if a glyph
+ * collides with a card edge or copy, move that glyph rather than hiding the
+ * set again. The illustrated hero duo (dog + cat, HeroPets.tsx) owns the top
+ * right, peeking over the top card, so no glyph is placed in that corner.
  *
  * Stacking contract: mount as the FIRST child of the app's root view, before the
  * navigator. The layer is absolutely positioned over the whole window and never
@@ -158,17 +158,15 @@ interface BackgroundCharacter {
 }
 
 /**
- * The animals, on the outer edges only: the two top corners (a few points off
- * the top edge), the left and right margins down the page, and the strip just
- * above the bottom tab bar (`bottom: 112` clears the tab bar and the 108pt
- * content padding the screens reserve for it). Nothing sits between
- * `left: '10%'` and `right: '10%'` — that is the content column.
+ * Small perimeter details, on the outer edges only: the left and right margins
+ * down the page and the strip just above the bottom tab bar (`bottom: 112`
+ * clears the tab bar and the 108pt content padding the screens reserve for it).
+ * Nothing sits between `left: '10%'` and `right: '10%'` — that is the content
+ * column. The dog and cat once lived here as faint corner stickers; since the
+ * illustrated hero pair (see HeroPets.tsx) took over the top right, they were
+ * retired so the same animal is not both a hero and a sticker.
  */
 const CHARACTERS: BackgroundCharacter[] = [
-  { glyph: '🐶', size: 40, top: -14, left: -8, rotation: -12,
-    opacity: 0.32, glow: COLOR.blue, glowRadius: 18 },
-  { glyph: '🐱', size: 34, top: -12, right: -8, rotation: 10,
-    opacity: 0.30, glow: COLOR.lavender, glowRadius: 18 },
   { glyph: '🐰', size: 42, top: '29%', left: -10, rotation: -8,
     opacity: 0.34, glow: COLOR.lavender, glowRadius: 16 },
   { glyph: '🐦', size: 38, top: '32%', right: -8, rotation: 8,
