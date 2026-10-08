@@ -7,14 +7,29 @@
  * survives a restart — not a UI toggle (which is what the old Today tab's
  * `todayCheckoff` list was, and why this is its own collection).
  *
+ * Sitter Mode's Caregiver Check-In engine (a later stage) writes to this exact
+ * collection too, so a pet has one honest timeline whoever did the caring. It
+ * adds two things to the model, both backward compatible:
+ *  - `byName` + `mood` on the event (both optional: an event recorded before
+ *    these fields existed still parses and still renders).
+ *  - two more `CareCheckInType` values — `litter` (a sitter's act the five-tile
+ *    ring does not draw) and `mood` (a caregiver's read of how the pet is doing,
+ *    which is an observation rather than a care act). `CARE_CHECK_IN_TYPES`
+ *    keeps meaning exactly what it always meant — the ring's five tiles, in
+ *    order — so the ring's row and its "N of 5" count never change. The storage
+ *    layer accepts the wider set; see `CARE_CHECK_IN_ALL_TYPES`.
+ *
  * Deliberate limits, so nothing in this model can ever shame the owner:
  *  - A check-in records that a care act HAPPENED, as observed by the person who
  *    ticked it. The app never infers completion from a feeding or medication
  *    schedule, and an unticked item is simply "not yet" — never missed, never
  *    failed. There is no score, no streak penalty and no negative copy.
- *  - `source` names who recorded it. Today only 'owner' exists; Sitter Mode's
- *    caregiver check-ins (a later stage) reuse this same collection, so the log
- *    stays one honest timeline per pet.
+ *  - A mood is a neutral reading ("Tired", "Ate normally"), never a grade: it
+ *    carries no consequence, no streak credit and no advice.
+ *  - `source` names who recorded it: `owner` for the ring's own taps, `sitter`
+ *    for a record written through the caregiver check-in screen (by whoever was
+ *    holding the phone — the app never guesses which human that was, which is
+ *    exactly why `byName` exists).
  *  - `at` is a full ISO timestamp (a moment in time), not a calendar date. The
  *    ring decides which events count as "today" by rendering that instant in the
  *    owner's chosen display time zone — see `careCheckInIsOn` below and
@@ -25,12 +40,24 @@
 import type { BaseEntity } from './index';
 import { todayISOInTimeZone } from '../utils/datetime';
 
-/** The five care acts the Daily Care Ring can record. */
-export type CareCheckInType = 'food' | 'water' | 'medication' | 'exercise' | 'care';
+/**
+ * Everything a check-in can be. The first five are the Daily Care Ring's acts
+ * (see `CARE_CHECK_IN_TYPES`); `litter` is the sitter-side act the ring's five
+ * tiles do not draw, and `mood` is an observation rather than an act.
+ */
+export type CareCheckInType =
+  | 'food'
+  | 'water'
+  | 'medication'
+  | 'exercise'
+  | 'care'
+  | 'litter'
+  | 'mood';
 
 /**
- * The canonical order of the five acts. The ring draws its tiles in exactly
- * this order everywhere, so the row never reshuffles between renders or pets.
+ * The five acts the Daily Care Ring draws, in its canonical order. The ring
+ * builds its tiles and its "N of 5" count from exactly this list everywhere, so
+ * the row never reshuffles — and never grows a sixth tile.
  */
 export const CARE_CHECK_IN_TYPES: CareCheckInType[] = [
   'food',
@@ -40,19 +67,94 @@ export const CARE_CHECK_IN_TYPES: CareCheckInType[] = [
   'care',
 ];
 
-/** Who recorded a check-in. The owner today; a sitter in a later stage. */
-export type CareCheckInSource = 'owner';
+/**
+ * The acts the Caregiver Check-In engine offers as one-tap buttons, in render
+ * order, with the backlog's wording (see `CARE_ACT_LABELS`): Fed, Water
+ * refreshed, Medication given, Walk completed, Litter cleaned.
+ */
+export const SITTER_ACT_TYPES: CareCheckInType[] = [
+  'food',
+  'water',
+  'medication',
+  'exercise',
+  'litter',
+];
 
-/** One recorded care act, for one pet. */
+/**
+ * Every value the storage layer accepts — the ring's five acts plus the two
+ * the check-in engine adds. Used for validation of stored/typed data; the ring
+ * deliberately keeps using `CARE_CHECK_IN_TYPES`.
+ */
+export const CARE_CHECK_IN_ALL_TYPES: CareCheckInType[] = [
+  ...CARE_CHECK_IN_TYPES,
+  'litter',
+  'mood',
+];
+
+/** Who recorded a check-in: the owner's ring, or the caregiver check-in screen. */
+export type CareCheckInSource = 'owner' | 'sitter';
+
+/**
+ * A caregiver's neutral read of how a pet is doing, chosen from the mood row.
+ * Every value is a plain description — never a score, never a diagnosis.
+ */
+export type PetMood =
+  | 'normal'
+  | 'tired'
+  | 'sick'
+  | 'ate-normally'
+  | 'bathroom-normal';
+
+/** The five moods, in the order the mood row renders them. */
+export const PET_MOODS: PetMood[] = [
+  'normal',
+  'tired',
+  'sick',
+  'ate-normally',
+  'bathroom-normal',
+];
+
+/** The label each mood shows, in the backlog's own wording. */
+export const PET_MOOD_LABELS: Record<PetMood, string> = {
+  normal: 'Normal',
+  tired: 'Tired',
+  sick: 'Sick',
+  'ate-normally': 'Ate normally',
+  'bathroom-normal': 'Bathroom normal',
+};
+
+/** A glyph for each mood — used on the mood chips and in the log rows. */
+export const PET_MOOD_EMOJI: Record<PetMood, string> = {
+  normal: '🐾',
+  tired: '😴',
+  sick: '🤒',
+  'ate-normally': '🍽️',
+  'bathroom-normal': '💧',
+};
+
+/** One recorded care act (or mood), for one pet. */
 export interface CareCheckInEvent extends BaseEntity {
   /** The pet the act was done for. */
   petId: string;
-  /** Which of the five acts it was. */
+  /** Which act it was — or `mood` for an observation (see `PetMood`). */
   type: CareCheckInType;
   /** ISO timestamp of the moment it was recorded. */
   at: string;
   /** Who ticked it — the value the log is honest about. */
   source: CareCheckInSource;
+  /**
+   * The caregiver's name, as the check-in screen captured it ("Fed by Sarah").
+   *
+   * Optional, and absent on every event the owner's own ring wrote — an event
+   * from before this field existed reads back with no name, and its log line
+   * simply omits the "by …" part.
+   */
+  byName?: string;
+  /**
+   * The caregiver's read of the pet, recorded by a `mood` check-in. Optional,
+   * and only ever set on a mood event.
+   */
+  mood?: PetMood;
 }
 
 /** Input for recording a check-in (id/createdAt come from the storage layer). */
@@ -66,6 +168,8 @@ export const CARE_CHECK_IN_LABELS: Record<CareCheckInType, string> = {
   medication: 'Medication',
   exercise: 'Exercise',
   care: 'Care',
+  litter: 'Litter',
+  mood: 'Mood',
 };
 
 /** Emoji for one act — the ring's tile glyph. */
@@ -75,6 +179,23 @@ export const CARE_CHECK_IN_EMOJI: Record<CareCheckInType, string> = {
   medication: '💊',
   exercise: '🐾',
   care: '🩺',
+  litter: '🧹',
+  mood: '💭',
+};
+
+/**
+ * The sitter-facing wording for each act, exactly as the backlog names them:
+ * "Fed", "Medication given", "Water refreshed", "Walk completed", "Litter
+ * cleaned". The log lines read from this too ("Fed by Sarah — 8:03 AM").
+ */
+export const CARE_ACT_LABELS: Record<CareCheckInType, string> = {
+  food: 'Fed',
+  water: 'Water refreshed',
+  medication: 'Medication given',
+  exercise: 'Walk completed',
+  care: 'Care check-in',
+  litter: 'Litter cleaned',
+  mood: 'Mood check-in',
 };
 
 /**
@@ -91,12 +212,47 @@ export const CARE_ENCOURAGEMENTS: string[] = [
   'One paw up for you.',
 ];
 
-/** Is `value` one of the five acts? Guards stored or imported data. */
+/**
+ * The cheerful line a caregiver's tap earns. Same rule as the ring's: it says
+ * thank you for what happened and never mentions what did not.
+ */
+export const CAREGIVER_THANKS: string[] = [
+  'Logged — thank you for keeping the day straight.',
+  'Noted. The pets would say thank you if they could type.',
+  'That is one more true line in the day.',
+  'Recorded. Somebody is going to be very pleased later.',
+  'Logged with the time on it — no memory required.',
+];
+
+/** Is `value` one of the acts or observations the app stores? */
 export function isCareCheckInType(value: unknown): value is CareCheckInType {
   return (
     typeof value === 'string' &&
-    (CARE_CHECK_IN_TYPES as string[]).includes(value)
+    (CARE_CHECK_IN_ALL_TYPES as string[]).includes(value)
   );
+}
+
+/** Is this stored value a mood observation rather than a care act? */
+export function isMoodCheckIn(type: unknown): boolean {
+  return type === 'mood';
+}
+
+/** The mood a stored value names, or null when it isn't one of the five. */
+export function petMoodOrNull(value: unknown): PetMood | null {
+  return typeof value === 'string' && (PET_MOODS as string[]).includes(value)
+    ? (value as PetMood)
+    : null;
+}
+
+/**
+ * The caregiver's name on an event, trimmed, or null when the event carries
+ * none (every ring-written event, and any record from before the field).
+ */
+export function careCheckInByName(
+  event: Pick<CareCheckInEvent, 'byName'>,
+): string | null {
+  const name = typeof event.byName === 'string' ? event.byName.trim() : '';
+  return name.length > 0 ? name : null;
 }
 
 /**

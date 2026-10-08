@@ -22,6 +22,7 @@
  * 100% offline: pure helpers over already-loaded data.
  */
 import type { CareCheckInEvent, JournalEntry, Pet, Vaccine, VetRecord } from '../types';
+import { isMoodCheckIn } from '../types/checkIn';
 import type { AwardKind } from '../storage/awards';
 import { todayISOInTimeZone } from './datetime';
 
@@ -51,7 +52,13 @@ export function isTodayAnniversary(iso: string | undefined, todayISO: string): b
 
 /* ---------------------------------------------------------------- streak -- */
 
-/** The local calendar days (in the display zone) a pet has a check-in on. */
+/**
+ * The local calendar days (in the display zone) a pet has a check-in on.
+ *
+ * Mood observations are skipped: a day where a caregiver only noted how the pet
+ * seemed is not a day an act of care was recorded, and the streak's copy
+ * ("been cared for") has to stay literally true.
+ */
 export function checkInDays(
   events: CareCheckInEvent[],
   petId: string,
@@ -60,6 +67,7 @@ export function checkInDays(
   const days = new Set<string>();
   for (const event of events) {
     if (event.petId !== petId) continue;
+    if (isMoodCheckIn(event.type)) continue;
     const at = new Date(event.at);
     if (Number.isNaN(at.getTime())) continue;
     days.add(todayISOInTimeZone(at, zone));
