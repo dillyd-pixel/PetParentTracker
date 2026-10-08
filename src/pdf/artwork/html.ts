@@ -76,7 +76,9 @@ const SANS = 'Helvetica, Arial, "Helvetica Neue", sans-serif';
 
 /** One decorative layer, positioned and sized exactly as the canvas does. */
 function layerHtml(layer: ArtworkLayer): string {
-  const at = `left:${pct(layer.x)};top:${pct(layer.y)};`;
+  // The vignette is an edge treatment with no position of its own; every other
+  // layer is placed by its top-left corner, exactly as the canvas places it.
+  const at = layer.kind === 'vignette' ? '' : `left:${pct(layer.x)};top:${pct(layer.y)};`;
   switch (layer.kind) {
     case 'blob':
       // A soft painted blot: one radial gradient, fading out from the middle.
@@ -195,8 +197,8 @@ function frameHtml(doc: ArtworkDocument, template: ArtworkTemplate): string {
       frame.aspect,
     )};background:${frame.matColor};border-radius:${cssRadius(frame.shape, 0.014)};padding:${em(
       frame.mat,
-    )};transform:rotate(${round(frame.tilt)}deg);box-shadow:0 ${em(0.9 * frame.depth)} ${em(
-      3.2 * frame.depth,
+    )};transform:rotate(${round(frame.tilt)}deg);box-shadow:0 ${em(0.1 * frame.depth)} ${em(
+      0.22 * frame.depth,
     )} ${alpha('#202126', frame.depth)}">
       <div class="mat" style="border-radius:${cssRadius(
         frame.shape,

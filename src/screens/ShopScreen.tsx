@@ -1,6 +1,6 @@
 /**
  * Shop — Blueprint Premium, the offline co-parent share, PDF export and the
- * keepsake products (two live, two on hold).
+ * keepsake products (three live, one on hold).
  *
  * The design's shop page, restyled to our real product decisions:
  *  - Premium is a ONE-TIME UNLOCK with a 14-day trial (no subscription, no
@@ -12,10 +12,10 @@
  *    exact same product copy, links and live/on-hold state as before, presented
  *    as the house's premium cards (design pass 2026-10-07): a white rounded card
  *    on the ivory canvas, its own illustrated gradient icon, generous spacing, a
- *    soft shadow and a Blueprint Blue chevron. Two are finished and open their
+ *    soft shadow and a Blueprint Blue chevron. Three are finished and open their
  *    own on-device screens (preview free, PDFs with Blueprint Premium): the
- *    printable pet planner and the memorial book. The other two — custom pet
- *    artwork and the emergency card pack — stay on hold for the owner.
+ *    printable pet planner, the memorial book and custom pet artwork. The fourth
+ *    — the emergency card pack — stays on hold for the owner.
  *
  * Presentation only: no copy, no price, no state and no data flow changed. The
  * grid is one column on a phone and two on a tablet or a desktop window, capped
@@ -39,7 +39,7 @@ import { BS, COLOR, FONT_HEAD, RADIUS, SHADOW, SPACE } from '../theme';
 /** The keepsake product routes this screen links to (all take no params). */
 type KeepsakeRoute = 'PetPlanner' | 'MemorialBook' | 'Artwork' | 'EmergencyCard';
 
-/** The keepsake products. The planner and the memorial book are live. */
+/** The keepsake products. The planner, the memorial book and the artwork are live. */
 const PRODUCTS: Array<{ name: KeepsakeRoute; title: string; desc: string }> = [
   {
     name: 'PetPlanner',
@@ -64,7 +64,7 @@ const PRODUCTS: Array<{ name: KeepsakeRoute; title: string; desc: string }> = [
 ];
 
 /** The keepsake rows that open a finished, live product screen. */
-const LIVE_PRODUCTS: KeepsakeRoute[] = ['PetPlanner', 'MemorialBook'];
+const LIVE_PRODUCTS: KeepsakeRoute[] = ['PetPlanner', 'MemorialBook', 'Artwork'];
 
 /**
  * Each keepsake's own illustrated icon: a gradient tile in the house palette
@@ -217,10 +217,10 @@ export default function ShopScreen(): React.JSX.Element {
             })}
           </View>
           <Text style={[BS.caption, { marginTop: SPACE.s3 }]}>
-            The printable pet planner and the memorial book are ready to use — preview either one
-            free, and generate, download, print or share the PDF with Blueprint Premium. Custom pet
-            artwork and the emergency card pack are still being designed: no prices, no purchase
-            flow, and no files leave your phone.
+            The printable pet planner, the memorial book and custom pet artwork are ready to use —
+            preview any of them free, and generate, download, print or share the PDF with Blueprint
+            Premium. The emergency card pack is still being designed: no prices, no purchase flow,
+            and no files leave your phone.
           </Text>
 
           {/* ---- Settings (quiet row — account, display zone, premium, wipe) ---- */}
