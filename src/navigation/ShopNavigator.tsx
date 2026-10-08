@@ -26,11 +26,15 @@
  *                 caption, Letter or A4, preview free and (premium) generate /
  *                 download / print / share the on-device PDF.
  *   ArtworkPreview — the full-screen preview of the generated sheet.
- *   EmergencyCard  — the last upsell product placeholder (on hold).
+ *   EmergencyCards — the Emergency Pet Card pack (upsell product 4/4): pick one,
+ *                 several or every pet, fill in the card details, choose true
+ *                 card-size pages or an 8-up Letter/A4 sheet, preview free and
+ *                 (premium) generate / download / print / share the on-device PDF.
+ *   EmergencyCardsPreview — the full-screen preview of the finished pack.
  *
  * Premium is not an upsell product: it is the app's paid tier, presented on its
- * own screen. The one keepsake product still unbuilt — the emergency card pack —
- * stays untouched and ON HOLD for the owner.
+ * own screen. All four keepsake products are built and live; there is no product
+ * left on hold.
  *
  * Every screen here except Search draws the design's own in-page header (an
  * `h1` plus a back link), so the navigator header is hidden on those — one
@@ -38,7 +42,7 @@
  * keeps the restyled paper header and its back button.
  *
  * Products: Printable Pet Planner, Memorial Book, Custom Pet Artwork,
- * Emergency Pet Card.
+ * Emergency Pet Card pack — all four finished.
  */
 import React from 'react';
 
@@ -51,13 +55,16 @@ import MemorialBookScreen from '../screens/MemorialBookScreen';
 import MemorialBookPreviewScreen from '../screens/MemorialBookPreviewScreen';
 import ArtworkScreen from '../screens/ArtworkScreen';
 import ArtworkPreviewScreen from '../screens/ArtworkPreviewScreen';
-import PlaceholderScreen from '../screens/PlaceholderScreen';
+import EmergencyCardsScreen from '../screens/EmergencyCardsScreen';
+import EmergencyCardsPreviewScreen from '../screens/EmergencyCardsPreviewScreen';
 import PremiumScreen from '../screens/PremiumScreen';
 import SearchScreen from '../screens/SearchScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import type { PaperSize, PlannerSectionId } from '../pdf/planner/sections';
 import type { MemorialSectionId } from '../pdf/memorial/sections';
 import type { ArtworkTemplateId } from '../pdf/artwork/templates';
+import type { EmergencyCardPaper } from '../pdf/emergency/card';
+import type { EmergencyExtrasByPet } from '../pdf/emergency/document';
 
 export type ShopStackParamList = {
   ShopHome: undefined;
@@ -98,7 +105,18 @@ export type ShopStackParamList = {
     /** Web only: open the browser print dialog as soon as it has rendered. */
     autoPrint?: boolean;
   };
-  EmergencyCard: undefined;
+  EmergencyCards: undefined;
+  /** The preview for one pack of cards (all values are serializable). */
+  EmergencyCardsPreview: {
+    /** The pets getting a card, in print order. */
+    petIds: string[];
+    /** How the pack is laid out on paper. */
+    paper: EmergencyCardPaper;
+    /** The card details the owner typed (plain text, not a file). */
+    extras?: EmergencyExtrasByPet;
+    /** Web only: open the browser print dialog as soon as it has rendered. */
+    autoPrint?: boolean;
+  };
 };
 
 const Stack = createWebSafeStackNavigator<ShopStackParamList>();
@@ -141,14 +159,16 @@ export function ShopNavigator(): React.JSX.Element {
         component={ArtworkPreviewScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="EmergencyCard" options={{ headerShown: false }}>
-        {() => (
-          <PlaceholderScreen
-            title="Emergency Pet Card"
-            noun="printable emergency info card, generated on-device"
-          />
-        )}
-      </Stack.Screen>
+      <Stack.Screen
+        name="EmergencyCards"
+        component={EmergencyCardsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="EmergencyCardsPreview"
+        component={EmergencyCardsPreviewScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }

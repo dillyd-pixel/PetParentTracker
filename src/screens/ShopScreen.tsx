@@ -1,6 +1,6 @@
 /**
  * Shop — Blueprint Premium, the offline co-parent share, PDF export and the
- * keepsake products (three live, one on hold).
+ * keepsake products (all four live).
  *
  * The design's shop page, restyled to our real product decisions:
  *  - Premium is a ONE-TIME UNLOCK with a 14-day trial (no subscription, no
@@ -12,10 +12,10 @@
  *    exact same product copy, links and live/on-hold state as before, presented
  *    as the house's premium cards (design pass 2026-10-07): a white rounded card
  *    on the ivory canvas, its own illustrated gradient icon, generous spacing, a
- *    soft shadow and a Blueprint Blue chevron. Three are finished and open their
- *    own on-device screens (preview free, PDFs with Blueprint Premium): the
- *    printable pet planner, the memorial book and custom pet artwork. The fourth
- *    — the emergency card pack — stays on hold for the owner.
+ *    soft shadow and a Blueprint Blue chevron. All four are finished and open
+ *    their own on-device screens (preview free, PDFs with Blueprint Premium): the
+ *    printable pet planner, the memorial book, custom pet artwork and the
+ *    emergency card pack.
  *
  * Presentation only: no copy, no price, no state and no data flow changed. The
  * grid is one column on a phone and two on a tablet or a desktop window, capped
@@ -37,9 +37,9 @@ import type { ShopStackParamList } from '../navigation/ShopNavigator';
 import { BS, COLOR, FONT_HEAD, RADIUS, SHADOW, SPACE } from '../theme';
 
 /** The keepsake product routes this screen links to (all take no params). */
-type KeepsakeRoute = 'PetPlanner' | 'MemorialBook' | 'Artwork' | 'EmergencyCard';
+type KeepsakeRoute = 'PetPlanner' | 'MemorialBook' | 'Artwork' | 'EmergencyCards';
 
-/** The keepsake products. The planner, the memorial book and the artwork are live. */
+/** The keepsake products — all four finished and live. */
 const PRODUCTS: Array<{ name: KeepsakeRoute; title: string; desc: string }> = [
   {
     name: 'PetPlanner',
@@ -57,14 +57,19 @@ const PRODUCTS: Array<{ name: KeepsakeRoute; title: string; desc: string }> = [
     desc: 'Artwork made from your pet photo, on-device.',
   },
   {
-    name: 'EmergencyCard',
-    title: 'Emergency card pack',
-    desc: 'Printable emergency info cards.',
+    name: 'EmergencyCards',
+    title: 'Emergency pet card pack',
+    desc: 'Wallet-sized emergency cards, one per pet — 85.6 × 54 mm, printed at 100% with an offline QR.',
   },
 ];
 
-/** The keepsake rows that open a finished, live product screen. */
-const LIVE_PRODUCTS: KeepsakeRoute[] = ['PetPlanner', 'MemorialBook', 'Artwork'];
+/** The keepsake rows that open a finished, live product screen — all four. */
+const LIVE_PRODUCTS: KeepsakeRoute[] = [
+  'PetPlanner',
+  'MemorialBook',
+  'Artwork',
+  'EmergencyCards',
+];
 
 /**
  * Each keepsake's own illustrated icon: a gradient tile in the house palette
@@ -75,7 +80,7 @@ const ICONS: Record<KeepsakeRoute, { glyph: string; colors: [string, string] }> 
   PetPlanner: { glyph: '📅', colors: ['#246BFD', '#31D7D7'] },      // blue → aqua
   MemorialBook: { glyph: '📖', colors: ['#FF6B78', '#9B78FF'] },     // coral → lavender
   Artwork: { glyph: '🖼️', colors: ['#9B78FF', '#246BFD'] },         // lavender → blue
-  EmergencyCard: { glyph: '🩺', colors: ['#FFD84D', '#FF9548'] },    // sunshine → tangerine
+  EmergencyCards: { glyph: '🪪', colors: ['#FFD84D', '#FF9548'] },   // sunshine → tangerine
 };
 
 /** The four premium features, in the owner's wording. */
@@ -217,10 +222,10 @@ export default function ShopScreen(): React.JSX.Element {
             })}
           </View>
           <Text style={[BS.caption, { marginTop: SPACE.s3 }]}>
-            The printable pet planner, the memorial book and custom pet artwork are ready to use —
-            preview any of them free, and generate, download, print or share the PDF with Blueprint
-            Premium. The emergency card pack is still being designed: no prices, no purchase flow,
-            and no files leave your phone.
+            All four keepsakes are ready to use — the printable pet planner, the memorial book,
+            custom pet artwork and the emergency pet card pack. Preview any of them free, and
+            generate, download, print or share the PDF with Blueprint Premium. No prices, no purchase
+            flow, and no files leave your phone: every one of them is made on this device.
           </Text>
 
           {/* ---- Settings (quiet row — account, display zone, premium, wipe) ---- */}
