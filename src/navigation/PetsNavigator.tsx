@@ -11,6 +11,9 @@
  *   CareInstructions / CareInstructionsEditor — Sitter Mode stage 2: the pet's
  *                permanent care notes, read view then editor. Reached from the
  *                pet page and from Sitter Mode home (which passes a `petId`).
+ *   CareLog    — Sitter Mode's check-in record for one pet, newest first. The
+ *                same screen is registered in the Sitter stack so the owner can
+ *                reach it from either side.
  *
  * Every screen in this stack draws the design's own in-page header — an `h1`
  * plus a `‹ back` link — so the navigator header stays hidden throughout:
@@ -27,6 +30,7 @@ import PetListScreen from '../screens/PetListScreen';
 import PetProfileScreen from '../screens/PetProfileScreen';
 import CareInstructionsScreen from '../screens/CareInstructionsScreen';
 import CareInstructionsEditorScreen from '../screens/CareInstructionsEditorScreen';
+import CareLogScreen from '../screens/CareLogScreen';
 import {
   VaccinesScreen,
   MedsScreen,
@@ -56,6 +60,12 @@ export type PetsStackParamList = {
   CareInstructions: { petId?: string } | undefined;
   /** The same pet's care instructions editor. */
   CareInstructionsEditor: { petId?: string } | undefined;
+  /**
+   * One pet's whole care log (Sitter Mode's check-in record), newest first —
+   * opened from the pet's page. The same screen is registered in the Sitter
+   * stack; `petId` is optional in both, falling back to the active pet.
+   */
+  CareLog: { petId?: string } | undefined;
 };
 
 /** What a Quick Add "Note"/"Photo" tap wants the journal form to look at. */
@@ -76,6 +86,7 @@ export function PetsNavigator(): React.JSX.Element {
       <Stack.Screen name="Journal" component={JournalScreen} />
       <Stack.Screen name="CareInstructions" component={CareInstructionsScreen} />
       <Stack.Screen name="CareInstructionsEditor" component={CareInstructionsEditorScreen} />
+      <Stack.Screen name="CareLog" component={CareLogScreen} />
     </Stack.Navigator>
   );
 }

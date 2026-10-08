@@ -23,12 +23,22 @@ import SitterHomeScreen from '../screens/SitterHomeScreen';
 import CarePassFormScreen from '../screens/CarePassFormScreen';
 import OpenCarePassScreen from '../screens/OpenCarePassScreen';
 import CarePassDetailScreen from '../screens/CarePassDetailScreen';
+import CheckInScreen from '../screens/CheckInScreen';
+import CareLogScreen from '../screens/CareLogScreen';
 
 export type SitterStackParamList = {
   SitterHome: undefined;
   CarePassForm: undefined;
   OpenCarePass: undefined;
   CarePassDetail: { passId: string };
+  /** The caregiver check-in engine (free): today's acts per pet, one tap each. */
+  CheckIn: undefined;
+  /**
+   * One pet's whole care log, newest first. `petId` is optional so the screen
+   * falls back to the active pet (the pet page opens the same screen in the
+   * Pets stack with its own pet id).
+   */
+  CareLog: { petId?: string } | undefined;
 };
 
 const Stack = createWebSafeStackNavigator<SitterStackParamList>();
@@ -40,6 +50,8 @@ export function SitterNavigator(): React.JSX.Element {
       <Stack.Screen name="CarePassForm" component={CarePassFormScreen} />
       <Stack.Screen name="OpenCarePass" component={OpenCarePassScreen} />
       <Stack.Screen name="CarePassDetail" component={CarePassDetailScreen} />
+      <Stack.Screen name="CheckIn" component={CheckInScreen} />
+      <Stack.Screen name="CareLog" component={CareLogScreen} />
     </Stack.Navigator>
   );
 }
