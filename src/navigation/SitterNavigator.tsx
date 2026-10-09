@@ -4,8 +4,11 @@
  *   SitterHome      — every care pass on this device with its status badge,
  *                     the "Create Care Pass" entry (premium, creator side) and
  *                     the "Open a Care Pass" entry (free, sitter side).
- *   CarePassForm    — the create form: caregiver, dates, pets, permission,
- *                     visible sections.
+ *   CarePassWizard  — "I'm Leaving Town": the guided eight-step way to build the
+ *                     same pass, with every per-pet fact prefilled from the
+ *                     pet's own records (premium, like the create form).
+ *   CarePassForm    — the compact create form: caregiver, dates, pets,
+ *                     permission, visible sections (premium).
  *   OpenCarePass    — the sitter's side: open a pass file / pass code. Free, no
  *                     account, no premium — works on a fresh device.
  *   CarePassDetail  — one pass: caregiver, permission, dates, sections and the
@@ -21,6 +24,7 @@ import React from 'react';
 import { createWebSafeStackNavigator } from './WebSafeStack';
 import SitterHomeScreen from '../screens/SitterHomeScreen';
 import CarePassFormScreen from '../screens/CarePassFormScreen';
+import CarePassWizardScreen from '../screens/CarePassWizardScreen';
 import OpenCarePassScreen from '../screens/OpenCarePassScreen';
 import CarePassDetailScreen from '../screens/CarePassDetailScreen';
 import CheckInScreen from '../screens/CheckInScreen';
@@ -28,6 +32,8 @@ import CareLogScreen from '../screens/CareLogScreen';
 
 export type SitterStackParamList = {
   SitterHome: undefined;
+  /** "I'm Leaving Town" — the guided eight-step Care Pass creator. */
+  CarePassWizard: undefined;
   CarePassForm: undefined;
   OpenCarePass: undefined;
   CarePassDetail: { passId: string };
@@ -47,6 +53,7 @@ export function SitterNavigator(): React.JSX.Element {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="SitterHome" component={SitterHomeScreen} />
+      <Stack.Screen name="CarePassWizard" component={CarePassWizardScreen} />
       <Stack.Screen name="CarePassForm" component={CarePassFormScreen} />
       <Stack.Screen name="OpenCarePass" component={OpenCarePassScreen} />
       <Stack.Screen name="CarePassDetail" component={CarePassDetailScreen} />

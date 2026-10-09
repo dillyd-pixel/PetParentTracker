@@ -9,9 +9,13 @@
  *
  * Sitter Mode's Caregiver Check-In engine (a later stage) writes to this exact
  * collection too, so a pet has one honest timeline whoever did the caring. It
- * adds two things to the model, both backward compatible:
+ * adds three things to the model, all backward compatible:
  *  - `byName` + `mood` on the event (both optional: an event recorded before
  *    these fields existed still parses and still renders).
+ *  - `passId` — the care pass an act was recorded under, so the owner's pass
+ *    detail can show how the sit went (see `utils/passCheckIns`). Optional:
+ *    every event written with no pass running carries none, and everything
+ *    reads back exactly as before.
  *  - two more `CareCheckInType` values — `litter` (a sitter's act the five-tile
  *    ring does not draw) and `mood` (a caregiver's read of how the pet is doing,
  *    which is an observation rather than a care act). `CARE_CHECK_IN_TYPES`
@@ -155,6 +159,17 @@ export interface CareCheckInEvent extends BaseEntity {
    * and only ever set on a mood event.
    */
   mood?: PetMood;
+  /**
+   * The care pass this record was made under, when an ACTIVE pass covered this
+   * pet on the day the act was recorded (see `utils/passCheckIns`).
+   *
+   * Optional and deliberately soft: an event recorded with no pass running —
+   * every ring tap, and every record from before this field existed — simply
+   * carries none, and the pass detail then falls back to the pass's own date
+   * window. The Daily Care Ring neither reads nor cares about it: a pass id
+   * never changes what is done today, only whose sit it is filed under.
+   */
+  passId?: string;
 }
 
 /** Input for recording a check-in (id/createdAt come from the storage layer). */
@@ -253,6 +268,17 @@ export function careCheckInByName(
 ): string | null {
   const name = typeof event.byName === 'string' ? event.byName.trim() : '';
   return name.length > 0 ? name : null;
+}
+
+/**
+ * The pass an event was filed under, trimmed, or null when it carries none
+ * (an event made with no pass running, or one from before the field existed).
+ */
+export function careCheckInPassId(
+  event: Pick<CareCheckInEvent, 'passId'>,
+): string | null {
+  const id = typeof event.passId === 'string' ? event.passId.trim() : '';
+  return id.length > 0 ? id : null;
 }
 
 /**

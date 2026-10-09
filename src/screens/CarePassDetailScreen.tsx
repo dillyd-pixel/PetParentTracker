@@ -13,12 +13,20 @@
  * **Close pass** (ends the pass early — only ever offered on the copy created
  * here, so a sitter can't close someone else's pass).
  *
- * Detailed care instructions, the Today care dashboard and emergency mode are
- * later stages — this screen says so rather than pretending otherwise.
+ * It also shows the two things this stage added:
+ *  - **What the pass carries** — the per-pet notes the "I'm Leaving Town" wizard
+ *    collected (feeding, medication, care notes, emergency contacts, microchip
+ *    and allergies) plus the household note. A pass from the compact create form
+ *    carries none, and the screen says so rather than showing empty rows.
+ *  - **Check-ins** — the records filed under this pass, newest first, with who
+ *    did it and the time (`utils/passCheckIns`). A pass with none falls back to
+ *    the covered pets' records inside its own dates, and says which of the two
+ *    the owner is reading, so a sit recorded before passes were tagged still
+ *    shows up honestly.
  *
  * 100% offline: invitation text built locally, shared locally, no upload.
  */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -31,6 +39,8 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import CarePassStatusBadge from '../components/CarePassStatusBadge';
+import { useAccount } from '../context/AccountContext';
+import { useCheckIns } from '../context/CheckInsContext';
 import { usePets } from '../context/PetContext';
 import { useSitter } from '../context/SitterContext';
 import type { SitterStackParamList } from '../navigation/SitterNavigator';
@@ -40,13 +50,17 @@ import {
   serializeCarePassInvite,
 } from '../storage/carePasses';
 import {
+  carePassContactLine,
   carePassDateRange,
   carePassDurationDays,
   carePassPermissionLabel,
+  carePassPetNotes,
+  carePassPetNotesAreEmpty,
   carePassSectionLabel,
   carePassStatus,
   carePassStatusLabel,
 } from '../types';
+import { passCheckInEntries, passWindowLabel } from '../utils/passCheckIns';
 import { petEmojiFor, petSpeciesLabel } from '../utils/petDisplay';
 import { BS, COLOR, SPACE } from '../theme';
 
@@ -57,6 +71,8 @@ const SHARE_MIME_TYPE = 'application/json';
 export default function CarePassDetailScreen({ navigation, route }: Props): React.JSX.Element {
   const { getPass, carePasses, closePass } = useSitter();
   const { pets } = usePets();
+  const { checkIns } = useCheckIns();
+  const { timeZone } = useAccount();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -64,6 +80,18 @@ export default function CarePassDetailScreen({ navigation, route }: Props): Reac
   const [shareText, setShareText] = useState('');
 
   const pass = getPass(route.params.passId) ?? carePasses.find((p) => p.id === route.params.passId);
+
+  // Hooks run before the "pass not found" return, so the order never changes.
+  const petNames = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const pet of pets) out[pet.id] = pet.name;
+    return out;
+  }, [pets]);
+
+  const checkInEntries = useMemo(
+    () => (pass ? passCheckInEntries(checkIns, pass, { petNames, zone: timeZone }) : []),
+    [checkIns, pass, petNames, timeZone],
+  );
 
   if (!pass) {
     return (
@@ -85,6 +113,8 @@ export default function CarePassDetailScreen({ navigation, route }: Props): Reac
   const status = carePassStatus(pass);
   const owned = pass.source === 'created';
   const covered = resolveCarePassPets(pass, pets);
+  /** Only the covered pets that actually carry notes — a blank pet shows nothing. */
+  const carried = covered.filter((pet) => !carePassPetNotesAreEmpty(pet));
   const inviteText = () => serializeCarePassInvite(pass, pets);
 
   /** Owner: write the invite on-device and hand it to the share sheet. */
@@ -225,11 +255,81 @@ export default function CarePassDetailScreen({ navigation, route }: Props): Reac
           ))}
         </View>
 
-        <Text style={[BS.italic, { marginTop: SPACE.s4 }]}>
-          Detailed care instructions, the Today care dashboard and check-in, and emergency mode
-          arrive in a later stage — this pass lists what a sitter may see, and the pets it
-          covers.
-        </Text>
+        {/* ---- What the pass carries (the wizard's per-pet notes) ---- */}
+        <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>What this pass carries</Text>
+        {carried.length === 0 ? (
+          <Text style={BS.caption}>
+            No per-pet notes are on this pass — it carries the pets, the dates and the sections
+            above. “I’m Leaving Town” is the guided way to add meals, medication and emergency
+            contacts.
+          </Text>
+        ) : (
+          carried.map((pet) => {
+            const notes = carePassPetNotes(pet);
+            const rows: Array<[string, string]> = [];
+            if (notes.feeding) rows.push(['Feeding', notes.feeding]);
+            if (notes.medications) rows.push(['Medication', notes.medications]);
+            if (notes.care) rows.push(['Care notes', notes.care]);
+            for (const contact of notes.contacts) {
+              rows.push([carePassContactLine(contact).split(':')[0], contact.name
+                ? `${contact.name}${contact.phone ? ` · ${contact.phone}` : ''}`
+                : contact.phone ?? '']);
+            }
+            if (notes.microchip) rows.push(['Microchip', notes.microchip]);
+            if (notes.allergies) rows.push(['Allergies', notes.allergies]);
+            return (
+              <View key={`notes-${pet.id}`} style={{ marginTop: SPACE.s3 }}>
+                <Text style={BS.rowLabel}>
+                  {petEmojiFor(pet)} {pet.name}
+                </Text>
+                {rows.map(([label, value]) => (
+                  <View key={`${pet.id}-${label}`} style={styles.noteRow}>
+                    <Text style={styles.noteLabel}>{label}</Text>
+                    <Text style={styles.noteValue}>{value}</Text>
+                  </View>
+                ))}
+              </View>
+            );
+          })
+        )}
+        {pass.householdNote ? (
+          <View style={{ marginTop: SPACE.s3 }}>
+            <Text style={[BS.fieldLabel, { marginTop: SPACE.s2 }]}>The house</Text>
+            <Text style={styles.noteValue}>{pass.householdNote}</Text>
+          </View>
+        ) : null}
+
+        {/* ---- Check-ins: what the sitter actually recorded ---- */}
+        <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Check-ins</Text>
+        {checkInEntries.length === 0 ? (
+          <Text style={BS.caption} testID="pass-checkin-empty">
+            Nothing recorded under this pass yet. Anything logged in Caregiver check-in while the
+            pass is running appears here with the sitter’s name and the time.
+          </Text>
+        ) : (
+          <>
+            <Text style={BS.caption} testID="pass-checkin-count">
+              {checkInEntries.length === 1 ? '1 record' : `${checkInEntries.length} records`}
+              {checkInEntries.some((entry) => entry.tagged)
+                ? ' — filed under this pass.'
+                : ` — from the pets on this pass, between ${passWindowLabel(
+                    pass,
+                    timeZone,
+                  )} (recorded before passes were tagged).`}
+            </Text>
+            {checkInEntries.slice(0, 8).map((entry) => (
+              <View key={entry.id} style={styles.checkInRow}>
+                <Text style={styles.checkInText}>{entry.line}</Text>
+                <Text style={styles.checkInDay}>{entry.dayKey}</Text>
+              </View>
+            ))}
+            {checkInEntries.length > 8 ? (
+              <Text style={[BS.caption, { marginTop: SPACE.s2 }]}>
+                Newest 8 of {checkInEntries.length} — every line is in the pets’ care logs.
+              </Text>
+            ) : null}
+          </>
+        )}
 
         {/* ---- Owner actions ---- */}
         {owned ? (
@@ -304,6 +404,24 @@ export default function CarePassDetailScreen({ navigation, route }: Props): Reac
 
 const styles = StyleSheet.create({
   code: { letterSpacing: 3 },
+  noteRow: { marginTop: SPACE.s2 },
+  noteLabel: {
+    fontSize: 10.5,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: COLOR.textMuted,
+  },
+  noteValue: { fontSize: 14, lineHeight: 20, color: COLOR.text, marginTop: 2 },
+  checkInRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s3,
+    paddingVertical: SPACE.s2,
+    borderBottomWidth: 1,
+    borderBottomColor: COLOR.divider,
+  },
+  checkInText: { flex: 1, fontSize: 14, lineHeight: 20, color: COLOR.text },
+  checkInDay: { fontSize: 11.5, color: COLOR.textFaint },
   fileText: {
     fontSize: 11,
     color: COLOR.textMuted,
