@@ -51,7 +51,7 @@ import { useMedications } from '../context/MedicationsContext';
 import { usePets } from '../context/PetContext';
 import { usePremium } from '../context/PremiumContext';
 import { useSitter } from '../context/SitterContext';
-import { useVet } from '../context/VetContext';
+import { useVetRecords } from '../context/VetContext';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import type { SitterStackParamList } from '../navigation/SitterNavigator';
 import { caregiverNameOrOwner, loadCaregiverName } from '../storage/caregiverName';
@@ -116,7 +116,7 @@ export default function CarePassWizardScreen({ navigation }: Props): React.JSX.E
   const { pets } = usePets();
   const { feedingSchedules, feedingForPet } = useFeeding();
   const { medications, medicationsForPet } = useMedications();
-  const { vetRecords, vetRecordsForPet } = useVet();
+  const { vetRecordsForPet } = useVetRecords();
   const { getForPet: getCareInstructions } = useCareInstructions();
   const { createPass } = useSitter();
   const rootNavigation = useTabRootNavigation();
@@ -756,7 +756,7 @@ export default function CarePassWizardScreen({ navigation }: Props): React.JSX.E
         All nine start on — untick anything your sitter shouldn’t see.
       </Text>
 
-      <Text style={[BS.fieldLabel, { marginTop: SPACE.s5 }]}>Review</Text>
+      <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Review</Text>
       {reviewBlocks.map((block) => (
         <CCCard key={block.title} style={{ marginTop: SPACE.s3 }} testID={`wizard-review-${block.title}`}>
           <Text style={styles.blockTitle}>

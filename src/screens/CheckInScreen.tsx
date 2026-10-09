@@ -18,6 +18,12 @@
  *    normally / Bathroom normal), then today's own lines so the sitter can see
  *    what has been done.
  *
+ * When an ACTIVE care pass covers this pet today (see `utils/passCheckIns`), every
+ * act recorded here is filed under it (`passId`), and the pet's card says so —
+ * "Logged for the pass for 20 Sep 2026 → 27 Sep 2026" — so the owner can read
+ * the sit back on the pass. A device with no pass running records exactly as it
+ * always did, and the ring neither knows nor cares either way.
+ *
  * The tone rules this screen is built to keep (they are the product's promise):
  * every record is written to the same on-device store the Daily Care Ring reads,
  * so a tap here lights the matching ring tile on Home; an act nobody recorded
@@ -41,6 +47,7 @@ import { useCheckIns } from '../context/CheckInsContext';
 import { useFeeding } from '../context/FeedingContext';
 import { useMedications } from '../context/MedicationsContext';
 import { usePets } from '../context/PetContext';
+import { useSitter } from '../context/SitterContext';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import type { SitterStackParamList } from '../navigation/SitterNavigator';
 import {
@@ -58,13 +65,14 @@ import {
   SITTER_ACT_TYPES,
 } from '../types/checkIn';
 import type { CareCheckInType, PetMood } from '../types/checkIn';
-import type { Pet } from '../types';
+import type { CarePass, Pet } from '../types';
 import {
   actCountToday,
   latestMoodToday,
   petDayTasks,
   todayLogEntries,
 } from '../utils/caregiverCheckIn';
+import { activePassesForPetToday, passIdToTag, passWindowLabel } from '../utils/passCheckIns';
 import { todayISOInTimeZone } from '../utils/datetime';
 import { petAccent } from '../utils/petAccent';
 import { petEmojiFor } from '../utils/petDisplay';
@@ -80,6 +88,8 @@ interface PetCardProps {
   todayKey: string;
   onRecord: (petId: string, type: CareCheckInType, mood?: PetMood) => void;
   onUndo: (id: string) => void;
+  /** The active pass this pet is on today, when there is one. */
+  pass: CarePass | null;
   thanks?: string;
 }
 
@@ -90,6 +100,7 @@ function PetCheckInCard({
   todayKey,
   onRecord,
   onUndo,
+  pass,
   thanks,
 }: PetCardProps): React.JSX.Element {
   const { checkIns } = useCheckIns();
@@ -208,6 +219,17 @@ function PetCheckInCard({
       <Text style={styles.quietSmall}>
         Tap an act every time it happens — one entry each, with your name and the time.
       </Text>
+      {pass ? (
+        <View style={[styles.passLine, { backgroundColor: accent.soft }]} testID={`checkin-pass-${pet.id}`}>
+          <Text style={[styles.passText, { color: accent.ink }]}>
+            🎟️ Logged for the pass for {passWindowLabel(pass, timeZone)}
+          </Text>
+          <Text style={styles.quietSmall}>
+            {pet.name} is on {pass.caregiverName}’s care pass today, so every act below is filed
+            under it — it shows up on the pass, not just here.
+          </Text>
+        </View>
+      ) : null}
 
       {/* ---- the mood row: a neutral reading, never a score ---- */}
       <Text style={[styles.sectionLabel, { color: accent.ink }]}>How is {pet.name} doing?</Text>
@@ -286,6 +308,7 @@ export default function CheckInScreen(): React.JSX.Element {
   const navigation = useNavigation<Nav>();
   const rootNavigation = useTabRootNavigation();
   const { pets } = usePets();
+  const { carePasses } = useSitter();
   const { addCheckIn, removeCheckIn } = useCheckIns();
   const { username, timeZone, loaded: accountLoaded } = useAccount();
 
@@ -326,6 +349,9 @@ export default function CheckInScreen(): React.JSX.Element {
 
   const handleRecord = useCallback(
     async (petId: string, type: CareCheckInType, mood?: PetMood) => {
+      // Filed under the active pass that covers this pet today, when there is
+      // one — the pass the owner reads back later. No pass running, no passId.
+      const passId = passIdToTag(carePasses, petId, todayKey);
       await addCheckIn({
         petId,
         type,
@@ -333,12 +359,13 @@ export default function CheckInScreen(): React.JSX.Element {
         source: 'sitter',
         ...(caregiver ? { byName: caregiver } : {}),
         ...(mood ? { mood } : {}),
+        ...(passId ? { passId } : {}),
       });
       const line = CAREGIVER_THANKS[thanksIndex.current % CAREGIVER_THANKS.length];
       thanksIndex.current += 1;
       setThanks((prev) => ({ ...prev, [petId]: line }));
     },
-    [addCheckIn, caregiver],
+    [addCheckIn, caregiver, carePasses, todayKey],
   );
 
   const handleUndo = useCallback(
@@ -446,6 +473,7 @@ export default function CheckInScreen(): React.JSX.Element {
               todayKey={todayKey}
               onRecord={handleRecord}
               onUndo={handleUndo}
+              pass={activePassesForPetToday(carePasses, pet.id, todayKey)[0] ?? null}
               thanks={thanks[pet.id]}
             />
           ))
@@ -565,5 +593,12 @@ const styles = StyleSheet.create({
     marginTop: SPACE.s2,
   },
   thanksText: { fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: '600' },
+  passLine: {
+    borderRadius: RADIUS.button,
+    paddingVertical: SPACE.s2,
+    paddingHorizontal: SPACE.s3,
+    marginTop: SPACE.s2,
+  },
+  passText: { fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: '700' },
   footerLinks: { flexDirection: 'row', gap: SPACE.s4 },
 });
