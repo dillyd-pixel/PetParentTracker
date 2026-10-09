@@ -14,6 +14,12 @@
  *   CarePassDetail  — one pass: caregiver, permission, dates, sections and the
  *                     pets it covers (plus the owner's name when the pass came
  *                     from someone else).
+ *   CheckIn         — the caregiver check-in engine (free): today's acts per
+ *                     pet, one tap each, plus the never-scored mood row.
+ *   CareLog         — one pet's whole care log, newest first.
+ *   Emergency       — Emergency Mode (free, unit 3 of 3): one pet's emergency
+ *                     sheet — vitals, allergies, medication, chip, the four
+ *                     contacts and a Call button for every number on file.
  *
  * Every screen draws the design's own in-page header (an `h1` plus a
  * `‹ Sitter Mode` link), so the navigator header stays hidden throughout —
@@ -29,6 +35,7 @@ import OpenCarePassScreen from '../screens/OpenCarePassScreen';
 import CarePassDetailScreen from '../screens/CarePassDetailScreen';
 import CheckInScreen from '../screens/CheckInScreen';
 import CareLogScreen from '../screens/CareLogScreen';
+import EmergencyScreen from '../screens/EmergencyScreen';
 
 export type SitterStackParamList = {
   SitterHome: undefined;
@@ -45,6 +52,12 @@ export type SitterStackParamList = {
    * Pets stack with its own pet id).
    */
   CareLog: { petId?: string } | undefined;
+  /**
+   * Emergency Mode (free): one pet's emergency sheet, with a Call button
+   * beside every number on file. `petId` is optional — the screen falls back
+   * to the first pet, and the pet page opens the same screen with its own id.
+   */
+  Emergency: { petId?: string } | undefined;
 };
 
 const Stack = createWebSafeStackNavigator<SitterStackParamList>();
@@ -59,6 +72,7 @@ export function SitterNavigator(): React.JSX.Element {
       <Stack.Screen name="CarePassDetail" component={CarePassDetailScreen} />
       <Stack.Screen name="CheckIn" component={CheckInScreen} />
       <Stack.Screen name="CareLog" component={CareLogScreen} />
+      <Stack.Screen name="Emergency" component={EmergencyScreen} />
     </Stack.Navigator>
   );
 }

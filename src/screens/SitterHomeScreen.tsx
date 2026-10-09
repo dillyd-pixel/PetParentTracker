@@ -14,6 +14,11 @@
  *    notes a sitter follows. Free to write and NOT premium-gated — the content
  *    is always the owner's; only creating a pass is premium. Each row opens
  *    that pet's notes (read view, then editor) in the Pets tab's stack.
+ *  - "Pet emergency" (Emergency Mode, unit 3 of 3): the per-pet emergency
+ *    sheet — vitals, allergies, medication, microchip and a Call button beside
+ *    every number on file. FREE and ungated, like the check-in engine, because
+ *    a scare is the worst possible moment to meet a paywall. It reads the same
+ *    card-details store the printed emergency card uses.
  *
  * Each row shows who the pass is for, the dates, the pets it covers and a
  * status badge: Active (usable today), Expired (end date has passed) or
@@ -98,6 +103,30 @@ export default function SitterHomeScreen({ navigation }: Props): React.JSX.Eleme
             Fed, water, medication, walks, litter and how each pet is doing — one tap each, signed
             with who did it and the time. Works for you, and for a sitter with no account of their
             own.
+          </Text>
+        </CCCard>
+
+        {/* ---- Emergency Mode (free, both sides) ---- */}
+        <CCCard
+          glowTint={COLOR.coral}
+          accent={COLOR.coral}
+          onPress={() => navigation.navigate('Emergency')}
+          accessibilityLabel="Open Emergency Mode — the pet's emergency sheet"
+          testID="emergency-mode-card"
+          style={{ marginTop: SPACE.s3 }}
+        >
+          <View style={styles.cardHead}>
+            <View style={{ flex: 1 }}>
+              <Text style={[BS.cardKicker, { color: TONE.coral.fg }]}>Free · works offline</Text>
+              <Text style={BS.cardTitleLg}>🚨 Pet emergency</Text>
+            </View>
+            <Text style={BS.link}>›</Text>
+          </View>
+          <Text style={BS.caption}>
+            If your pet ever needs urgent care, everything is on one screen: their age and latest
+            weight, allergies and conditions, the medication they’re on, the microchip, and a Call
+            button for the vet, the emergency vet and both pet parents. Nothing is invented —
+            anything you haven’t stored says “Not on file”.
           </Text>
         </CCCard>
 
