@@ -177,12 +177,22 @@ export interface CarePass extends BaseEntity {
    * sitter's device renders, because the owner's pets are not pets on the
    * sitter's device and their records never travel with a pass.
    *
-   * The owner's own copy leaves this unset — the pass detail reads their live
-   * pets through `selectedPetIds`. An imported copy always sets it (from the
-   * invite's `pets`), so the pass still shows who it covers after an app
-   * restart, with no owner device in sight.
+   * An imported copy ALWAYS sets it (from the invite's `pets`), so the pass
+   * still shows who it covers after an app restart, with no owner device in
+   * sight. The owner's own copy sets it only when the "I'm Leaving Town"
+   * wizard wrote per-pet notes (feeding, medication, care notes, emergency
+   * contacts) — a pass made by the compact create form carries none, and the
+   * pass detail reads its live pets through `selectedPetIds` either way (see
+   * `resolveCarePassPets`, which merges the two).
    */
   petSnapshots?: CarePassPetSnapshot[];
+  /**
+   * The pass-level note for whoever is staying in the house — bins, keys,
+   * alarms, plants, the door that sticks. Free text the owner wrote on the
+   * wizard's last step; absent means they chose to write nothing, which is a
+   * perfectly good answer.
+   */
+  householdNote?: string;
 }
 
 /** Everything the create form supplies; the store assigns the rest. */
@@ -194,6 +204,14 @@ export interface CarePassInput {
   endDate: string;
   permissionLevel: CarePassPermissionLevel;
   visibleSections: CarePassSection[];
+  /**
+   * Per-pet notes the "I'm Leaving Town" wizard collected, in the order the
+   * pets were picked. The store keeps them on the pass (and sends them with
+   * the invite); the compact create form simply leaves this out.
+   */
+  petSnapshots?: CarePassPetSnapshot[];
+  /** The household note from the wizard's last step (see `CarePass`). */
+  householdNote?: string;
 }
 
 /** Fields the pass detail screen / later stages may edit in place. */
@@ -257,6 +275,165 @@ export interface CarePassPetSnapshot {
   /** The pet's own species name when `species` is 'Other' (e.g. "Bunny"). */
   customSpecies?: string;
   photoUri?: string;
+  /**
+   * What the owner wants the sitter to know about this pet's feeding, as it
+   * should be followed for THIS pass. The wizard prefills it from the pet's
+   * real feeding schedules and its written care notes; the owner then edits it
+   * because a sitter needs a sentence, not a table. Absent/blank means the
+   * owner left it out — never a guessed line.
+   */
+  feedingNote?: string;
+  /** The same, for this pet's medications (prefilled from the med records). */
+  medicationNote?: string;
+  /** The pet's care notes as the pass carries them (from the written notes). */
+  careNote?: string;
+  /**
+   * Who to call about this pet, as the owner filled the forms in — the owner's
+   * own number, a co-parent, the vet and an out-of-hours vet. Only the values
+   * the owner actually has are ever stored; a blank phone stays absent.
+   */
+  contacts?: CarePassContact[];
+  /** The pet's microchip number, when the owner has typed it in. */
+  microchip?: string;
+  /** Allergies / medical conditions, in the owner's own words. */
+  allergies?: string;
+}
+
+/**
+ * What a contact block on a pass IS — the four people a sitter may need:
+ * the pet parent, a co-parent, the usual vet and an emergency/out-of-hours
+ * vet. Stable lowercase ids, so they survive storage and a shared invite file.
+ */
+export type CarePassContactRole = 'owner' | 'co-parent' | 'vet' | 'emergency-vet';
+
+/** The roles, in the order the wizard's emergency step asks for them. */
+export const CARE_PASS_CONTACT_ROLES: readonly CarePassContactRole[] = [
+  'owner',
+  'co-parent',
+  'vet',
+  'emergency-vet',
+];
+
+/** Human wording for each contact role. */
+export const CARE_PASS_CONTACT_ROLE_LABELS: Record<CarePassContactRole, string> = {
+  owner: 'Pet parent',
+  'co-parent': 'Co-parent',
+  vet: 'Vet',
+  'emergency-vet': 'Emergency vet',
+};
+
+/** Human label for a contact role; unknown ids fall back to the raw id. */
+export function carePassContactRoleLabel(role: CarePassContactRole): string {
+  return CARE_PASS_CONTACT_ROLE_LABELS[role] ?? role;
+}
+
+/** Whether a value is one of the four contact roles (used by import). */
+export function isCarePassContactRole(value: unknown): value is CarePassContactRole {
+  return (
+    typeof value === 'string' &&
+    (CARE_PASS_CONTACT_ROLES as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * One contact on a pass: who they are, their name when the owner gave one and
+ * the number to call when they gave one. An entry with neither is dropped
+ * before it is ever stored — a contact with nothing to say is not a contact.
+ */
+export interface CarePassContact {
+  role: CarePassContactRole;
+  /** The person's or clinic's name, when the owner named them. */
+  name?: string;
+  /** The number to call, exactly as the owner typed it. */
+  phone?: string;
+}
+
+/**
+ * How long a free-text pass note may be. Long enough for a real paragraph,
+ * short enough that one runaway paste cannot ruin the pass's layout (the same
+ * rule the emergency-card details apply to their own fields).
+ */
+export const CARE_PASS_NOTE_MAX_LENGTH = 600;
+
+/**
+ * Tidy one free-text pass value: trim the ends, collapse runs of blank space,
+ * cap the length, and answer '' for anything that is not a string or is blank.
+ * Newlines are kept — these are paragraphs, and a feeding routine reads as a
+ * list. Pure, so the wizard's own state and the stored pass clean identically.
+ */
+export function cleanCarePassText(value: unknown, max = CARE_PASS_NOTE_MAX_LENGTH): string {
+  if (typeof value !== 'string') return '';
+  const spaced = value.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  return spaced.length > max ? spaced.slice(0, max).trimEnd() : spaced;
+}
+
+/**
+ * The per-pet notes a snapshot carries, with every blank folded away.
+ *
+ * The wizard writes notes into a snapshot; a pass made by the compact create
+ * form has a snapshot list that is empty or missing. One helper answers both,
+ * so no screen ever has to test five optional fields in a row.
+ */
+export interface CarePassPetNotes {
+  feeding?: string;
+  medications?: string;
+  care?: string;
+  contacts: CarePassContact[];
+  microchip?: string;
+  allergies?: string;
+}
+
+/** Read one snapshot's notes, with blanks absent and contacts cleaned. */
+export function carePassPetNotes(
+  snapshot: CarePassPetSnapshot | undefined | null,
+): CarePassPetNotes {
+  const contacts: CarePassContact[] = [];
+  for (const role of CARE_PASS_CONTACT_ROLES) {
+    const match = snapshot?.contacts?.find((contact) => contact?.role === role);
+    if (!match) continue;
+    const name = cleanCarePassText(match.name, 120);
+    const phone = cleanCarePassText(match.phone, 40);
+    if (!name && !phone) continue;
+    contacts.push({
+      role,
+      ...(name ? { name } : {}),
+      ...(phone ? { phone } : {}),
+    });
+  }
+  const feeding = cleanCarePassText(snapshot?.feedingNote);
+  const medications = cleanCarePassText(snapshot?.medicationNote);
+  const care = cleanCarePassText(snapshot?.careNote);
+  const microchip = cleanCarePassText(snapshot?.microchip, 60);
+  const allergies = cleanCarePassText(snapshot?.allergies);
+  return {
+    ...(feeding ? { feeding } : {}),
+    ...(medications ? { medications } : {}),
+    ...(care ? { care } : {}),
+    contacts,
+    ...(microchip ? { microchip } : {}),
+    ...(allergies ? { allergies } : {}),
+  };
+}
+
+/** Whether a snapshot carries no note content at all (only the pet's identity). */
+export function carePassPetNotesAreEmpty(snapshot: CarePassPetSnapshot | undefined): boolean {
+  const notes = carePassPetNotes(snapshot);
+  return (
+    !notes.feeding &&
+    !notes.medications &&
+    !notes.care &&
+    notes.contacts.length === 0 &&
+    !notes.microchip &&
+    !notes.allergies
+  );
+}
+
+/** One contact as a single readable line, e.g. "Vet: Dr Okafor · 555 0100". */
+export function carePassContactLine(contact: CarePassContact): string {
+  const parts = [contact.name?.trim(), contact.phone?.trim()].filter(
+    (part): part is string => !!part,
+  );
+  return `${carePassContactRoleLabel(contact.role)}: ${parts.join(' · ')}`;
 }
 
 /** Current care-pass invite format version. Readers accept this or older. */

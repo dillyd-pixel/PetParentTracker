@@ -1,9 +1,14 @@
 /**
  * Sitter Mode home — every care pass on this device, and the two ways in.
  *
- *  - "Create a Care Pass" (the pet parent's side): premium-gated, so a
+ *  - "I'm Leaving Town" (the pet parent's side): the guided eight-step wizard
+ *    that builds a pass with every per-pet fact prefilled from the pet's own
+ *    records. Premium-gated exactly like the compact create form, so a
  *    non-entitled user is routed to the Blueprint Premium screen instead of
- *    the form. The button is always visible — the feature is never hidden.
+ *    step 1. The card is always visible — the feature is never hidden.
+ *  - "Create a Care Pass" (the same side, the compact way): the single-screen
+ *    form, for an owner who already knows what they want. Same gate, same
+ *    store, same invite code.
  *  - "Open a Care Pass" (the sitter's side): free, no account, no premium.
  *  - "Care instructions for your pets" (owner side): the permanent per-pet
  *    notes a sitter follows. Free to write and NOT premium-gated — the content
@@ -96,6 +101,33 @@ export default function SitterHomeScreen({ navigation }: Props): React.JSX.Eleme
           </Text>
         </CCCard>
 
+        {/* ---- The guided creator (pet parent, premium) ---- */}
+        <CCCard
+          glowTint={COLOR.blue}
+          accent={COLOR.blue}
+          onPress={() =>
+            entitled ? navigation.navigate('CarePassWizard') : goToPremium()
+          }
+          accessibilityLabel="I'm Leaving Town — build a care pass step by step"
+          testID="sitter-leaving-town-card"
+          style={{ marginTop: SPACE.s3 }}
+        >
+          <View style={styles.cardHead}>
+            <View style={{ flex: 1 }}>
+              <Text style={[BS.cardKicker, { color: TONE.blue.fg }]}>
+                {entitled ? 'Guided · 8 steps' : 'Blueprint Premium'}
+              </Text>
+              <Text style={BS.cardTitleLg}>I’m Leaving Town</Text>
+            </View>
+            <Text style={BS.link}>›</Text>
+          </View>
+          <Text style={BS.caption}>
+            Answer eight short steps and the pass writes itself from your own records: the pets,
+            the days, their meals and medication, and who to call. Nothing is invented — blank
+            stays blank, and you can edit every line.
+          </Text>
+        </CCCard>
+
         {/* ---- Create (pet parent, premium) ---- */}
         <TouchableOpacity
           style={[BS.btnPrimary, { marginTop: SPACE.s3 }]}
@@ -107,7 +139,7 @@ export default function SitterHomeScreen({ navigation }: Props): React.JSX.Eleme
         </TouchableOpacity>
         <Text style={[BS.caption, { marginTop: SPACE.s2, textAlign: 'center' }]}>
           {entitled
-            ? 'Pick the pets, the dates and what your sitter may do.'
+            ? 'The quick way: pick the pets, the dates and what your sitter may do.'
             : 'Blueprint Premium — start your 14-day free trial to create passes.'}
         </Text>
 

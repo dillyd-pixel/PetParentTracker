@@ -19,15 +19,20 @@
  */
 import { CollectionStore, newId } from './storage';
 import {
+  CARE_PASS_CONTACT_ROLES,
   CARE_PASS_FILE_KIND,
   CARE_PASS_FILE_VERSION,
   CARE_PASS_SECTIONS,
   carePassStatus,
+  cleanCarePassText,
+  isCarePassContactRole,
   isCarePassSection,
   isValidISODate,
 } from '../types';
 import type {
   CarePass,
+  CarePassContact,
+  CarePassContactRole,
   CarePassInput,
   CarePassInviteFile,
   CarePassPermissionLevel,
@@ -127,6 +132,10 @@ export const carePassRepository = {
   async create(input: CarePassInput): Promise<CarePass> {
     const existing = await carePassStore.getAll();
     const inviteCode = generateInviteCode(existing.map((pass) => pass.inviteCode));
+    // The wizard's per-pet notes ride on the snapshot list; a pass the compact
+    // form made has none, and then the field is simply absent.
+    const petSnapshots = snapshotNotes(input.petSnapshots);
+    const householdNote = cleanCarePassText(input.householdNote);
     const draft: CarePass = {
       id: newId(),
       createdAt: new Date().toISOString(),
@@ -140,6 +149,8 @@ export const carePassRepository = {
       inviteCode,
       status: 'active',
       source: 'created',
+      ...(petSnapshots.length > 0 ? { petSnapshots } : {}),
+      ...(householdNote ? { householdNote } : {}),
     };
     // Both, as designed: the owner-set status above and the derived one here.
     const pass: CarePass = { ...draft, status: carePassStatus(draft) };
@@ -189,16 +200,69 @@ export function petSnapshotFor(pet: Pet): CarePassPetSnapshot {
   };
 }
 
-/** The snapshots of the pets a pass covers, in the pass's own selection order. */
+/** Only the note fields of a snapshot — never the pet's identity. */
+function snapshotNotesOnly(
+  snapshot: CarePassPetSnapshot | undefined,
+): Partial<CarePassPetSnapshot> {
+  if (!snapshot) return {};
+  const out: Partial<CarePassPetSnapshot> = {};
+  if (snapshot.feedingNote) out.feedingNote = snapshot.feedingNote;
+  if (snapshot.medicationNote) out.medicationNote = snapshot.medicationNote;
+  if (snapshot.careNote) out.careNote = snapshot.careNote;
+  if (snapshot.microchip) out.microchip = snapshot.microchip;
+  if (snapshot.allergies) out.allergies = snapshot.allergies;
+  if (snapshot.contacts && snapshot.contacts.length > 0) {
+    out.contacts = snapshot.contacts.map((contact) => ({ ...contact }));
+  }
+  return out;
+}
+
+/**
+ * Clean a caller-supplied snapshot list down to the pets that actually carry
+ * notes. The wizard builds its snapshots from live pets, so a pet with every
+ * note left blank contributes nothing — and a pass with no notes at all stores
+ * no snapshot list, exactly like a pass the compact form created.
+ */
+export function snapshotNotes(
+  snapshots: readonly CarePassPetSnapshot[] | undefined,
+): CarePassPetSnapshot[] {
+  const out: CarePassPetSnapshot[] = [];
+  for (const snapshot of snapshots ?? []) {
+    if (!snapshot || typeof snapshot.id !== 'string' || snapshot.id === '') continue;
+    const notes = cleanSnapshotNotes(snapshot as unknown as Record<string, unknown>);
+    if (Object.keys(notes).length === 0) continue;
+    out.push({
+      id: snapshot.id,
+      name: typeof snapshot.name === 'string' ? snapshot.name.trim() : '',
+      species: snapshot.species,
+      customSpecies: snapshot.customSpecies?.trim() || undefined,
+      photoUri: snapshot.photoUri,
+      ...notes,
+    });
+  }
+  return out;
+}
+
+/**
+ * The snapshots of the pets a pass covers, in the pass's own selection order —
+ * the live pet's identity plus the notes the pass holds for it, so the owner's
+ * per-pet notes travel with the invite instead of staying behind on this device.
+ */
 export function petsForCarePass(
-  pass: Pick<CarePass, 'selectedPetIds'>,
+  pass: Pick<CarePass, 'selectedPetIds' | 'petSnapshots'>,
   pets: readonly Pet[],
 ): CarePassPetSnapshot[] {
   const byId = new Map(pets.map((pet) => [pet.id, pet]));
+  const notesById = new Map((pass.petSnapshots ?? []).map((snap) => [snap.id, snap]));
   const snapshots: CarePassPetSnapshot[] = [];
   for (const petId of pass.selectedPetIds) {
     const pet = byId.get(petId);
-    if (pet) snapshots.push(petSnapshotFor(pet));
+    if (!pet) continue;
+    const notes = snapshotNotesOnly(notesById.get(petId));
+    snapshots.push({
+      ...petSnapshotFor(pet),
+      ...notes,
+    });
   }
   return snapshots;
 }
@@ -308,7 +372,54 @@ function cleanPetSnapshot(value: unknown): CarePassPetSnapshot | null {
     species: value.species as CarePassPetSnapshot['species'],
     customSpecies: custom,
     photoUri: typeof value.photoUri === 'string' ? value.photoUri : undefined,
+    ...cleanSnapshotNotes(value),
   };
+}
+
+/**
+ * The note fields an invite's pet may carry (the wizard's per-pet content),
+ * cleaned the same way the wizard cleans its own state. Every field is
+ * optional and additive: a file written before these fields existed reads back
+ * with none of them, and an unknown `contacts` role is dropped rather than
+ * rejecting the whole invite (a stray field must never cost a sitter the pass).
+ */
+function cleanSnapshotNotes(value: Record<string, unknown>): Partial<CarePassPetSnapshot> {
+  const out: Partial<CarePassPetSnapshot> = {};
+  const feedingNote = cleanCarePassText(value.feedingNote);
+  if (feedingNote) out.feedingNote = feedingNote;
+  const medicationNote = cleanCarePassText(value.medicationNote);
+  if (medicationNote) out.medicationNote = medicationNote;
+  const careNote = cleanCarePassText(value.careNote);
+  if (careNote) out.careNote = careNote;
+  const microchip = cleanCarePassText(value.microchip, 60);
+  if (microchip) out.microchip = microchip;
+  const allergies = cleanCarePassText(value.allergies);
+  if (allergies) out.allergies = allergies;
+
+  if (Array.isArray(value.contacts)) {
+    const contacts: CarePassContact[] = [];
+    const seen = new Set<CarePassContactRole>();
+    for (const raw of value.contacts) {
+      if (!isObject(raw) || !isCarePassContactRole(raw.role)) continue;
+      if (seen.has(raw.role)) continue; // one entry per role, first one wins
+      const name = cleanCarePassText(raw.name, 120);
+      const phone = cleanCarePassText(raw.phone, 40);
+      if (!name && !phone) continue; // nothing to say is not a contact
+      seen.add(raw.role);
+      contacts.push({
+        role: raw.role,
+        ...(name ? { name } : {}),
+        ...(phone ? { phone } : {}),
+      });
+    }
+    // Stored in the canonical role order, so two equal sets compare equal.
+    if (contacts.length > 0) {
+      out.contacts = CARE_PASS_CONTACT_ROLES.filter((role) =>
+        contacts.some((contact) => contact.role === role),
+      ).map((role) => contacts.find((contact) => contact.role === role) as CarePassContact);
+    }
+  }
+  return out;
 }
 
 /**
