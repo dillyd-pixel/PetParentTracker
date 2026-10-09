@@ -383,14 +383,37 @@ export function wizardSetPetContact(
 
 /* --------------------------------------------------------------- prefill -- */
 
+/**
+ * A record field as a string, or '' when it is missing or not a string. The
+ * prefill reads records the owner wrote across the app; this is the one place
+ * that decides what an odd value means, so no summary downstream can print
+ * "undefined" or throw on a missing list.
+ */
+function safeText(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+/** A medication's first scheduled time, with a late-sorting placeholder. */
+function firstMedicationTime(m: Medication): string {
+  const times = Array.isArray(m?.times) ? m.times : [];
+  const first = times.find((time) => safeText(time) !== '');
+  return safeText(first) || '99:99';
+}
+
 /** One line per meal on a pet's feeding schedule, e.g. "Breakfast 06:30 · 120 g". */
 function mealLine(schedule: FeedingSchedule): string {
-  const portion = `${schedule.portionAmount} ${schedule.portionUnit}`;
-  const days = isEveryDay(schedule.daysOfWeek) ? '' : ` (${feedingDaysLabel(schedule.daysOfWeek)})`;
-  const notes = cleanCarePassText(schedule.notes, 120);
-  return `• ${schedule.mealType} ${schedule.time} · ${portion}${days}${
-    notes ? ` — ${notes}` : ''
-  }`;
+  // Defensive on purpose: a record with a missing/odd field must never put
+  // "undefined g" or "NaN" in front of a sitter.
+  const mealType = cleanCarePassText(schedule?.mealType, 40) || 'Meal';
+  const time = cleanCarePassText(schedule?.time, 10);
+  const amount = Number.isFinite(schedule?.portionAmount) ? `${schedule.portionAmount}` : '';
+  const unit = cleanCarePassText(schedule?.portionUnit, 10);
+  const portion = [amount, unit].filter((part) => part !== '').join(' ');
+  const repeat = Array.isArray(schedule?.daysOfWeek) ? schedule.daysOfWeek : [];
+  const days = isEveryDay(repeat) ? '' : ` (${feedingDaysLabel(repeat)})`;
+  const notes = cleanCarePassText(schedule?.notes, 120);
+  const head = `• ${mealType}${time ? ` ${time}` : ''}${portion ? ` · ${portion}` : ''}${days}`;
+  return notes ? `${head} — ${notes}` : head;
 }
 
 /**
@@ -403,9 +426,16 @@ export function feedingSummary(
   instructions?: CareInstructions | null,
 ): string {
   const lines: string[] = [];
-  const meals = schedules
+  // A pet with no feeding records at all (a missing list, not an empty one)
+  // prefill is blank — never a crash on the way to a blank.
+  const meals = (Array.isArray(schedules) ? schedules : [])
+    .filter((meal) => meal != null)
     .slice()
-    .sort((a, b) => a.time.localeCompare(b.time) || a.createdAt.localeCompare(b.createdAt));
+    .sort(
+      (a, b) =>
+        safeText(a?.time).localeCompare(safeText(b?.time)) ||
+        safeText(a?.createdAt).localeCompare(safeText(b?.createdAt)),
+    );
   for (const meal of meals) lines.push(mealLine(meal));
   const notes: Array<[string, string | undefined]> = [
     ['Food', instructions ? careInstructionValue(instructions, 'foodBrand') || undefined : undefined],
@@ -436,20 +466,26 @@ export function medicationSummary(
   medications: readonly Medication[],
   todayKey: string,
 ): string {
-  const due = medications
+  // Same rule as the feeding summary: a missing list is blank, and a record
+  // with no `times` array gets an empty one so the shared schedule label reads
+  // "no schedule" instead of throwing.
+  const onFile = (Array.isArray(medications) ? medications : []).filter((m) => m != null);
+  const due = onFile
     .filter((m) => medicationOnPassToday(m, todayKey))
-    .slice()
+    .map((m) => ({ ...m, times: Array.isArray(m.times) ? m.times : [] }))
     .sort(
       (a, b) =>
-        (a.times[0] ?? '99:99').localeCompare(b.times[0] ?? '99:99') ||
-        a.name.localeCompare(b.name),
+        firstMedicationTime(a).localeCompare(firstMedicationTime(b)) ||
+        safeText(a?.name).localeCompare(safeText(b?.name)),
     );
   const lines = due.map((m) => {
     const notes = cleanCarePassText(m.notes, 120);
-    const until = m.endDate ? `, until ${m.endDate}` : '';
-    return `• ${m.name} · ${m.dosage} · ${medicationScheduleLabel(m)}${until}${
-      notes ? ` — ${notes}` : ''
-    }`;
+    const name = cleanCarePassText(m.name, 60) || 'Medication';
+    const dosage = cleanCarePassText(m.dosage, 60);
+    const endDate = safeText(m.endDate);
+    const until = endDate ? `, until ${endDate}` : '';
+    const head = `• ${name}${dosage ? ` · ${dosage}` : ''} · ${medicationScheduleLabel(m)}`;
+    return `${head}${until}${notes ? ` — ${notes}` : ''}`;
   });
   return cleanCarePassText(lines.join('\n'));
 }
