@@ -19,12 +19,14 @@
  * 100% offline: passes are read from AsyncStorage through SitterContext.
  */
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import CarePassStatusBadge from '../components/CarePassStatusBadge';
+import { CCCard } from '../components/CC';
 import { useGoToPremium } from '../components/CarePassPremiumLock';
 import { useCareInstructions } from '../context/CareInstructionsContext';
+import { useCheckIns } from '../context/CheckInsContext';
 import { usePremium } from '../context/PremiumContext';
 import { usePets } from '../context/PetContext';
 import { useSitter } from '../context/SitterContext';
@@ -33,14 +35,16 @@ import type { SitterStackParamList } from '../navigation/SitterNavigator';
 import { resolveCarePassPets } from '../storage/carePasses';
 import { careInstructionsSummary, carePassStatus, carePassStatusLabel } from '../types';
 import type { CarePass } from '../types';
+import { careLogCount } from '../utils/caregiverCheckIn';
 import { petEmojiFor } from '../utils/petDisplay';
-import { BS, COLOR, SPACE } from '../theme';
+import { BS, COLOR, SPACE, TONE } from '../theme';
 
 type Props = NativeStackScreenProps<SitterStackParamList, 'SitterHome'>;
 
 export default function SitterHomeScreen({ navigation }: Props): React.JSX.Element {
   const { carePasses } = useSitter();
   const { pets } = usePets();
+  const { checkIns } = useCheckIns();
   const { getForPet: getCareInstructions } = useCareInstructions();
   const premium = usePremium();
   const goToPremium = useGoToPremium();
@@ -68,6 +72,29 @@ export default function SitterHomeScreen({ navigation }: Props): React.JSX.Eleme
           away — the pets, the dates, and what they’re allowed to do. Nothing leaves your
           device: the pass travels as a file or a short code, exactly like a co-parent share.
         </Text>
+
+        {/* ---- Caregiver check-in (free, both sides) ---- */}
+        <CCCard
+          glowTint={COLOR.aqua}
+          accent={COLOR.aqua}
+          onPress={() => navigation.navigate('CheckIn')}
+          accessibilityLabel="Open caregiver check-in"
+          testID="sitter-checkin-card"
+          style={{ marginTop: SPACE.s3 }}
+        >
+          <View style={styles.cardHead}>
+            <View style={{ flex: 1 }}>
+              <Text style={[BS.cardKicker, { color: TONE.aqua.fg }]}>Free · no account</Text>
+              <Text style={BS.cardTitleLg}>Caregiver check-in</Text>
+            </View>
+            <Text style={BS.link}>›</Text>
+          </View>
+          <Text style={BS.caption}>
+            Fed, water, medication, walks, litter and how each pet is doing — one tap each, signed
+            with who did it and the time. Works for you, and for a sitter with no account of their
+            own.
+          </Text>
+        </CCCard>
 
         {/* ---- Create (pet parent, premium) ---- */}
         <TouchableOpacity
@@ -174,7 +201,46 @@ export default function SitterHomeScreen({ navigation }: Props): React.JSX.Eleme
             </TouchableOpacity>
           ))
         )}
+
+        {/* ---- Care log: what each pet's check-ins actually say ---- */}
+        <Text style={[BS.fieldLabel, { marginTop: SPACE.s6 }]}>Care log</Text>
+        <Text style={[BS.caption, { marginBottom: SPACE.s2 }]}>
+          Every act a caregiver recorded and every mood note, newest first, with who did it and
+          when. Free, and read straight off this device.
+        </Text>
+        {pets.length === 0 ? (
+          <View style={BS.dashedBox}>
+            <Text style={BS.caption}>
+              Add a pet first — a care log belongs to a pet.
+            </Text>
+          </View>
+        ) : (
+          pets.map((pet) => {
+            const count = careLogCount(checkIns, pet.id);
+            return (
+              <TouchableOpacity
+                key={pet.id}
+                style={BS.divRowBetween}
+                onPress={() => navigation.navigate('CareLog', { petId: pet.id })}
+                accessibilityRole="button"
+                accessibilityLabel={`Care log for ${pet.name}`}
+                testID={`sitter-care-log-${pet.id}`}
+              >
+                <Text style={BS.rowLabel}>
+                  {petEmojiFor(pet)} {pet.name}
+                </Text>
+                <Text style={BS.link}>
+                  {count === 0 ? 'Nothing yet' : `${count} recorded`} ›
+                </Text>
+              </TouchableOpacity>
+            );
+          })
+        )}
       </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s3 },
+});

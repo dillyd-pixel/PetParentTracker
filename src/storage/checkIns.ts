@@ -13,7 +13,7 @@
  * owner's display time zone (see `careCheckInIsOn`).
  */
 import { CollectionStore } from './storage';
-import { careCheckInIsOn } from '../types/checkIn';
+import { careCheckInIsOn, isMoodCheckIn } from '../types/checkIn';
 import type { CareCheckInEvent, CareCheckInInput, CareCheckInType } from '../types/checkIn';
 
 /** Persisted collection of care check-ins (every pet, every day). */
@@ -58,6 +58,11 @@ export const checkInRepository = {
  * The acts already recorded for one pet on one local calendar day
  * (`YYYY-MM-DD`, in the display zone). Pure — the same filter the ring applies
  * in memory, kept here so storage and UI can never disagree.
+ *
+ * Mood observations (`type: 'mood'`, written by the Sitter Mode check-in
+ * engine) are deliberately left out: a mood says how the pet seemed, not that
+ * an act of care happened, so it never lights a ring tile and never counts as
+ * an act done. Read it with `latestMoodOn` instead.
  */
 export function doneTypesOn(
   events: CareCheckInEvent[],
@@ -66,7 +71,12 @@ export function doneTypesOn(
   zone?: string,
 ): CareCheckInType[] {
   const done = events
-    .filter((event) => event.petId === petId && careCheckInIsOn(event, dayKey, zone))
+    .filter(
+      (event) =>
+        event.petId === petId &&
+        !isMoodCheckIn(event.type) &&
+        careCheckInIsOn(event, dayKey, zone),
+    )
     .map((event) => event.type);
   return [...new Set(done)];
 }

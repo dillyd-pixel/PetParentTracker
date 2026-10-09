@@ -38,6 +38,7 @@ import { useVetRecords } from '../context/VetContext';
 import { useExpenses } from '../context/ExpensesContext';
 import { useJournal } from '../context/JournalContext';
 import { useCareInstructions } from '../context/CareInstructionsContext';
+import { useCheckIns } from '../context/CheckInsContext';
 import {
   cancelFeedingForPet,
   cancelMedicationsForPet,
@@ -46,6 +47,7 @@ import {
 import { useTabRootNavigation } from '../navigation/RootNavigator';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import { medicationScheduleLabel, careInstructionsSummary } from '../types';
+import { careLogCount } from '../utils/caregiverCheckIn';
 import { petEmojiFor, petMetaLine, shortDate } from '../utils/petDisplay';
 import { BS, COLOR, SPACE } from '../theme';
 
@@ -66,6 +68,7 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
   const { journalEntries, deleteJournalForPet } = useJournal();
   const { getForPet: getCareInstructions, deleteForPet: deleteCareInstructionsForPet } =
     useCareInstructions();
+  const { checkIns } = useCheckIns();
   const [processing, setProcessing] = useState(false);
   const [photoChooserOpen, setPhotoChooserOpen] = useState(false);
   const [pickingPhoto, setPickingPhoto] = useState(false);
@@ -111,6 +114,8 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
   // This pet's Sitter Mode care notes (a plain lookup, so it can sit here —
   // before the no-pet early return, where hooks may not be added).
   const petInstructions = pet ? getCareInstructions(pet.id) : undefined;
+  /** How many check-ins (acts and mood notes) this pet has on this device. */
+  const petCheckInCount = pet ? careLogCount(checkIns, pet.id) : 0;
 
   if (!pet) {
     return (
@@ -327,6 +332,23 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
             </Text>
           </View>
           <Text style={BS.link}>{careInstructionsSummary(petInstructions)} ›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={BS.divRowBetween}
+          onPress={() => navigation.navigate('CareLog', { petId: pet.id })}
+          accessibilityRole="button"
+          accessibilityLabel={`Care log for ${pet.name}`}
+          testID="pet-care-log"
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={BS.rowLabel}>Care log</Text>
+            <Text style={BS.caption}>
+              Every check-in and mood note, newest first — who did it and when.
+            </Text>
+          </View>
+          <Text style={BS.link}>
+            {petCheckInCount === 0 ? 'Nothing yet' : `${petCheckInCount} recorded`} ›
+          </Text>
         </TouchableOpacity>
 
         <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Medications</Text>
