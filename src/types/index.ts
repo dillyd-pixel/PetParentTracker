@@ -234,16 +234,43 @@ export const PORTION_UNIT_OPTIONS: PortionUnit[] = [
 /** Short day names indexed by `Date.getDay()` (0 = Sunday). */
 export const DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-/** Whether a days-of-week value means "every day" (empty or all 7 days). */
-export function isEveryDay(daysOfWeek: number[]): boolean {
-  return daysOfWeek.length === 0 || daysOfWeek.length === 7;
+/**
+ * Whether a days-of-week value means "every day": empty, all 7 days, **or the
+ * field missing entirely**.
+ *
+ * The `FeedingSchedule` contract (see the entity docstring above) is that a
+ * missing `daysOfWeek` means "every day" — an entry stored before the field
+ * existed, or restored from a file written by an older build, has none. So this
+ * has to answer for `undefined` rather than read `.length` off it: that threw a
+ * `TypeError` during TodayScreen's render and took the whole app down (a white
+ * screen) for any pet with such a meal on file.
+ */
+export function isEveryDay(daysOfWeek: number[] | null | undefined): boolean {
+  return !daysOfWeek || daysOfWeek.length === 0 || daysOfWeek.length === 7;
+}
+
+/**
+ * Whether a schedule repeats on a given weekday (0 = Sunday … 6 = Saturday) —
+ * the one safe way to ask "is this meal due today?". A missing/empty
+ * `daysOfWeek` means every day, and `weekday: null` (an unparseable date key)
+ * matches no specific day.
+ */
+export function isScheduledOn(
+  daysOfWeek: number[] | null | undefined,
+  weekday: number | null,
+): boolean {
+  if (!daysOfWeek || daysOfWeek.length === 0 || daysOfWeek.length === 7) return true;
+  return weekday !== null && daysOfWeek.includes(weekday);
 }
 
 /** Human summary of which days a feeding entry repeats, e.g. "Every day". */
-export function feedingDaysLabel(daysOfWeek: number[]): string {
-  if (isEveryDay(daysOfWeek)) return 'Every day';
-  const days = [...daysOfWeek].sort((a, b) => a - b);
-  return days.map((d) => DAY_NAMES_SHORT[d] ?? `Day ${d}`).join(', ');
+export function feedingDaysLabel(daysOfWeek: number[] | null | undefined): string {
+  const days = daysOfWeek ?? [];
+  if (isEveryDay(days)) return 'Every day';
+  return [...days]
+    .sort((a, b) => a - b)
+    .map((d) => DAY_NAMES_SHORT[d] ?? `Day ${d}`)
+    .join(', ');
 }
 
 /** Human summary of a feeding entry, e.g. "Breakfast · 08:00 · 150 g". */

@@ -400,10 +400,13 @@ export async function scheduleFeedingReminders(
   }
 
   const scheduled: string[] = [];
+  // A feeding entry with no `daysOfWeek` at all (stored before the field
+  // existed) means "every day" — the same contract `isEveryDay` keeps.
+  const daysOfWeek = Array.isArray(f.daysOfWeek) ? f.daysOfWeek : [];
   const days =
-    f.daysOfWeek.length === 0
+    daysOfWeek.length === 0
       ? null // every day
-      : [...new Set(f.daysOfWeek)].filter(
+      : [...new Set(daysOfWeek)].filter(
           (d) => Number.isInteger(d) && d >= 0 && d <= 6,
         );
 

@@ -33,7 +33,7 @@ import type {
   Vaccine,
   VetRecord,
 } from '../types';
-import { isEveryDay, VACCINE_DUE_SOON_DAYS } from '../types';
+import { isScheduledOn, VACCINE_DUE_SOON_DAYS } from '../types';
 import { isVetVisitLike } from '../types';
 import { journalMoodEmoji } from '../types';
 import { feedingScheduleLabel, medicationScheduleLabel } from '../types';
@@ -196,7 +196,7 @@ export function buildTodayTasks(pet: Pet | null, data: HomeData): HomeTask[] {
     .filter(
       (schedule) =>
         schedule.petId === pet.id &&
-        (isEveryDay(schedule.daysOfWeek) || schedule.daysOfWeek.includes(data.weekday)),
+        isScheduledOn(schedule.daysOfWeek, data.weekday),
     )
     .sort((a, b) => a.time.localeCompare(b.time));
   for (const meal of meals) {

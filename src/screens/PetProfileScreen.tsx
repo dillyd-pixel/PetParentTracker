@@ -350,6 +350,27 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
             {petCheckInCount === 0 ? 'Nothing yet' : `${petCheckInCount} recorded`} ›
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={BS.divRowBetween}
+          onPress={() =>
+            rootNavigation.navigate('More', {
+              screen: 'Sitter',
+              params: { screen: 'Emergency', params: { petId: pet.id } },
+            })
+          }
+          accessibilityRole="button"
+          accessibilityLabel={`Emergency info for ${pet.name}`}
+          testID="pet-emergency-info"
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={BS.rowLabel}>🚨 Emergency info</Text>
+            <Text style={BS.caption}>
+              Age, weight, allergies, medication, chip and the numbers to call — one screen for an
+              urgent trip to the vet.
+            </Text>
+          </View>
+          <Text style={BS.link}>Open ›</Text>
+        </TouchableOpacity>
 
         <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Medications</Text>
         {petMeds.length === 0 ? (

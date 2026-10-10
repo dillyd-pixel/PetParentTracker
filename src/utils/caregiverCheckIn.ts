@@ -36,7 +36,7 @@ import {
   petMoodOrNull,
 } from '../types/checkIn';
 import type { CareCheckInEvent, CareCheckInType, PetMood } from '../types/checkIn';
-import { isEveryDay, medicationScheduleLabel } from '../types';
+import { isScheduledOn, medicationScheduleLabel } from '../types';
 import type { CareInstructions, FeedingSchedule, Medication } from '../types';
 import { formatDateOnlyInTimeZone, formatInTimeZone, todayISOInTimeZone } from './datetime';
 import { daysFromToday, weekdayFromISO } from './homeSections';
@@ -316,9 +316,7 @@ export function petDayTasks(
   const meals = input.feeding
     .filter(
       (schedule) =>
-        schedule.petId === petId &&
-        (isEveryDay(schedule.daysOfWeek) ||
-          (weekday !== null && schedule.daysOfWeek.includes(weekday))),
+        schedule.petId === petId && isScheduledOn(schedule.daysOfWeek, weekday),
     )
     .sort((a, b) => a.time.localeCompare(b.time));
 
