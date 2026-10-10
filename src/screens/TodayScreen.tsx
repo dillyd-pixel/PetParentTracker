@@ -123,7 +123,7 @@ import type { FixAction, HomeData, PetModuleScreen } from '../utils/homeSections
 import { DEFAULT_HOME_TITLE, loadHomeTitle, saveHomeTitle } from '../storage/homeTitle';
 import { monthName, petAgeLabel, petEmojiFor, petSpeciesLabel } from '../utils/petDisplay';
 import { DEFAULT_ACCENT, hexWithAlpha, petAccent } from '../utils/petAccent';
-import { CARE_CHECK_IN_TYPES, CARE_ENCOURAGEMENTS, isEveryDay } from '../types';
+import { CARE_CHECK_IN_TYPES, CARE_ENCOURAGEMENTS, isScheduledOn } from '../types';
 import type { CareCheckInType, Medication, Pet, Vaccine } from '../types';
 import {
   AUTO_TIME_ZONE,
@@ -327,7 +327,7 @@ export default function TodayScreen(): React.JSX.Element {
       .filter(
         (schedule) =>
           schedule.petId === selectedPet.id &&
-          (isEveryDay(schedule.daysOfWeek) || schedule.daysOfWeek.includes(weekday)),
+          isScheduledOn(schedule.daysOfWeek, weekday),
       )
       .map((schedule) => schedule.time)
       .sort();
