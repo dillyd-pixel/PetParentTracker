@@ -19,6 +19,12 @@
  *    every number on file. FREE and ungated, like the check-in engine, because
  *    a scare is the worst possible moment to meet a paywall. It reads the same
  *    card-details store the printed emergency card uses.
+ *  - "Travel Mode" (HANDOFF, unit 1 of 3): the owner's trip-planning layer —
+ *    the trip, its pets, the packing checklist and a read-only per-pet handoff
+ *    preview — which hands the trip straight to the wizard with its pets and
+ *    dates. FREE and ungated: planning and packing are the owner's own
+ *    business, and the premium gate stays exactly where it was, on creating a
+ *    pass.
  *
  * Each row shows who the pass is for, the dates, the pets it covers and a
  * status badge: Active (usable today), Expired (end date has passed) or
@@ -127,6 +133,29 @@ export default function SitterHomeScreen({ navigation }: Props): React.JSX.Eleme
             weight, allergies and conditions, the medication they’re on, the microchip, and a Call
             button for the vet, the emergency vet and both pet parents. Nothing is invented —
             anything you haven’t stored says “Not on file”.
+          </Text>
+        </CCCard>
+
+        {/* ---- Travel Mode (HANDOFF 1/3 — free, both sides) ---- */}
+        <CCCard
+          glowTint={COLOR.tangerine}
+          accent={COLOR.tangerine}
+          onPress={() => navigation.navigate('TravelMode')}
+          accessibilityLabel="Open Travel Mode — plan a trip and hand it to the care pass"
+          testID="travel-mode-card"
+          style={{ marginTop: SPACE.s3 }}
+        >
+          <View style={styles.cardHead}>
+            <View style={{ flex: 1 }}>
+              <Text style={[BS.cardKicker, { color: TONE.tangerine.fg }]}>Free · offline</Text>
+              <Text style={BS.cardTitleLg}>🗺️ Travel Mode</Text>
+            </View>
+            <Text style={BS.link}>›</Text>
+          </View>
+          <Text style={BS.caption}>
+            Plan the days you are away: the pets it covers, what still needs packing, and the
+            handoff each pet will get — read straight off their own records. Then one tap hands
+            the trip to the care pass, already filled in with those pets and dates.
           </Text>
         </CCCard>
 
