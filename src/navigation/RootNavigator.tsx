@@ -52,7 +52,8 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
+import type { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 
 import { createWebSafeStackNavigator } from './WebSafeStack';
 import { CCTabBar } from './CCTabBar';
@@ -120,6 +121,29 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const Stack = createWebSafeStackNavigator<RootStackParamList>();
 
 /**
+ * Web-only tab transition: the cross-fade is what *hides* the inactive tabs.
+ *
+ * Why it is needed here and not on device: react-navigation keeps every tab you
+ * have visited mounted and moves the ones you are not on behind the focused one
+ * (`zIndex: -1`, `pointerEvents: none`). On Android/iOS `react-native-screens`
+ * also detaches them (`detachInactiveScreens` defaults to true there), so they
+ * paint nothing. In the browser `react-native-screens` is inert — the inactive
+ * scenes stay fully painted — and because every screen here is deliberately
+ * transparent (the app-root wallpaper has to show through, see the "Wallpaper"
+ * note above), an inactive scene is visible through the focused screen instead
+ * of being covered by it. That is what made the Home screen's text appear on
+ * top of / through Pets, Records and More.
+ *
+ * `animation: 'fade'` turns on the navigator's `sceneStyleInterpolator`, which
+ * maps each scene's progress to `opacity: [0, 1, 0]` — 1 for the focused scene,
+ * 0 for every other one — so inactive scenes are truly invisible on web, with a
+ * 150ms cross-fade when you switch. Native keeps the default (`'none'`) so the
+ * Android app's feel is unchanged.
+ */
+const TAB_SCENE_ANIMATION: Partial<BottomTabNavigationOptions> =
+  Platform.OS === 'web' ? { animation: 'fade' } : {};
+
+/**
  * The five-slot shell: the four tab screens plus the custom bar that draws
  * Home | Pets | + | Records | More. The "+" opens the Quick Add modal on the
  * root stack (this component is a root-stack screen, so it can navigate there).
@@ -137,6 +161,7 @@ function MainTabs(): React.JSX.Element {
       screenOptions={{
         headerShown: false,
         tabBarStyle: { backgroundColor: COLOR.surface },
+        ...TAB_SCENE_ANIMATION,
       }}
     >
       <Tab.Screen name="Home" component={TodayScreen} />
