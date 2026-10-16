@@ -8,6 +8,12 @@
  *                     trip-planning layer — the trip, the "before you go"
  *                     checklist, the per-pet handoff preview and the handoff to
  *                     this same wizard with the trip's pets and dates.
+ *   VetMode         — Vet Mode (HANDOFF, unit 2 of 3, free): preparing for a vet
+ *                     visit (the day, the reason, the questions to ask), the last
+ *                     visit and current medication read off the pet's own
+ *                     records, "Save the visit" filing it in that same records
+ *                     store, and a recheck that becomes a follow-up date on the
+ *                     Upcoming list.
  *   CarePassWizard  — "I'm Leaving Town": the guided eight-step way to build the
  *                     same pass, with every per-pet fact prefilled from the
  *                     pet's own records (premium, like the create form).
@@ -35,6 +41,7 @@ import React from 'react';
 import { createWebSafeStackNavigator } from './WebSafeStack';
 import SitterHomeScreen from '../screens/SitterHomeScreen';
 import TravelModeScreen from '../screens/TravelModeScreen';
+import VetModeScreen from '../screens/VetModeScreen';
 import CarePassFormScreen from '../screens/CarePassFormScreen';
 import CarePassWizardScreen from '../screens/CarePassWizardScreen';
 import OpenCarePassScreen from '../screens/OpenCarePassScreen';
@@ -50,6 +57,12 @@ export type SitterStackParamList = {
    * screen already holding one saved trip, so a trip can be revisited.
    */
   TravelMode: { tripId?: string } | undefined;
+  /**
+   * Vet Mode (free): one pet's vet-visit prep — the visit, its questions, the
+   * last visit and current medication on file, and the recheck follow-up.
+   * `petId` is optional so the pet page opens the same screen for its own pet.
+   */
+  VetMode: { petId?: string } | undefined;
   /**
    * "I'm Leaving Town" — the guided eight-step Care Pass creator. Travel Mode
    * hands it the trip it is planning (`petIds` + `startDate`/`endDate`); with
@@ -84,6 +97,7 @@ export function SitterNavigator(): React.JSX.Element {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="SitterHome" component={SitterHomeScreen} />
       <Stack.Screen name="TravelMode" component={TravelModeScreen} />
+      <Stack.Screen name="VetMode" component={VetModeScreen} />
       <Stack.Screen name="CarePassWizard" component={CarePassWizardScreen} />
       <Stack.Screen name="CarePassForm" component={CarePassFormScreen} />
       <Stack.Screen name="OpenCarePass" component={OpenCarePassScreen} />

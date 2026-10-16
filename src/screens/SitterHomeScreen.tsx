@@ -25,6 +25,11 @@
  *    dates. FREE and ungated: planning and packing are the owner's own
  *    business, and the premium gate stays exactly where it was, on creating a
  *    pass.
+ *  - "Vet Mode" (HANDOFF, unit 2 of 3): the vet-visit companion — the visit
+ *    being prepared for (day, reason, questions to ask), the last visit and the
+ *    current medication read off the pet's own records, "Save the visit"
+ *    filing it into that same records store, and a recheck that becomes a
+ *    follow-up date on the Upcoming list. FREE and ungated, like Emergency Mode.
  *
  * Each row shows who the pass is for, the dates, the pets it covers and a
  * status badge: Active (usable today), Expired (end date has passed) or
@@ -156,6 +161,29 @@ export default function SitterHomeScreen({ navigation }: Props): React.JSX.Eleme
             Plan the days you are away: the pets it covers, what still needs packing, and the
             handoff each pet will get — read straight off their own records. Then one tap hands
             the trip to the care pass, already filled in with those pets and dates.
+          </Text>
+        </CCCard>
+
+        {/* ---- Vet Mode (HANDOFF 2/3 — free, both sides) ---- */}
+        <CCCard
+          glowTint={COLOR.lavender}
+          accent={COLOR.lavender}
+          onPress={() => navigation.navigate('VetMode')}
+          accessibilityLabel="Open Vet Mode — prepare for a vet visit and file what happened"
+          testID="vet-mode-card"
+          style={{ marginTop: SPACE.s3 }}
+        >
+          <View style={styles.cardHead}>
+            <View style={{ flex: 1 }}>
+              <Text style={[BS.cardKicker, { color: TONE.lavender.fg }]}>Free · offline</Text>
+              <Text style={BS.cardTitleLg}>🩺 Vet Mode</Text>
+            </View>
+            <Text style={BS.link}>›</Text>
+          </View>
+          <Text style={BS.caption}>
+            Get ready for the visit — the day, the reason and the questions you don’t want to
+            forget, beside the last visit and the medication already on file. Then “Save the
+            visit” files it in your pet’s records and puts any recheck on your Upcoming list.
           </Text>
         </CCCard>
 
