@@ -95,6 +95,7 @@ import {
   wizardPassInput,
 } from '../utils/carePassWizard';
 import type { CarePassWizardState, CarePassWizardStepId } from '../utils/carePassWizard';
+import { travelPrefillFromParams, wizardWithTripPrefill } from '../utils/travelMode';
 import { todayISOInTimeZone } from '../utils/datetime';
 import { petAccent } from '../utils/petAccent';
 import { petEmojiFor, petSpeciesLabel } from '../utils/petDisplay';
@@ -110,7 +111,7 @@ const DATE_CHIPS: ReadonlyArray<{ label: string; days: number }> = [
   { label: '3 weeks', days: 21 },
 ];
 
-export default function CarePassWizardScreen({ navigation }: Props): React.JSX.Element {
+export default function CarePassWizardScreen({ navigation, route }: Props): React.JSX.Element {
   const premium = usePremium();
   const { username, timeZone, loaded: accountLoaded } = useAccount();
   const { pets } = usePets();
@@ -225,6 +226,28 @@ export default function CarePassWizardScreen({ navigation }: Props): React.JSX.E
   const goToStep = useCallback((id: CarePassWizardStepId) => {
     setState((current) => (current ? wizardGoTo(current, id) : current));
   }, []);
+
+  /**
+   * Travel Mode's handoff — the only thing Travel Mode does to this wizard.
+   *
+   * When the wizard is opened (or re-opened) carrying a trip's pets and dates,
+   * they are carried into the state once per handoff, through the same
+   * `update` path every other change takes so the per-pet prefills fill in
+   * exactly as if the owner had picked those pets themselves. Re-navigating
+   * from a *different* trip re-applies (the signature changes); the same trip
+   * is applied once, so nothing overwrites what the owner has since typed.
+   *
+   * With no params — Sitter Mode's card, the compact form, every other way in —
+   * the params read as no prefill at all and this effect does nothing.
+   */
+  const tripPrefill = useMemo(() => travelPrefillFromParams(route.params), [route.params]);
+  const appliedPrefill = useRef<string | null>(null);
+  useEffect(() => {
+    if (!state || !tripPrefill) return;
+    if (appliedPrefill.current === tripPrefill.signature) return;
+    appliedPrefill.current = tripPrefill.signature;
+    update((current) => wizardWithTripPrefill(current, tripPrefill, pets));
+  }, [pets, state, tripPrefill, update]);
 
   const onSave = useCallback(async () => {
     if (!state || saving) return;

@@ -393,6 +393,17 @@ function safeText(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
 
+/**
+ * A prefill value as trimmed text. This is the one place that decides what an
+ * odd value means: a missing value, or one that is not a string at all (a
+ * hand-edited store can hold an object or a number where a string belongs), is
+ * simply `''` — never "undefined", never "NaN", never "[object Object]", and
+ * never a throw. The step then shows the app's own placeholder instead.
+ */
+function prefillText(value: unknown): string {
+  return safeText(value).trim();
+}
+
 /** A medication's first scheduled time, with a late-sorting placeholder. */
 function firstMedicationTime(m: Medication): string {
   const times = Array.isArray(m?.times) ? m.times : [];
@@ -531,18 +542,24 @@ export function contactPrefill(options: {
 }): Record<CarePassContactRole, CarePassWizardContactDraft> {
   const extras = options.extras ?? {};
   const vetRecord = latestVetRecord(options.vetRecords ?? []);
+  // Every box is read through `prefillText`, so a hand-edited extras record
+  // holding a number or an object where a phone number belongs leaves the box
+  // blank instead of throwing on a `.trim` that is not there.
   const vetName =
-    extras.vetName?.trim() || vetRecord?.veterinarian?.trim() || vetRecord?.clinicName?.trim() || '';
+    prefillText(extras.vetName) ||
+    prefillText(vetRecord?.veterinarian) ||
+    prefillText(vetRecord?.clinicName) ||
+    '';
   return {
-    owner: { name: options.ownerName.trim(), phone: extras.ownerPhone?.trim() ?? '' },
+    owner: { name: prefillText(options.ownerName), phone: prefillText(extras.ownerPhone) },
     'co-parent': {
-      name: extras.coParentName?.trim() ?? '',
-      phone: extras.coParentPhone?.trim() ?? '',
+      name: prefillText(extras.coParentName),
+      phone: prefillText(extras.coParentPhone),
     },
-    vet: { name: vetName, phone: extras.vetPhone?.trim() ?? '' },
+    vet: { name: vetName, phone: prefillText(extras.vetPhone) },
     'emergency-vet': {
-      name: extras.emergencyVetName?.trim() ?? '',
-      phone: extras.emergencyVetPhone?.trim() ?? '',
+      name: prefillText(extras.emergencyVetName),
+      phone: prefillText(extras.emergencyVetPhone),
     },
   };
 }
@@ -567,8 +584,11 @@ export function prefilledPetNotes(options: {
       extras: options.extras,
       vetRecords: options.vetRecords,
     }),
-    microchip: options.extras?.microchip?.trim() ?? '',
-    allergies: options.extras?.allergies?.trim() ?? '',
+    // Read defensively: an extras record that is not a string here (a
+    // hand-edited store, an old export) must leave the box blank — a read can
+    // never be allowed to throw, and it must never print object-shaped junk.
+    microchip: prefillText(options.extras?.microchip),
+    allergies: prefillText(options.extras?.allergies),
   };
 }
 

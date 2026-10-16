@@ -4,9 +4,14 @@
  *   SitterHome      — every care pass on this device with its status badge,
  *                     the "Create Care Pass" entry (premium, creator side) and
  *                     the "Open a Care Pass" entry (free, sitter side).
+ *   TravelMode      — Travel Mode (HANDOFF, unit 1 of 3, free): the owner's
+ *                     trip-planning layer — the trip, the "before you go"
+ *                     checklist, the per-pet handoff preview and the handoff to
+ *                     this same wizard with the trip's pets and dates.
  *   CarePassWizard  — "I'm Leaving Town": the guided eight-step way to build the
  *                     same pass, with every per-pet fact prefilled from the
  *                     pet's own records (premium, like the create form).
+ *                     Travel Mode hands it `{ petIds, startDate, endDate }`.
  *   CarePassForm    — the compact create form: caregiver, dates, pets,
  *                     permission, visible sections (premium).
  *   OpenCarePass    — the sitter's side: open a pass file / pass code. Free, no
@@ -29,6 +34,7 @@ import React from 'react';
 
 import { createWebSafeStackNavigator } from './WebSafeStack';
 import SitterHomeScreen from '../screens/SitterHomeScreen';
+import TravelModeScreen from '../screens/TravelModeScreen';
 import CarePassFormScreen from '../screens/CarePassFormScreen';
 import CarePassWizardScreen from '../screens/CarePassWizardScreen';
 import OpenCarePassScreen from '../screens/OpenCarePassScreen';
@@ -39,8 +45,19 @@ import EmergencyScreen from '../screens/EmergencyScreen';
 
 export type SitterStackParamList = {
   SitterHome: undefined;
-  /** "I'm Leaving Town" — the guided eight-step Care Pass creator. */
-  CarePassWizard: undefined;
+  /**
+   * Travel Mode (free): the whole trip-planning layer. `tripId` opens the
+   * screen already holding one saved trip, so a trip can be revisited.
+   */
+  TravelMode: { tripId?: string } | undefined;
+  /**
+   * "I'm Leaving Town" — the guided eight-step Care Pass creator. Travel Mode
+   * hands it the trip it is planning (`petIds` + `startDate`/`endDate`); with
+   * no params it opens exactly as it always has.
+   */
+  CarePassWizard:
+    | { petIds?: string[]; startDate?: string; endDate?: string }
+    | undefined;
   CarePassForm: undefined;
   OpenCarePass: undefined;
   CarePassDetail: { passId: string };
@@ -66,6 +83,7 @@ export function SitterNavigator(): React.JSX.Element {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="SitterHome" component={SitterHomeScreen} />
+      <Stack.Screen name="TravelMode" component={TravelModeScreen} />
       <Stack.Screen name="CarePassWizard" component={CarePassWizardScreen} />
       <Stack.Screen name="CarePassForm" component={CarePassFormScreen} />
       <Stack.Screen name="OpenCarePass" component={OpenCarePassScreen} />
