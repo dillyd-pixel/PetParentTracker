@@ -79,11 +79,40 @@ function byNewest(a: TravelTrip, b: TravelTrip): number {
   return b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id);
 }
 
+/**
+ * The whole collection, as a list — whatever the key actually holds.
+ *
+ * `CollectionStore.getAll()` JSON-parses the key inside a try/catch, so junk that
+ * is not JSON at all already reads as empty. A value that *is* valid JSON but not
+ * an array (a hand-edited `{"nope":true}`, or a bare `42`) still comes back as
+ * that value, and both `for…of` and `.find()` would throw on it. So the feature
+ * reads through here: anything that is not an array is treated as "nothing
+ * stored", and the key is repaired to an empty list so the next write is a real
+ * array again. A storage failure on the repair is not fatal — the caller gets an
+ * honest empty list either way.
+ */
+async function readAll(): Promise<TravelTrip[]> {
+  let raw: unknown;
+  try {
+    raw = await travelTripStore.getAll();
+  } catch {
+    return [];
+  }
+  if (Array.isArray(raw)) return raw;
+  try {
+    await travelTripStore.setAll([]);
+  } catch {
+    // Read-only trouble is the screen's business to report, not a reason to throw
+    // out of a read.
+  }
+  return [];
+}
+
 /** All CRUD for the `travelTrips` collection, with the reads cleaned. */
 export const travelTripRepository = {
   /** Every trip on this device, newest first, every field made safe. */
   async list(): Promise<TravelTrip[]> {
-    const raw = await travelTripStore.getAll();
+    const raw = await readAll();
     const trips: TravelTrip[] = [];
     for (const item of raw) {
       const clean = cleanTravelTrip(item);
@@ -94,8 +123,11 @@ export const travelTripRepository = {
 
   /** One trip by id, cleaned, or null. */
   async get(id: string): Promise<TravelTrip | null> {
-    const clean = cleanTravelTrip(await travelTripStore.findById(id));
-    return clean;
+    const wanted = typeof id === 'string' ? id : '';
+    if (wanted === '') return null;
+    const rows = await readAll();
+    const found = rows.find((item) => item != null && item.id === wanted);
+    return cleanTravelTrip(found ?? null);
   },
 
   /**
@@ -122,8 +154,11 @@ export const travelTripRepository = {
           checked: [],
         };
     const wanted = typeof id === 'string' ? id.trim() : '';
+    // Read through the guard first: it repairs a corrupt key, so the create /
+    // update below always lands in a real array.
+    const rows = await readAll();
     if (wanted !== '') {
-      const existing = await travelTripStore.findById(wanted);
+      const existing = rows.find((item) => item != null && item.id === wanted);
       if (existing) {
         const updated = await travelTripStore.update(wanted, fields);
         return cleanTravelTrip(updated) ?? {
