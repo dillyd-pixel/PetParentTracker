@@ -371,6 +371,27 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
           </View>
           <Text style={BS.link}>Open ›</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={BS.divRowBetween}
+          onPress={() =>
+            rootNavigation.navigate('More', {
+              screen: 'Sitter',
+              params: { screen: 'VetMode', params: { petId: pet.id } },
+            })
+          }
+          accessibilityRole="button"
+          accessibilityLabel={`Vet visit prep for ${pet.name}`}
+          testID="pet-vet-mode"
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={BS.rowLabel}>🩺 Vet visit prep</Text>
+            <Text style={BS.caption}>
+              The visit you’re preparing for — its reason and your questions — beside the last visit
+              and current medication on file. Saving it files the visit here.
+            </Text>
+          </View>
+          <Text style={BS.link}>Open ›</Text>
+        </TouchableOpacity>
 
         <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Medications</Text>
         {petMeds.length === 0 ? (
