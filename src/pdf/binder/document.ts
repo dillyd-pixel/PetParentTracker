@@ -642,6 +642,7 @@ function petRecords(pet: Pet, source: BinderSource): PetRecords {
 
 /** "Bella's care binder" / "Care binder · Bella, Milo + 1 more". */
 function documentTitle(pets: Pet[], household: boolean): string {
+  if (pets.length === 0) return 'Care binder';
   if (pets.length === 1) return `${safeText(pets[0].name) || 'This pet'}'s care binder`;
   if (household) return 'The whole household’s care binder';
   const names = pets.slice(0, 3).map((pet) => safeText(pet.name) || 'Pet');
