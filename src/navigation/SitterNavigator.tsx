@@ -59,6 +59,7 @@ import CarePassDetailScreen from '../screens/CarePassDetailScreen';
 import CheckInScreen from '../screens/CheckInScreen';
 import CareLogScreen from '../screens/CareLogScreen';
 import EmergencyScreen from '../screens/EmergencyScreen';
+import type { PetDeepLinkParams } from './petDeepLink';
 import type { PaperSize } from '../pdf/planner/sections';
 
 export type SitterStackParamList = {
@@ -71,9 +72,11 @@ export type SitterStackParamList = {
   /**
    * Vet Mode (free): one pet's vet-visit prep — the visit, its questions, the
    * last visit and current medication on file, and the recheck follow-up.
-   * `petId` is optional so the pet page opens the same screen for its own pet.
+   * `petId` is optional so the pet page opens the same screen for its own pet;
+   * `from: 'pet'` is the deep link's return target (see nav/petDeepLink.ts) —
+   * absent on the normal More → Sitter Mode → Vet Mode path.
    */
-  VetMode: { petId?: string } | undefined;
+  VetMode: PetDeepLinkParams | undefined;
   /**
    * Printable binder (HANDOFF 3/3): the pet's whole care file as one printable
    * PDF. `petId` is optional — with none, the screen starts on the active pet.
@@ -107,8 +110,10 @@ export type SitterStackParamList = {
    * Emergency Mode (free): one pet's emergency sheet, with a Call button
    * beside every number on file. `petId` is optional — the screen falls back
    * to the first pet, and the pet page opens the same screen with its own id.
+   * `from: 'pet'` is the deep link's return target (see nav/petDeepLink.ts) —
+   * absent on the normal More → Sitter Mode → Emergency path.
    */
-  Emergency: { petId?: string } | undefined;
+  Emergency: PetDeepLinkParams | undefined;
 };
 
 const Stack = createWebSafeStackNavigator<SitterStackParamList>();

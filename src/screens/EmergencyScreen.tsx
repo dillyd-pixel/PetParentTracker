@@ -37,6 +37,7 @@ import { useMedications } from '../context/MedicationsContext';
 import { usePets } from '../context/PetContext';
 import { useVetRecords } from '../context/VetContext';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
+import { PET_DEEP_LINK_ORIGIN, usePetDeepLinkBack } from '../navigation/petDeepLink';
 import type { SitterStackParamList } from '../navigation/SitterNavigator';
 import { emergencyDetailsRepository, extrasForPet } from '../storage/emergencyDetails';
 import type { EmergencyExtrasByPet } from '../pdf/emergency/document';
@@ -130,17 +131,26 @@ export default function EmergencyScreen({ navigation, route }: Props): React.JSX
   );
 
   const accent = pet ? petAccent(pet.id) : null;
+  // `‹ Back` returns to the pet page when the row that opened this screen was
+  // on one, and to Sitter Mode on the normal path (nav/petDeepLink.ts).
+  const goBack = usePetDeepLinkBack(navigation, route.params);
+  const backLabel =
+    route.params?.from === PET_DEEP_LINK_ORIGIN
+      ? pet
+        ? `${pet.name}’s page`
+        : 'Pet page'
+      : 'Sitter Mode';
 
   return (
     <View style={BS.screen}>
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={goBack}
           accessibilityRole="button"
-          accessibilityLabel="Back to Sitter Mode"
+          accessibilityLabel={`Back to ${backLabel}`}
           testID={EMERGENCY_BACK_TESTID}
         >
-          <Text style={BS.link}>‹ Sitter Mode</Text>
+          <Text style={BS.link}>‹ {backLabel}</Text>
         </TouchableOpacity>
 
         <Text style={[BS.eyebrow, { marginTop: SPACE.s3 }]}>

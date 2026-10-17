@@ -40,6 +40,7 @@ import { useMedications } from '../context/MedicationsContext';
 import { usePets } from '../context/PetContext';
 import { useVetRecords } from '../context/VetContext';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
+import { PET_DEEP_LINK_ORIGIN, usePetDeepLinkBack } from '../navigation/petDeepLink';
 import type { SitterStackParamList } from '../navigation/SitterNavigator';
 import { vetVisitRepository } from '../storage/vetVisits';
 import { todayISOInTimeZone } from '../utils/datetime';
@@ -337,17 +338,26 @@ export default function VetModeScreen({ navigation, route }: Props): React.JSX.E
   /* ---------------------------------------------------------------- render -- */
 
   const questions = Array.isArray(active.questions) ? active.questions : [];
+  // `‹ Back` returns to the pet page when the row that opened this screen was
+  // on one, and to Sitter Mode on the normal path (nav/petDeepLink.ts).
+  const goBack = usePetDeepLinkBack(navigation, route.params);
+  const backLabel =
+    route.params?.from === PET_DEEP_LINK_ORIGIN
+      ? pet
+        ? `${pet.name}’s page`
+        : 'Pet page'
+      : 'Back';
 
   return (
     <View style={BS.screen}>
       <ScrollView contentContainerStyle={BS.pad}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={goBack}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={`Go back to ${backLabel}`}
           testID={VET_BACK_TESTID}
         >
-          <Text style={BS.link}>‹ Back</Text>
+          <Text style={BS.link}>‹ {backLabel}</Text>
         </TouchableOpacity>
 
         <Text style={[BS.eyebrow, { marginTop: SPACE.s3 }]}>Handoff · free · offline</Text>
