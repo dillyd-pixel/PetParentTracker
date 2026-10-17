@@ -119,9 +119,17 @@ export type PlannerBlock =
   /** A dashed photo frame — template furniture for a printed keepsake. */
   | { kind: 'frame'; text: string };
 
-/** One printed section: its heading and its blocks. */
+/**
+ * One printed section: its heading and its blocks.
+ *
+ * `id` is a plain string because this document shape is shared: the planner
+ * fills it from `PLANNER_SECTIONS`, and the printable care binder
+ * (`../../pdf/binder/document`) fills it from its own `BINDER_SECTIONS`. Both
+ * flow through the SAME block model, the same HTML renderer and the same
+ * on-device PDF path — that is the point of the shared shape.
+ */
 export interface PlannerSectionContent {
-  id: PlannerSectionId;
+  id: string;
   title: string;
   emoji: string;
   blocks: PlannerBlock[];
@@ -182,17 +190,24 @@ export interface PlannerConfig {
 
 /* --------------------------------------------------------------- helpers ---- */
 
-/** A friendly, honest empty note — never a fabricated value. */
-function empty(text: string): PlannerBlock {
+/**
+ * A friendly, honest empty note — never a fabricated value.
+ *
+ * Shared with the printable care binder, which builds its own sections from the
+ * same block model (see `../../pdf/binder/document`) so both printed documents
+ * are drawn by one renderer.
+ */
+export function empty(text: string): PlannerBlock {
   return { kind: 'text', text, muted: true };
 }
 
-/** A real summary line (not an empty note). */
-function line(text: string): PlannerBlock {
+/** A real summary line (not an empty note). Shared with the care binder. */
+export function line(text: string): PlannerBlock {
   return { kind: 'text', text };
 }
 
-function subheading(text: string): PlannerBlock {
+/** A quiet sub-heading inside a section. Shared with the care binder. */
+export function subheading(text: string): PlannerBlock {
   return { kind: 'subheading', text };
 }
 
@@ -254,8 +269,8 @@ function photoNote(photoUri?: string): string | undefined {
   return photoUri ? 'photo on this device' : undefined;
 }
 
-/** Join the parts of a meta line, dropping the empty ones. */
-function metaLine(parts: Array<string | undefined>): string | undefined {
+/** Join the parts of a meta line, dropping the empty ones. Shared with the care binder. */
+export function metaLine(parts: Array<string | undefined>): string | undefined {
   const kept = parts.filter((part): part is string => Boolean(part && part.trim()));
   return kept.length > 0 ? kept.join(' · ') : undefined;
 }

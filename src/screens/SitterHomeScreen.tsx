@@ -187,6 +187,30 @@ export default function SitterHomeScreen({ navigation }: Props): React.JSX.Eleme
           </Text>
         </CCCard>
 
+        {/* ---- Printable binder (HANDOFF 3/3 — preview free, PDF premium) ---- */}
+        <CCCard
+          glowTint={COLOR.sunshine}
+          accent={COLOR.sunshine}
+          onPress={() => navigation.navigate('PrintableBinder')}
+          accessibilityLabel="Open the printable binder — one PDF of the pet's whole care file"
+          testID="binder-mode-card"
+          style={{ marginTop: SPACE.s3 }}
+        >
+          <View style={styles.cardHead}>
+            <View style={{ flex: 1 }}>
+              <Text style={[BS.cardKicker, { color: TONE.sunshine.fg }]}>Preview free · PDF premium</Text>
+              <Text style={BS.cardTitleLg}>📕 Printable binder</Text>
+            </View>
+            <Text style={BS.link}>›</Text>
+          </View>
+          <Text style={BS.caption}>
+            One tap turns the pet’s whole care file into paper — who they are, what a vet should
+            know, every visit on record, what the care has cost and how to look after them. Hand it
+            to a sitter, a vet or family. Nothing is invented: a fact you haven’t stored says “Not on
+            file”.
+          </Text>
+        </CCCard>
+
         {/* ---- The guided creator (pet parent, premium) ---- */}
         <CCCard
           glowTint={COLOR.blue}
