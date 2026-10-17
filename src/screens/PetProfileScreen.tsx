@@ -45,6 +45,7 @@ import {
   cancelVaccinesForPet,
 } from '../storage/notifications';
 import { useTabRootNavigation } from '../navigation/RootNavigator';
+import { openSitterScreenFromPetPage } from '../navigation/petDeepLink';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import { medicationScheduleLabel, careInstructionsSummary } from '../types';
 import { careLogCount } from '../utils/caregiverCheckIn';
@@ -352,12 +353,7 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
         </TouchableOpacity>
         <TouchableOpacity
           style={BS.divRowBetween}
-          onPress={() =>
-            rootNavigation.navigate('More', {
-              screen: 'Sitter',
-              params: { screen: 'Emergency', params: { petId: pet.id } },
-            })
-          }
+          onPress={() => openSitterScreenFromPetPage(rootNavigation, 'Emergency', pet.id)}
           accessibilityRole="button"
           accessibilityLabel={`Emergency info for ${pet.name}`}
           testID="pet-emergency-info"
@@ -373,12 +369,7 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
         </TouchableOpacity>
         <TouchableOpacity
           style={BS.divRowBetween}
-          onPress={() =>
-            rootNavigation.navigate('More', {
-              screen: 'Sitter',
-              params: { screen: 'VetMode', params: { petId: pet.id } },
-            })
-          }
+          onPress={() => openSitterScreenFromPetPage(rootNavigation, 'VetMode', pet.id)}
           accessibilityRole="button"
           accessibilityLabel={`Vet visit prep for ${pet.name}`}
           testID="pet-vet-mode"
