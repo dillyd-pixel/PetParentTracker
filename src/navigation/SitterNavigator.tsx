@@ -14,6 +14,14 @@
  *                     records, "Save the visit" filing it in that same records
  *                     store, and a recheck that becomes a follow-up date on the
  *                     Upcoming list.
+ *   PrintableBinder — Printable binder (HANDOFF, unit 3 of 3): the pet's whole
+ *                     care file — profile, health summary, vet records, costs and
+ *                     care instructions — assembled from the records already on
+ *                     the device into one printable PDF. Preview free; the PDF
+ *                     actions are Blueprint Premium, exactly like the planner's.
+ *   BinderPreview   — that care file, full screen, before anything is generated
+ *                     (free): the real print HTML in the browser, the planner's
+ *                     own paper views on a device.
  *   CarePassWizard  — "I'm Leaving Town": the guided eight-step way to build the
  *                     same pass, with every per-pet fact prefilled from the
  *                     pet's own records (premium, like the create form).
@@ -42,6 +50,8 @@ import { createWebSafeStackNavigator } from './WebSafeStack';
 import SitterHomeScreen from '../screens/SitterHomeScreen';
 import TravelModeScreen from '../screens/TravelModeScreen';
 import VetModeScreen from '../screens/VetModeScreen';
+import PrintableBinderScreen from '../screens/PrintableBinderScreen';
+import BinderPreviewScreen from '../screens/BinderPreviewScreen';
 import CarePassFormScreen from '../screens/CarePassFormScreen';
 import CarePassWizardScreen from '../screens/CarePassWizardScreen';
 import OpenCarePassScreen from '../screens/OpenCarePassScreen';
@@ -49,6 +59,7 @@ import CarePassDetailScreen from '../screens/CarePassDetailScreen';
 import CheckInScreen from '../screens/CheckInScreen';
 import CareLogScreen from '../screens/CareLogScreen';
 import EmergencyScreen from '../screens/EmergencyScreen';
+import type { PaperSize } from '../pdf/planner/sections';
 
 export type SitterStackParamList = {
   SitterHome: undefined;
@@ -63,6 +74,16 @@ export type SitterStackParamList = {
    * `petId` is optional so the pet page opens the same screen for its own pet.
    */
   VetMode: { petId?: string } | undefined;
+  /**
+   * Printable binder (HANDOFF 3/3): the pet's whole care file as one printable
+   * PDF. `petId` is optional — with none, the screen starts on the active pet.
+   */
+  PrintableBinder: { petId?: string } | undefined;
+  /**
+   * The binder's own preview (free): the exact document the PDF is built from.
+   * `autoPrint` opens the browser's print dialog once it has loaded (web only).
+   */
+  BinderPreview: { petIds: string[]; paper: PaperSize; autoPrint?: boolean };
   /**
    * "I'm Leaving Town" — the guided eight-step Care Pass creator. Travel Mode
    * hands it the trip it is planning (`petIds` + `startDate`/`endDate`); with
@@ -98,6 +119,8 @@ export function SitterNavigator(): React.JSX.Element {
       <Stack.Screen name="SitterHome" component={SitterHomeScreen} />
       <Stack.Screen name="TravelMode" component={TravelModeScreen} />
       <Stack.Screen name="VetMode" component={VetModeScreen} />
+      <Stack.Screen name="PrintableBinder" component={PrintableBinderScreen} />
+      <Stack.Screen name="BinderPreview" component={BinderPreviewScreen} />
       <Stack.Screen name="CarePassWizard" component={CarePassWizardScreen} />
       <Stack.Screen name="CarePassForm" component={CarePassFormScreen} />
       <Stack.Screen name="OpenCarePass" component={OpenCarePassScreen} />
