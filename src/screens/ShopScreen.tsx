@@ -39,25 +39,35 @@ import { BS, COLOR, FONT_HEAD, RADIUS, SHADOW, SPACE } from '../theme';
 /** The keepsake product routes this screen links to (all take no params). */
 type KeepsakeRoute = 'PetPlanner' | 'MemorialBook' | 'Artwork' | 'EmergencyCards';
 
-/** The keepsake products — all four finished and live. */
-const PRODUCTS: Array<{ name: KeepsakeRoute; title: string; desc: string }> = [
+/**
+ * The keepsake products — all four finished and live.
+ *
+ * `slug` is the row's stable handle for walks and probes: every keepsake card
+ * carries `shop-product-<slug>` on its body (the `keepsake-card-<route>` id it
+ * has always had stays on the tap target itself — ids are added, never renamed).
+ */
+const PRODUCTS: Array<{ name: KeepsakeRoute; slug: string; title: string; desc: string }> = [
   {
     name: 'PetPlanner',
+    slug: 'pet-planner',
     title: 'Printable pet planner',
     desc: 'On-device PDF planner you can print — 14 sections, Letter or A4.',
   },
   {
     name: 'MemorialBook',
+    slug: 'memorial-book',
     title: 'Memorial book',
     desc: 'A keepsake book of one pet’s memories, milestones and life story — made on-device from your own records, Letter or A4.',
   },
   {
     name: 'Artwork',
+    slug: 'artwork',
     title: 'Custom pet artwork',
     desc: 'Artwork made from your pet photo, on-device.',
   },
   {
     name: 'EmergencyCards',
+    slug: 'emergency-cards',
     title: 'Emergency pet card pack',
     desc: 'Wallet-sized emergency cards, one per pet — 85.6 × 54 mm, printed at 100% with an offline QR.',
   },
@@ -207,7 +217,7 @@ export default function ShopScreen(): React.JSX.Element {
                     <Text style={styles.iconPaw}>🐾</Text>
                     <Text style={[styles.spark, styles.sparkTop]}>✦</Text>
                   </LinearGradient>
-                  <View style={styles.cardBody}>
+                  <View style={styles.cardBody} testID={`shop-product-${product.slug}`}>
                     <Text style={styles.cardTitle}>{product.title}</Text>
                     <Text style={styles.cardDesc}>{product.desc}</Text>
                     {LIVE_PRODUCTS.includes(product.name) && (

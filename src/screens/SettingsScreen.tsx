@@ -1,7 +1,9 @@
 /**
  * Settings — the device-level account preferences, in the design's own voice.
  *
- * Four sections, on paper, under the screen's own `‹ Shop` header:
+ * Four sections, on paper, under the screen's own `‹ Back` header (route-agnostic:
+ * Settings is reached from More, from the Shop page and from Home's gear, so a
+ * `‹ Shop` label would be wrong on two of the three):
  *  - Account: the pet parent's name. A plain local string, no login and no
  *    credential — the field saves on return/blur, exactly like renaming the
  *    home title on Today.
@@ -157,9 +159,9 @@ export default function SettingsScreen(): React.JSX.Element {
         {/* The design's in-page header — this screen's own back link + title. */}
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          accessibilityLabel="Back to Shop"
+          accessibilityLabel="Back"
         >
-          <Text style={BS.link}>‹ Shop</Text>
+          <Text style={BS.link}>‹ Back</Text>
         </TouchableOpacity>
         <Text style={[BS.h1, { marginTop: SPACE.s3 }]}>Settings</Text>
         <Text style={BS.kicker}>This device only · nothing leaves it</Text>
