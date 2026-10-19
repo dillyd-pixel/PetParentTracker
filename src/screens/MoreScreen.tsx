@@ -1,22 +1,33 @@
 /**
- * More — the fifth nav slot: everything that is not Home, Pets or Records.
+ * More — the fifth nav slot, and the app's HANDOFF command surface.
  *
- * Design Phase A groups the app's remaining destinations here under coloured
- * section headers, so the five-slot shell (Home | Pets | + | Records | More)
- * keeps every screen reachable:
+ * The four areas of the pet-care OS are content organisation, not tabs: Home,
+ * Pets, Records and More are the only four real slots (the "+" is drawn by the
+ * tab bar and opens the Quick Add modal). So everything the OS map calls
+ * YOUR CIRCLE / HANDOFF / SHOP & SETTINGS lives here, grouped in that order:
  *
- *   Your circle      — Care Circle and Care Calendar (placeholders for the next
- *                      phase) and the real Emergency Card screen.
- *   Care & handoff   — Sitter Mode home (care passes, per-pet care
- *                      instructions) and the sitter's "Open a Care Pass".
- *   Extras           — the shop page (Blueprints Premium entry, co-parent
- *                      share, PDF export, the keepsake products on hold),
- *                      premium record search and device settings.
- *   Privacy          — the offline promise, stated on-device.
+ *   Your circle    — Care Circle (the roster on its way) and the real Emergency
+ *                    card screen. The Care Calendar row sits here for now; it
+ *                    moves to Records' CARE group in the next mapping chunk, so
+ *                    every chunk ships with the row reachable somewhere.
+ *   Handoff        — the whole Sitter/travel/vet family, one tap from the tab
+ *                    bar instead of three: "I'm leaving town" (the guided
+ *                    wizard), Sitter Mode (every pass you made or received),
+ *                    caregiver check-in, Travel Mode, Vet Mode, Emergency Mode,
+ *                    the printable binder and the sitter's "Open a Care Pass".
+ *                    Sitter Mode stays a *stack under More* — it is a
+ *                    top-level destination with its own stack and its own
+ *                    premium gate, never a sixth tab (see the OS map §3a).
+ *   Shop & settings — the shop (premium entry, co-parent share, PDF export and
+ *                    all four keepsake products, all live), premium record
+ *                    search and device settings.
+ *   Privacy        — the offline promise, stated on-device.
  *
- * Every row deep-links into the More stack's nested Shop / Sitter navigators,
- * so back returns here. Nothing was deleted in the redesign: Card, Shop and
- * Sitter used to be their own tabs and now live behind these rows.
+ * Every row deep-links into the More stack's nested Shop / Sitter navigators
+ * with a plain `navigate('Sitter', { screen })`, so the child stack is created
+ * at that screen and one step back lands on this menu again. Nothing here
+ * reads or writes a store: no invented data, no dead buttons — a destination
+ * that does not exist yet opens the illustrated ComingSoon page instead.
  *
  * 100% offline: local state and AsyncStorage only.
  */
@@ -88,7 +99,7 @@ export default function MoreScreen({ navigation }: Props): React.JSX.Element {
         <Text style={BS.eyebrow}>Pet parent command center</Text>
         <Text style={BS.h1}>More</Text>
         <Text style={BS.caption}>
-          Your care circle, handoff tools and extras. Everything here stays on this device.
+          Your circle, the handoff tools and the shop. Everything here stays on this device.
         </Text>
 
         {/* ---- Blueprint Premium: the pricing entry ---- */}
@@ -121,7 +132,7 @@ export default function MoreScreen({ navigation }: Props): React.JSX.Element {
         <MoreRow
           emoji="👥"
           label="Care Circle"
-          caption="Pet parents, sitters, family and emergency contacts — coming next"
+          caption="Pet parents, sitters, family and emergency contacts — on its way"
           tint={COLOR.aqua}
           onPress={() =>
             navigation.navigate('ComingSoon', {
@@ -133,10 +144,16 @@ export default function MoreScreen({ navigation }: Props): React.JSX.Element {
           }
           testID="more-care-circle"
         />
+        {/*
+         * The Care Calendar row lives here for this chunk only: it becomes
+         * Records ▸ CARE ▸ `records-care-calendar` in the next mapping chunk.
+         * Moving it in two steps keeps both chunks shippable — the row is
+         * reachable from somewhere the whole time.
+         */}
         <MoreRow
           emoji="🗓️"
           label="Care Calendar"
-          caption="Feeding, walks, meds and vet visits on one timeline — coming next"
+          caption="Feeding, walks, meds and vet visits on one timeline — on its way"
           tint={COLOR.sunshine}
           onPress={() =>
             navigation.navigate('ComingSoon', {
@@ -157,10 +174,10 @@ export default function MoreScreen({ navigation }: Props): React.JSX.Element {
           testID="more-emergency-card"
         />
 
-        {/* ---- Care & handoff ---- */}
+        {/* ---- Handoff ---- */}
         <CCSectionTitle
-          eyebrow="Care & handoff"
-          title="Sitters and travel"
+          eyebrow="Handoff"
+          title="Sitter, travel & the vet"
           emoji="🤝"
           accent={COLOR.coral}
           right={
@@ -172,11 +189,59 @@ export default function MoreScreen({ navigation }: Props): React.JSX.Element {
         />
         <MoreRow
           emoji="🧳"
+          label="I'm leaving town"
+          caption="Build the care pass step by step — premium"
+          tint={COLOR.tangerine}
+          onPress={() => navigation.navigate('Sitter', { screen: 'CarePassWizard' })}
+          testID="more-handoff-leaving-town"
+        />
+        <MoreRow
+          emoji="🤝"
           label="Sitter Mode"
-          caption="Care passes you created or received, and per-pet care instructions"
+          caption="Every pass you made or received"
           tint={COLOR.coral}
           onPress={() => navigation.navigate('Sitter', { screen: 'SitterHome' })}
           testID="more-sitter-mode"
+        />
+        <MoreRow
+          emoji="✅"
+          label="Caregiver check-in"
+          caption="What happened today, one tap — free for a sitter"
+          tint={COLOR.leaf}
+          onPress={() => navigation.navigate('Sitter', { screen: 'CheckIn' })}
+          testID="more-handoff-checkin"
+        />
+        <MoreRow
+          emoji="✈️"
+          label="Travel Mode"
+          caption="The trip, the packing list, the handoff"
+          tint={COLOR.aqua}
+          onPress={() => navigation.navigate('Sitter', { screen: 'TravelMode' })}
+          testID="more-handoff-travel"
+        />
+        <MoreRow
+          emoji="🩺"
+          label="Vet Mode"
+          caption="Before, during and after a vet visit"
+          tint={COLOR.blue}
+          onPress={() => navigation.navigate('Sitter', { screen: 'VetMode' })}
+          testID="more-handoff-vet"
+        />
+        <MoreRow
+          emoji="🚨"
+          label="Emergency Mode"
+          caption="Allergies, chip and the numbers to call"
+          tint={COLOR.coral}
+          onPress={() => navigation.navigate('Sitter', { screen: 'Emergency' })}
+          testID="more-handoff-emergency"
+        />
+        <MoreRow
+          emoji="📄"
+          label="Printable binder"
+          caption="The whole care file on paper"
+          tint={COLOR.lavender}
+          onPress={() => navigation.navigate('Sitter', { screen: 'PrintableBinder' })}
+          testID="more-handoff-binder"
         />
         <MoreRow
           emoji="🔑"
@@ -187,17 +252,17 @@ export default function MoreScreen({ navigation }: Props): React.JSX.Element {
           testID="more-open-care-pass"
         />
 
-        {/* ---- Extras ---- */}
+        {/* ---- Shop & settings ---- */}
         <CCSectionTitle
-          eyebrow="Extras"
-          title="Premium, shop & settings"
+          eyebrow="Shop & settings"
+          title="Premium, keepsakes & device"
           emoji="✨"
           accent={COLOR.tangerine}
         />
         <MoreRow
           emoji="🛍️"
           label="Shop & keepsakes"
-          caption="The planner, memorial book, artwork and card pack — on hold"
+          caption="The planner, memorial book, artwork and card pack — all live"
           tint={COLOR.tangerine}
           onPress={() => navigation.navigate('Shop', { screen: 'ShopHome' })}
           testID="more-shop"
@@ -220,6 +285,12 @@ export default function MoreScreen({ navigation }: Props): React.JSX.Element {
         />
 
         {/* ---- Privacy ---- */}
+        <CCSectionTitle
+          eyebrow="Privacy"
+          title="The offline promise"
+          emoji="🔒"
+          accent={COLOR.leaf}
+        />
         <CCCard accent={COLOR.leaf} glowTint={COLOR.leaf} style={styles.privacyCard}>
           <Text style={styles.privacyTitle}>🔒 100% offline, by design</Text>
           <Text style={BS.caption}>
@@ -275,7 +346,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  privacyCard: { marginTop: SPACE.s6 },
+  privacyCard: { marginTop: SPACE.s2 },
   privacyTitle: {
     fontFamily: FONT_HEAD,
     fontSize: 17,
