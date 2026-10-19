@@ -80,8 +80,11 @@ export type SitterStackParamList = {
   /**
    * Printable binder (HANDOFF 3/3): the pet's whole care file as one printable
    * PDF. `petId` is optional — with none, the screen starts on the active pet.
+   * It also takes the pet page's return target (`from: 'pet'`), so the per-pet
+   * `pet-handoff-binder` row's `‹ Back` lands back on that pet's page instead of
+   * falling through to the tab navigator.
    */
-  PrintableBinder: { petId?: string } | undefined;
+  PrintableBinder: PetDeepLinkParams | undefined;
   /**
    * The binder's own preview (free): the exact document the PDF is built from.
    * `autoPrint` opens the browser's print dialog once it has loaded (web only).

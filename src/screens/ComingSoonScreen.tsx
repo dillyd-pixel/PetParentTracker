@@ -1,41 +1,57 @@
 /**
  * ComingSoon — the friendly placeholder behind the Care Circle and Care
- * Calendar rows on the More screen.
+ * Calendar rows on the More screen, and the same page reused by the Pets tab
+ * (Vitals) and the Records tab's CARE shells.
  *
- * It is deliberately an illustrated prompt rather than a dead end: the serif
- * title, the module's mascot in a tinted halo and one honest line about what
- * will land here (see `CCEmptyState`). Nothing is fetched and nothing is
- * stored — this screen only reads the route params it was opened with.
+ * The page itself lives in `components/ComingSoonView.tsx` so every stack can
+ * render the identical thing; these two wrappers only say which stack the page
+ * was opened from, so its `‹ back` link reads correctly:
+ *
+ *  - `ComingSoonScreen` (default) — the More tab's route. Params unchanged
+ *    (`title`, `emoji`, `message`, `accent`) and the id is still
+ *    `coming-soon-<title>`, so `more-care-circle` / `more-care-calendar` behave
+ *    exactly as they did before.
+ *  - `PetsComingSoonScreen` — the Pets stack's route (Vitals). Same params plus
+ *    an optional `slug`, so the page can be `coming-soon-vitals` while its
+ *    heading stays "Vitals".
  */
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { CCEmptyState } from '../components/CC';
+import { ComingSoonView } from '../components/ComingSoonView';
 import type { MoreStackParamList } from '../navigation/MoreNavigator';
-import { BS, COLOR, SPACE } from '../theme';
+import type { PetsStackParamList } from '../navigation/PetsNavigator';
 
 type Props = NativeStackScreenProps<MoreStackParamList, 'ComingSoon'>;
 
 export default function ComingSoonScreen({ navigation, route }: Props): React.JSX.Element {
   const { title, emoji, message, accent } = route.params;
   return (
-    <View style={BS.screen}>
-      <ScrollView contentContainerStyle={BS.pad}>
-        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Back to More">
-          <Text style={BS.link}>‹ More</Text>
-        </TouchableOpacity>
-        <Text style={[BS.eyebrow, { marginTop: SPACE.s3 }]}>In the next update</Text>
-        <Text style={BS.h1}>{title}</Text>
-        <CCEmptyState
-          emoji={emoji}
-          title="This one is on its way"
-          message={message}
-          accent={accent ?? COLOR.aqua}
-          style={{ marginTop: SPACE.s2 }}
-          testID={`coming-soon-${title}`}
-        />
-      </ScrollView>
-    </View>
+    <ComingSoonView
+      title={title}
+      emoji={emoji}
+      message={message}
+      accent={accent}
+      backLabel="More"
+      onBack={() => navigation.goBack()}
+    />
+  );
+}
+
+type PetsProps = NativeStackScreenProps<PetsStackParamList, 'ComingSoon'>;
+
+/** The same page, opened from inside the Pets stack (currently: Vitals). */
+export function PetsComingSoonScreen({ navigation, route }: PetsProps): React.JSX.Element {
+  const { title, emoji, message, accent, slug } = route.params;
+  return (
+    <ComingSoonView
+      title={title}
+      emoji={emoji}
+      message={message}
+      accent={accent}
+      slug={slug}
+      backLabel="Back"
+      onBack={() => navigation.goBack()}
+    />
   );
 }

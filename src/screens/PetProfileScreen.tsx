@@ -1,10 +1,19 @@
 /**
- * A pet's page — the design's pet profile, on paper.
+ * A pet's page — the design's pet profile, on paper, and the **MY PETS** hub.
  *
- * Photo plate, name, meta kicker, the Vaccines / Feeding buttons, then the
- * pet's medications and the last journal quotes — plus a row for every other
- * module (meds, vet records, expenses, journal) and the edit/delete actions, so
- * nothing that lived on the old Home tab is lost.
+ * Photo plate, name, meta kicker, then the labelled MY PETS block: profile &
+ * vitals, vitals, health (vaccines), vet records, medication, food & feeding,
+ * spending, journal & memories and care instructions — one row per module, each
+ * with a stable `pet-module-*` id, each going to the screen that already owns
+ * that data. Below it the Sitter Mode rows (care log, emergency info, vet visit
+ * prep, printable binder), then the pet's medications and last journal quotes —
+ * still rendered inline from the four stores they have always read — the "On
+ * file" counts, and the edit/delete actions.
+ *
+ * Every row here is navigation only: this screen reorganises and names the
+ * doors, it never adds a second editor for a store. The two rows that cross
+ * tabs (emergency info, vet prep, and now the printable binder) go through
+ * `openSitterScreenFromPetPage`, so `‹ Back` returns to this page.
  *
  * The `petId` route param makes the tapped pet active first, so every module
  * screen reached from here shows the right pet. Deleting cascades exactly as
@@ -54,6 +63,45 @@ import { BS, COLOR, SPACE } from '../theme';
 
 /** Which photo source the owner picked on the plate. */
 type PhotoSource = 'camera' | 'library';
+
+/**
+ * One row of the MY PETS block: emoji + label, one line saying what is behind
+ * it, and the chevron. `trailing` is the row's own at-a-glance value (the care
+ * instructions summary), so the block still carries a fact and not only a door.
+ */
+function ModuleRow({
+  emoji,
+  label,
+  caption,
+  onPress,
+  testID,
+  trailing,
+}: {
+  emoji: string;
+  label: string;
+  caption: string;
+  onPress: () => void;
+  testID: string;
+  trailing?: string;
+}): React.JSX.Element {
+  return (
+    <TouchableOpacity
+      style={BS.divRowBetween}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      testID={testID}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={BS.rowLabel}>
+          {emoji} {label}
+        </Text>
+        <Text style={BS.caption}>{caption}</Text>
+      </View>
+      <Text style={BS.link}>{trailing ? `${trailing} ›` : '›'}</Text>
+    </TouchableOpacity>
+  );
+}
 
 type Props = NativeStackScreenProps<PetsStackParamList, 'PetProfile'>;
 
@@ -289,51 +337,90 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
         <Text style={BS.h1}>{pet.name}</Text>
         <Text style={BS.kicker}>{petMetaLine(pet)}</Text>
 
-        <View style={[BS.row, { marginTop: SPACE.s3 }]}>
-          <TouchableOpacity
-            style={[BS.btnSecondary, { flex: 1 }]}
-            onPress={() => navigation.navigate('Vaccines')}
-          >
-            <Text style={BS.btnSecondaryText}>Vaccines</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[BS.btnSecondary, { flex: 1 }]}
-            onPress={() => navigation.navigate('Feeding')}
-          >
-            <Text style={BS.btnSecondaryText}>Feeding</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={[BS.row, { marginTop: SPACE.s2 }]}>
-          <TouchableOpacity
-            style={[BS.btnSecondary, { flex: 1 }]}
-            onPress={() => navigation.navigate('Meds')}
-          >
-            <Text style={BS.btnSecondaryText}>Medications</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[BS.btnSecondary, { flex: 1 }]}
-            onPress={() => navigation.navigate('VetRecords')}
-          >
-            <Text style={BS.btnSecondaryText}>Vet records</Text>
-          </TouchableOpacity>
-        </View>
+        {/*
+         * ---- MY PETS ----
+         * The pet page is the single door for everything that belongs to this
+         * one pet (OS content map §2.2/§3b): profile, vitals, health, vet
+         * records, medication, feeding, spending, journal, care instructions.
+         * Every row is labelled, every row has a stable id, and every row goes
+         * to the screen that already owned that data — this block reorders and
+         * names the doors, it does not add a second editor for any store.
+         */}
+        <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>My pets</Text>
+        <ModuleRow
+          emoji="🪪"
+          label="Profile & vitals"
+          caption="Name, breed, birthday, chip and the one weigh-in we keep."
+          onPress={() => rootNavigation.navigate('PetForm', { petId: pet.id })}
+          testID="pet-module-profile"
+        />
+        <ModuleRow
+          emoji="⚖️"
+          label="Vitals"
+          caption="One weight lives on the profile today — there is no weigh-in log behind this row yet."
+          onPress={() =>
+            navigation.navigate('ComingSoon', {
+              title: 'Vitals',
+              slug: 'vitals',
+              emoji: '⚖️',
+              message:
+                'A pet’s weight is the single number on its profile today — there is no weigh-in history kept on this device yet, and this page will not invent one.',
+            })
+          }
+          testID="pet-module-vitals"
+        />
+        <ModuleRow
+          emoji="💉"
+          label="Health — vaccines"
+          caption="Shots, due dates and reminders."
+          onPress={() => navigation.navigate('Vaccines')}
+          testID="pet-module-vaccines"
+        />
+        <ModuleRow
+          emoji="🩺"
+          label="Vet records"
+          caption="Every visit, appointment and filed document."
+          onPress={() => navigation.navigate('VetRecords')}
+          testID="pet-module-vet-records"
+        />
+        <ModuleRow
+          emoji="💊"
+          label="Medication"
+          caption="Doses, schedules and reminders."
+          onPress={() => navigation.navigate('Meds')}
+          testID="pet-module-meds"
+        />
+        <ModuleRow
+          emoji="🍽️"
+          label="Food & feeding"
+          caption="Meals, portions and the days they repeat."
+          onPress={() => navigation.navigate('Feeding')}
+          testID="pet-module-feeding"
+        />
+        <ModuleRow
+          emoji="💰"
+          label="Spending"
+          caption="What this pet costs you, month by month."
+          onPress={() => navigation.navigate('Expenses')}
+          testID="pet-module-expenses"
+        />
+        <ModuleRow
+          emoji="📓"
+          label="Journal & memories"
+          caption="Moods, notes and photos — their story so far."
+          onPress={() => navigation.navigate('Journal')}
+          testID="pet-module-journal"
+        />
+        <ModuleRow
+          emoji="📋"
+          label="Care instructions"
+          caption="Food, bathroom, sleep, behaviour and quirks — what a sitter follows."
+          onPress={() => navigation.navigate('CareInstructions', { petId: pet.id })}
+          testID="pet-care-instructions"
+          trailing={careInstructionsSummary(petInstructions)}
+        />
 
         <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>Sitter Mode</Text>
-        <TouchableOpacity
-          style={BS.divRowBetween}
-          onPress={() => navigation.navigate('CareInstructions', { petId: pet.id })}
-          accessibilityRole="button"
-          accessibilityLabel={`Care instructions for ${pet.name}`}
-          testID="pet-care-instructions"
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={BS.rowLabel}>Care instructions</Text>
-            <Text style={BS.caption}>
-              Food, bathroom, sleep, behaviour and quirks — what a sitter follows.
-            </Text>
-          </View>
-          <Text style={BS.link}>{careInstructionsSummary(petInstructions)} ›</Text>
-        </TouchableOpacity>
         <TouchableOpacity
           style={BS.divRowBetween}
           onPress={() => navigation.navigate('CareLog', { petId: pet.id })}
@@ -379,6 +466,21 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
             <Text style={BS.caption}>
               The visit you’re preparing for — its reason and your questions — beside the last visit
               and current medication on file. Saving it files the visit here.
+            </Text>
+          </View>
+          <Text style={BS.link}>Open ›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={BS.divRowBetween}
+          onPress={() => openSitterScreenFromPetPage(rootNavigation, 'PrintableBinder', pet.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`Printable binder for ${pet.name}`}
+          testID="pet-handoff-binder"
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={BS.rowLabel}>🧳 Printable binder</Text>
+            <Text style={BS.caption}>
+              This pet’s whole care file, ready to print for a sitter, a vet or the fridge.
             </Text>
           </View>
           <Text style={BS.link}>Open ›</Text>
@@ -440,9 +542,6 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
           <Text style={BS.rowLabel}>Vet records</Text>
           <Text style={BS.caption}>{petVetRecords.length}</Text>
         </View>
-        <TouchableOpacity style={BS.divRowBetween} onPress={() => navigation.navigate('Expenses')}>
-          <Text style={BS.link}>Expenses ›</Text>
-        </TouchableOpacity>
 
         <Text style={[BS.fieldLabel, { marginTop: SPACE.s4 }]}>This profile</Text>
         <TouchableOpacity

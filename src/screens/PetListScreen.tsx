@@ -61,7 +61,14 @@ export default function PetListScreen(): React.JSX.Element {
           </Text>
         ) : (
           pets.map((pet) => (
-            <TouchableOpacity key={pet.id} style={BS.divRowBetween} onPress={() => openPet(pet.id)}>
+            <TouchableOpacity
+              key={pet.id}
+              style={BS.divRowBetween}
+              onPress={() => openPet(pet.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`${pet.name}’s page`}
+              testID={`pet-list-row-${pet.id}`}
+            >
               <PetThumb pet={pet} />
               <View style={{ flex: 1, marginLeft: SPACE.s2 }}>
                 <Text style={BS.rowLabel}>
@@ -78,6 +85,9 @@ export default function PetListScreen(): React.JSX.Element {
         <TouchableOpacity
           style={[BS.btnSecondary, { marginTop: SPACE.s3 }]}
           onPress={() => navigation.navigate('PetForm')}
+          accessibilityRole="button"
+          accessibilityLabel="Add a pet"
+          testID="pet-list-add"
         >
           <Text style={BS.btnSecondaryText}>＋ Add a pet</Text>
         </TouchableOpacity>
