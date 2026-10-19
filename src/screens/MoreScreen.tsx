@@ -7,9 +7,9 @@
  * YOUR CIRCLE / HANDOFF / SHOP & SETTINGS lives here, grouped in that order:
  *
  *   Your circle    — Care Circle (the roster on its way) and the real Emergency
- *                    card screen. The Care Calendar row sits here for now; it
- *                    moves to Records' CARE group in the next mapping chunk, so
- *                    every chunk ships with the row reachable somewhere.
+ *                    card screen. Care Calendar used to sit here; it moved to
+ *                    Records ▸ CARE (`records-care-calendar`) in OS-map chunk 3,
+ *                    so `more-care-calendar` is retired.
  *   Handoff        — the whole Sitter/travel/vet family, one tap from the tab
  *                    bar instead of three: "I'm leaving town" (the guided
  *                    wizard), Sitter Mode (every pass you made or received),
@@ -143,27 +143,6 @@ export default function MoreScreen({ navigation }: Props): React.JSX.Element {
             })
           }
           testID="more-care-circle"
-        />
-        {/*
-         * The Care Calendar row lives here for this chunk only: it becomes
-         * Records ▸ CARE ▸ `records-care-calendar` in the next mapping chunk.
-         * Moving it in two steps keeps both chunks shippable — the row is
-         * reachable from somewhere the whole time.
-         */}
-        <MoreRow
-          emoji="🗓️"
-          label="Care Calendar"
-          caption="Feeding, walks, meds and vet visits on one timeline — on its way"
-          tint={COLOR.sunshine}
-          onPress={() =>
-            navigation.navigate('ComingSoon', {
-              title: 'Care Calendar',
-              emoji: '🗓️',
-              message:
-                'Food, medication, routines, supplies and appointments will land on one care calendar here.',
-            })
-          }
-          testID="more-care-calendar"
         />
         <MoreRow
           emoji="🚨"

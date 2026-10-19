@@ -13,12 +13,15 @@
  *   +       — the raised centre button. It is not a route: it opens the
  *             root-stack Quick Add modal (the real one-tap sheet arrives in
  *             Phase C; today the sheet previews the nine actions honestly).
- *   Records — every pet's vet records in one list, plus add-a-record with
- *             camera / library capture.
- *   More    — everything else, grouped: Care Circle / Care Calendar
- *             placeholders and the Emergency Card (Your circle), Sitter Mode
- *             and Open a Care Pass (Care & handoff), Shop & keepsakes, record
- *             search and Settings (Extras), plus the offline promise.
+ *   Records — every pet's vet records in one list plus add-a-record with camera /
+ *             library capture, and below it the CARE group (Food & feeding,
+ *             Medication, Routines, Supplies, Care calendar, Vet records) —
+ *             see the OS content map §2.4.
+ *   More    — everything else, grouped: the Care Circle placeholder and the
+ *             Emergency Card (Your circle), the whole Sitter/travel/vet family
+ *             (Handoff), Shop & keepsakes, record search and Settings (Shop &
+ *             settings), plus the offline promise. Care Calendar moved to
+ *             Records ▸ CARE in OS-map chunk 3.
  *
  * Nothing was lost in the pivot: the old Card, Shop and Sitter tabs are the
  * More stack's `EmergencyCard`, nested `Shop` and nested `Sitter` screens, so
