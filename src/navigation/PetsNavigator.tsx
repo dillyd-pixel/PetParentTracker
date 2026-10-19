@@ -14,6 +14,18 @@
  *   CareLog    — Sitter Mode's check-in record for one pet, newest first. The
  *                same screen is registered in the Sitter stack so the owner can
  *                reach it from either side.
+ *   ComingSoon — the shared illustrated placeholder (components/ComingSoonView),
+ *                registered here for the pet page's **Vitals** row: there is no
+ *                weigh-in history store in this app, so the row opens an honest
+ *                page instead of a chart that would have to invent its data.
+ *                The same page is registered in the More and Records stacks.
+ *
+ * The pet page is the **MY PETS** hub (OS content map §2.2): the pet's profile,
+ * vitals, health, vet records, medication, feeding, spending, journal and care
+ * instructions all hang off it, each with a stable `pet-module-*` id, and the
+ * handoff tools (care log, emergency info, vet prep, printable binder) sit
+ * beside them. The tab root stays the list of pets — no module grid, no second
+ * editor for the same store.
  *
  * Every screen in this stack draws the design's own in-page header — an `h1`
  * plus a `‹ back` link — so the navigator header stays hidden throughout:
@@ -31,6 +43,7 @@ import PetProfileScreen from '../screens/PetProfileScreen';
 import CareInstructionsScreen from '../screens/CareInstructionsScreen';
 import CareInstructionsEditorScreen from '../screens/CareInstructionsEditorScreen';
 import CareLogScreen from '../screens/CareLogScreen';
+import { PetsComingSoonScreen } from '../screens/ComingSoonScreen';
 import {
   VaccinesScreen,
   MedsScreen,
@@ -66,6 +79,12 @@ export type PetsStackParamList = {
    * stack; `petId` is optional in both, falling back to the active pet.
    */
   CareLog: { petId?: string } | undefined;
+  /**
+   * The shared illustrated placeholder. Same param shape as the More stack's
+   * route, plus `slug` so the id can read `coming-soon-vitals` while the page's
+   * heading stays "Vitals".
+   */
+  ComingSoon: { title: string; emoji: string; message: string; accent?: string; slug?: string };
 };
 
 /** What a Quick Add "Note"/"Photo" tap wants the journal form to look at. */
@@ -87,6 +106,7 @@ export function PetsNavigator(): React.JSX.Element {
       <Stack.Screen name="CareInstructions" component={CareInstructionsScreen} />
       <Stack.Screen name="CareInstructionsEditor" component={CareInstructionsEditorScreen} />
       <Stack.Screen name="CareLog" component={CareLogScreen} />
+      <Stack.Screen name="ComingSoon" component={PetsComingSoonScreen} />
     </Stack.Navigator>
   );
 }

@@ -39,6 +39,7 @@ import { useGoToPremium } from '../components/CarePassPremiumLock';
 import { usePets } from '../context/PetContext';
 import { usePremium } from '../context/PremiumContext';
 import type { SitterStackParamList } from '../navigation/SitterNavigator';
+import { PET_DEEP_LINK_ORIGIN, usePetDeepLinkBack } from '../navigation/petDeepLink';
 import {
   binderFileName,
   binderSummaryLine,
@@ -70,7 +71,7 @@ interface GeneratedInfo {
   summary: string;
 }
 
-export default function PrintableBinderScreen({ navigation }: Props): React.JSX.Element {
+export default function PrintableBinderScreen({ navigation, route }: Props): React.JSX.Element {
   const { pets, activePet } = usePets();
   const premium = usePremium();
   const entitled = premium.isPremium();
@@ -79,7 +80,10 @@ export default function PrintableBinderScreen({ navigation }: Props): React.JSX.
 
   const allPetIds = useMemo(() => pets.map((pet) => pet.id), [pets]);
   const [petIds, setPetIds] = useState<string[]>(() => {
-    const first = activePet?.id ?? pets[0]?.id;
+    // A per-pet row on a pet's page names its pet (`pet-handoff-binder`); the
+    // More / Sitter Home doors name none, so the active pet is the honest
+    // default there. An unknown id falls back to the first pet below.
+    const first = route.params?.petId ?? activePet?.id ?? pets[0]?.id;
     return first ? [first] : [];
   });
   const [paper, setPaper] = useState<PaperSize>('letter');
@@ -238,16 +242,34 @@ export default function PrintableBinderScreen({ navigation }: Props): React.JSX.
     }
   }, [busy, ensurePdf, petNames, summary]);
 
+  // `‹ Back` returns to the pet's page when the row that opened this screen was
+  // on one (`pet-handoff-binder`), and to Sitter Mode on the normal path — the
+  // same helper Vet Mode and Emergency Mode use (nav/petDeepLink.ts). Without
+  // it a deep link would leave nothing beneath this screen, and Back would fall
+  // through to the tab navigator and land on Home.
+  const goBack = usePetDeepLinkBack(navigation, route.params);
+  const linkedPet = route.params?.petId
+    ? pets.find((entry) => entry.id === route.params?.petId) ?? activePet
+    : activePet;
+  const backLabel =
+    route.params?.from === PET_DEEP_LINK_ORIGIN
+      ? linkedPet
+        ? `${linkedPet.name}’s page`
+        : 'Pet page'
+      : 'Sitter Mode';
+
   /* ---- no pets yet ---- */
   if (pets.length === 0) {
     return (
       <View style={BS.screen}>
         <ScrollView contentContainerStyle={BS.pad}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            accessibilityLabel="Back to Sitter Mode"
+            onPress={goBack}
+            accessibilityRole="button"
+            accessibilityLabel={`Back to ${backLabel}`}
+            testID="binder-back"
           >
-            <Text style={BS.link}>‹ Sitter Mode</Text>
+            <Text style={BS.link}>‹ {backLabel}</Text>
           </TouchableOpacity>
           <Text style={[BS.eyebrow, { marginTop: SPACE.s3 }]}>Handoff</Text>
           <Text style={BS.h1}>Printable binder</Text>
@@ -263,8 +285,13 @@ export default function PrintableBinderScreen({ navigation }: Props): React.JSX.
   return (
     <View style={BS.screen}>
       <ScrollView contentContainerStyle={[BS.pad, styles.pad]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Back to Sitter Mode">
-          <Text style={BS.link}>‹ Sitter Mode</Text>
+        <TouchableOpacity
+          onPress={goBack}
+          accessibilityRole="button"
+          accessibilityLabel={`Back to ${backLabel}`}
+          testID="binder-back"
+        >
+          <Text style={BS.link}>‹ {backLabel}</Text>
         </TouchableOpacity>
         <Text style={[BS.eyebrow, { marginTop: SPACE.s3 }]}>Handoff · 3 of 3</Text>
         <Text style={BS.h1} testID="binder-title">

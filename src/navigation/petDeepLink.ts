@@ -1,11 +1,12 @@
 /**
- * The pet page's two cross-tab deep links into the More tab's Sitter stack —
- * 🩺 Vet visit prep (`pet-vet-mode`) and 🚨 Emergency info
- * (`pet-emergency-info`).
+ * The pet page's cross-tab deep links into the More tab's Sitter stack —
+ * 🩺 Vet visit prep (`pet-vet-mode`), 🚨 Emergency info (`pet-emergency-info`)
+ * and 🧳 Printable binder (`pet-handoff-binder`, added by OS-mapping chunk 2).
  *
- * Both rows open a screen that lives two navigators away from the Pets tab, and
- * that stack is not mounted until one of them is tapped. React Navigation then
- * *creates* it at the wanted screen: the Sitter stack holds Vet Mode and nothing
+ * Every row that opens a Sitter screen from a pet page goes through this file.
+ * Such a screen lives two navigators away from the Pets tab, and that stack is
+ * not mounted until one of the rows is tapped. React Navigation then *creates*
+ * it at the wanted screen: the Sitter stack holds that screen and nothing
  * beneath it, and the More stack holds the Sitter stack and nothing beneath
  * that. A plain `goBack()` therefore finds no route to pop in either stack and
  * bubbles up to the tab navigator, which answers GO_BACK by focusing its first
@@ -18,11 +19,12 @@
  *    the More tab back on its own menu (a reset, because the stacks it is
  *    leaving were created at this screen and may have nothing to pop).
  *  - no `from` — the screen was reached the normal way (More → Sitter Mode →
- *    Vet Mode / Emergency) — → `goBack()` does exactly what it always did: one
- *    step back to Sitter Home. Nothing about the natural path changed.
+ *    Vet Mode / Emergency / Printable binder) — → `goBack()` does exactly what
+ *    it always did: one step back to Sitter Home. Nothing about the natural
+ *    path changed.
  *
- * Both pet-page rows go through `openSitterScreenFromPetPage` and both screens
- * read the same param through `usePetDeepLinkBack`, so the two entries cannot
+ * Every pet-page row goes through `openSitterScreenFromPetPage` and every screen
+ * reads the same param through `usePetDeepLinkBack`, so the entries cannot
  * drift into different shapes. Navigation only: no store, no gate, no screen
  * business logic is touched, and nothing here reaches the network.
  */
@@ -51,7 +53,7 @@ export type PetDeepLinkParams = {
 };
 
 /** The Sitter-stack screens the pet page links to. */
-export type PetDeepLinkScreen = 'VetMode' | 'Emergency';
+export type PetDeepLinkScreen = 'VetMode' | 'Emergency' | 'PrintableBinder';
 
 /** The reset action used to put the More tab back on its menu. */
 type ResetAction = ReturnType<typeof CommonActions.reset>;
@@ -82,6 +84,13 @@ export function openSitterScreenFromPetPage(
     rootNavigation.navigate('More', {
       screen: 'Sitter',
       params: { screen: 'VetMode', params },
+    });
+    return;
+  }
+  if (screen === 'PrintableBinder') {
+    rootNavigation.navigate('More', {
+      screen: 'Sitter',
+      params: { screen: 'PrintableBinder', params },
     });
     return;
   }
