@@ -21,7 +21,9 @@
  *                   destination with its own stack and its own premium gate —
  *                   reached as a stack under More, never as a tab.
  *   EmergencyCard — the pet's emergency card details. It used to be its own tab.
- *   ComingSoon    — the illustrated placeholder for Care Circle / Care Calendar.
+ *   ComingSoon    — the illustrated placeholder for Care Circle (the Care
+ *                   Calendar placeholder moved to the Records stack in OS-map
+ *                   chunk 3, as `records-care-calendar`).
  *
  * Nesting the Shop and Sitter stacks keeps those screens' own in-page headers,
  * premium gates and storage exactly as they were — this phase only moves where
