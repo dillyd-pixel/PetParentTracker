@@ -11,7 +11,9 @@
  *  2. **Medication**, **Weight**, **Expense**, **Appointment**, **Note**,
  *     **Photo** and **Document** deep-link straight into the app's own editor
  *     for that thing, pre-set to the chosen pet. Nothing is duplicated here:
- *     the editors already own validation, reminders and storage.
+ *     the editors already own validation, reminders and storage. **Weight**
+ *     opens the pet's profile form, the app's only weight field (`Pet.weight`)
+ *     — there is no separate weigh-in screen, so its hint says so.
  *
  * The pet defaults to the active one from the Home carousel (so the common case
  * is two taps) and can be switched with the chips at the top.
@@ -58,7 +60,9 @@ interface QuickAction {
 const ACTIONS: QuickAction[] = [
   { id: 'medication', emoji: '💊', label: 'Medication', tint: COLOR.coral, hint: 'New med, pre-filled' },
   { id: 'appointment', emoji: '📅', label: 'Appointment', tint: COLOR.blue, hint: 'Book a date' },
-  { id: 'weight', emoji: '⚖️', label: 'Weight', tint: COLOR.aqua, hint: 'Today’s weigh-in' },
+  // Weight has no weigh-in flow: the app stores one weight per pet, on the
+  // profile (`Pet.weight`), so the hint says where a tap actually lands.
+  { id: 'weight', emoji: '⚖️', label: 'Weight', tint: COLOR.aqua, hint: 'Goes on the profile' },
   { id: 'expense', emoji: '💸', label: 'Expense', tint: COLOR.tangerine, hint: 'Log a cost' },
   { id: 'food', emoji: '🍽️', label: 'Food', tint: COLOR.sunshine, hint: 'One tap', instant: 'food' },
   { id: 'walk', emoji: '🐾', label: 'Walk', tint: COLOR.leaf, hint: 'One tap', instant: 'exercise' },
