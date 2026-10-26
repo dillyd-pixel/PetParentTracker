@@ -89,34 +89,32 @@ export default function VitalsScreen({ navigation, route }: Props): React.JSX.El
         </Text>
 
         {hasWeight ? (
-          <CCCard
-            glowTint={COLOR.aqua}
-            radius={22}
-            padding={SPACE.s4}
-            style={{ marginTop: SPACE.s4 }}
-            testID="vitals-card"
-          >
-            <Text style={BS.cardKicker}>Last weigh-in</Text>
-            <Text style={styles.bigValue} testID="vitals-weight">
-              {weightLabel}
-            </Text>
-            {weighedOn ? (
-              <Text style={[BS.caption, { marginTop: SPACE.s2 }]} testID="vitals-date">
-                Recorded {shortDate(weighedOn)}
+          /* `vitals-card` sits on a wrapper: `CCCard` only forwards a testID
+             when it is itself a button, and this card is read-only. */
+          <View testID="vitals-card" style={{ marginTop: SPACE.s4 }}>
+            <CCCard glowTint={COLOR.aqua} radius={22} padding={SPACE.s4}>
+              <Text style={BS.cardKicker}>Last weigh-in</Text>
+              <Text style={styles.bigValue} testID="vitals-weight">
+                {weightLabel}
               </Text>
-            ) : (
-              <Text style={[BS.caption, { marginTop: SPACE.s2 }]} testID="vitals-no-date">
-                No date was recorded with this weight — that’s all the app knows, so it won’t
-                make one up.
+              {weighedOn ? (
+                <Text style={[BS.caption, { marginTop: SPACE.s2 }]} testID="vitals-date">
+                  Recorded {shortDate(weighedOn)}
+                </Text>
+              ) : (
+                <Text style={[BS.caption, { marginTop: SPACE.s2 }]} testID="vitals-no-date">
+                  No date was recorded with this weight — that’s all the app knows, so it won’t
+                  make one up.
+                </Text>
+              )}
+              <View style={styles.rule} />
+              <Text style={BS.caption} testID="vitals-no-history">
+                This is the whole picture: one number per pet, kept on {pet.name}’s profile. The
+                app doesn’t log weigh-ins over time, so there’s no chart, no trend and no
+                “since last time” here — nothing gets invented.
               </Text>
-            )}
-            <View style={styles.rule} />
-            <Text style={BS.caption} testID="vitals-no-history">
-              This is the whole picture: one number per pet, kept on {pet.name}’s profile. The
-              app doesn’t log weigh-ins over time, so there’s no chart, no trend and no
-              “since last time” here — nothing gets invented.
-            </Text>
-          </CCCard>
+            </CCCard>
+          </View>
         ) : (
           <View style={[BS.dashedBox, { marginTop: SPACE.s4 }]} testID="vitals-empty">
             <Text style={{ fontSize: 34 }}>⚖️</Text>
