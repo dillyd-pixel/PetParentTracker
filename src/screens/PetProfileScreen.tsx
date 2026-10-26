@@ -58,7 +58,7 @@ import { openSitterScreenFromPetPage } from '../navigation/petDeepLink';
 import type { PetsStackParamList } from '../navigation/PetsNavigator';
 import { medicationScheduleLabel, careInstructionsSummary } from '../types';
 import { careLogCount } from '../utils/caregiverCheckIn';
-import { petEmojiFor, petMetaLine, shortDate } from '../utils/petDisplay';
+import { petEmojiFor, petMetaLine, petWeightLabel, shortDate } from '../utils/petDisplay';
 import { BS, COLOR, SPACE } from '../theme';
 
 /** Which photo source the owner picked on the plate. */
@@ -357,16 +357,9 @@ export default function PetProfileScreen({ navigation, route }: Props): React.JS
         <ModuleRow
           emoji="⚖️"
           label="Vitals"
-          caption="One weight lives on the profile today — there is no weigh-in log behind this row yet."
-          onPress={() =>
-            navigation.navigate('ComingSoon', {
-              title: 'Vitals',
-              slug: 'vitals',
-              emoji: '⚖️',
-              message:
-                'A pet’s weight is the single number on its profile today — there is no weigh-in history kept on this device yet, and this page will not invent one.',
-            })
-          }
+          caption="The one weigh-in we keep — the number, the unit and the day you recorded it."
+          onPress={() => navigation.navigate('Vitals', { petId: pet.id })}
+          trailing={petWeightLabel(pet) || undefined}
           testID="pet-module-vitals"
         />
         <ModuleRow

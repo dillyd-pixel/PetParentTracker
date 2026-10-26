@@ -14,11 +14,13 @@
  *   CareLog    — Sitter Mode's check-in record for one pet, newest first. The
  *                same screen is registered in the Sitter stack so the owner can
  *                reach it from either side.
- *   ComingSoon — the shared illustrated placeholder (components/ComingSoonView),
- *                registered here for the pet page's **Vitals** row: there is no
- *                weigh-in history store in this app, so the row opens an honest
- *                page instead of a chart that would have to invent its data.
- *                The same page is registered in the More and Records stacks.
+ *   Vitals     — the one weigh-in the app keeps, shown honestly (owner decision
+ *                2026-10-20: no weight-history store). Weight + unit + the day
+ *                it was recorded, read straight off the pet; no chart, no trend,
+ *                no invented date. Its one door out is `PetForm`.
+ *
+ * (The `ComingSoon` route this stack used to carry for Vitals was retired with
+ * that page — the shared placeholder still serves the More and Records stacks.)
  *
  * The pet page is the **MY PETS** hub (OS content map §2.2): the pet's profile,
  * vitals, health, vet records, medication, feeding, spending, journal and care
@@ -43,7 +45,7 @@ import PetProfileScreen from '../screens/PetProfileScreen';
 import CareInstructionsScreen from '../screens/CareInstructionsScreen';
 import CareInstructionsEditorScreen from '../screens/CareInstructionsEditorScreen';
 import CareLogScreen from '../screens/CareLogScreen';
-import { PetsComingSoonScreen } from '../screens/ComingSoonScreen';
+import VitalsScreen from '../screens/VitalsScreen';
 import {
   VaccinesScreen,
   MedsScreen,
@@ -80,11 +82,10 @@ export type PetsStackParamList = {
    */
   CareLog: { petId?: string } | undefined;
   /**
-   * The shared illustrated placeholder. Same param shape as the More stack's
-   * route, plus `slug` so the id can read `coming-soon-vitals` while the page's
-   * heading stays "Vitals".
+   * The one weigh-in the app keeps — weight, unit and the day it was recorded,
+   * read from the pet itself. Optional `petId` falls back to the active pet.
    */
-  ComingSoon: { title: string; emoji: string; message: string; accent?: string; slug?: string };
+  Vitals: { petId?: string } | undefined;
 };
 
 /** What a Quick Add "Note"/"Photo" tap wants the journal form to look at. */
@@ -106,7 +107,7 @@ export function PetsNavigator(): React.JSX.Element {
       <Stack.Screen name="CareInstructions" component={CareInstructionsScreen} />
       <Stack.Screen name="CareInstructionsEditor" component={CareInstructionsEditorScreen} />
       <Stack.Screen name="CareLog" component={CareLogScreen} />
-      <Stack.Screen name="ComingSoon" component={PetsComingSoonScreen} />
+      <Stack.Screen name="Vitals" component={VitalsScreen} />
     </Stack.Navigator>
   );
 }
