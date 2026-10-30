@@ -9,10 +9,10 @@
  *
  * It is shared, not copied: every stack that needs a placeholder registers its
  * own `ComingSoon` route and renders this view with its own `backLabel`, so the
- * More tab's Care Circle / Care Calendar pages, the Pets tab's Vitals page and
- * the Records tab's CARE shells cannot drift into three different designs
- * (OS content map §3d — "the rule, so five chunks can't invent five different
- * ones").
+ * More tab's Care Circle page and the Records tab's CARE shells cannot drift
+ * into two different designs (OS content map §3d — "the rule, so five chunks
+ * can't invent five different ones"). The Pets stack's placeholder (Vitals) has
+ * since become a real page — `screens/VitalsScreen.tsx`.
  *
  * Props are the page's whole contract:
  *  - `title` / `emoji` / `message` / `accent` — what the page says;
